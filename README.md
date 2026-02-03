@@ -13,8 +13,8 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/hyodotdev/locanara-community/actions/workflows/ci-ios.yml/badge.svg" alt="CI iOS" />
-  <img src="https://github.com/hyodotdev/locanara-community/actions/workflows/ci-android.yml/badge.svg" alt="CI Android" />
+  <img src="https://github.com/hyodotdev/locanara/actions/workflows/ci-ios.yml/badge.svg" alt="CI iOS" />
+  <img src="https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml/badge.svg" alt="CI Android" />
 </p>
 
 ---
