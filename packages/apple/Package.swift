@@ -4,11 +4,13 @@ import PackageDescription
 
 let package = Package(
     name: "Locanara",
+    // Note: SDK compiles on older platforms but Apple Intelligence features
+    // require iOS 26+/macOS 26+ at runtime (checked via #available)
     platforms: [
-        .iOS(.v17),
+        .iOS(.v15),
         .macOS(.v14),
-        .tvOS(.v17),
-        .watchOS(.v10)
+        .tvOS(.v15),
+        .watchOS(.v8)
     ],
     products: [
         .library(

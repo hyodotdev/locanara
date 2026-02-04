@@ -45,6 +45,10 @@ Check naming conventions for platform-specific features:
 ✓ iOS-only features use 'Ios' camelCase in Swift (e.g., generateImageIos)
 ```
 
+> **Note on IOS vs Ios**: GraphQL enums use SCREAMING_SNAKE_CASE (`GENERATE_IMAGE_IOS`),
+> while Swift follows API Design Guidelines where 3+ letter acronyms use title case (`generateImageIos`).
+> This is intentional - see [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/).
+
 ### 3. Coding Style Audit
 
 ```text

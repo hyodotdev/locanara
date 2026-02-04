@@ -35,6 +35,7 @@ android {
         consumerProguardFiles("consumer-rules.pro")
 
         buildConfigField("String", "TIER", "\"community\"")
+        buildConfigField("String", "SDK_VERSION", "\"$locanaraVersion\"")
     }
 
     testOptions {
@@ -82,11 +83,14 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
     // ML Kit GenAI APIs
+    // Note: These are the latest available versions from Google ML Kit.
+    // genai-prompt is in alpha as it's a newer Gemini Nano integration.
+    // API may change in future releases.
     implementation("com.google.mlkit:genai-summarization:1.0.0-beta1")
     implementation("com.google.mlkit:genai-proofreading:1.0.0-beta1")
     implementation("com.google.mlkit:genai-rewriting:1.0.0-beta1")
     implementation("com.google.mlkit:genai-image-description:1.0.0-beta1")
-    implementation("com.google.mlkit:genai-prompt:1.0.0-alpha1")
+    implementation("com.google.mlkit:genai-prompt:1.0.0-alpha1")  // Alpha: Gemini Nano Prompt API
 
     // Testing
     testImplementation("junit:junit:4.13.2")

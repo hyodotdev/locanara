@@ -581,9 +581,9 @@ class Locanara private constructor(
         private const val TAG = "Locanara"
 
         /**
-         * SDK version
+         * SDK version (from BuildConfig, sourced from locanara-versions.json)
          */
-        const val VERSION = "0.1.0"
+        val VERSION: String = BuildConfig.SDK_VERSION
 
         @Volatile
         private var instance: Locanara? = null

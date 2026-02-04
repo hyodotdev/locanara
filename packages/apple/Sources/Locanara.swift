@@ -24,7 +24,7 @@ public enum PackageSource: String, Sendable {
 }
 
 public enum LocanaraSDK {
-    /// SDK version
+    /// SDK version (keep in sync with locanara-versions.json)
     public static let version = "1.0.1"
 
     /// Check if Pro tier is available (always false in Community SDK)
@@ -97,8 +97,8 @@ public final class LocanaraClient {
     /// Shared singleton instance
     public static let shared = LocanaraClient()
 
-    /// Current SDK version
-    public static let version = "1.0.1"
+    /// Current SDK version (references LocanaraSDK.version)
+    public static let version = LocanaraSDK.version
 
     private var isInitialized = false
     private var deviceCapability: DeviceCapability?
