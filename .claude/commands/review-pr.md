@@ -63,8 +63,8 @@ Run the following validation before commit based on changed files:
 
 Check the following project-specific rules during review:
 
-- **iOS functions**: `IOS` suffix required (e.g., `syncIOS`)
-- **Android functions**: No `Android` suffix (Android-only package)
+- **iOS functions**: `IOS` suffix required (e.g., `executeFeatureIOS`, `DeviceInfoIOS`)
+- **Android functions**: `Android` suffix for platform-specific APIs (e.g., `executeFeatureAndroid`, `DeviceInfoAndroid`)
 - **Generated files**: Do not directly modify `packages/apple/Sources/Models/Types.swift`, `packages/android/locanara/src/main/Types.kt`
 
 See [CLAUDE.md](../../CLAUDE.md) for detailed conventions.

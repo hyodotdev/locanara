@@ -29,6 +29,10 @@ android {
     compileSdk = 35
 
     defaultConfig {
+        // Note: minSdk 31 allows broader compatibility. AI features are checked at runtime:
+        // - ML Kit GenAI (Summarize, Proofread, Rewrite, Image Description): API 26+
+        // - Prompt API (Gemini Nano): API 34+ with supported devices
+        // SDK gracefully disables unavailable features via getDeviceCapability()
         minSdk = 31
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
