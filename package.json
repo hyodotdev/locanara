@@ -29,9 +29,7 @@
     "docs:build": "bun run --cwd packages/docs build",
     "gql": "bun run --cwd packages/gql",
     "gql:generate": "bun run --cwd packages/gql generate",
-    "knowledge": "bun run --cwd scripts/agent compile",
-    "knowledge:install": "cd scripts/agent && bun install",
-    "prepare": "husky && bun run knowledge:install"
+    "prepare": "husky"
   },
   "devDependencies": {
     "husky": "^9.1.7",
