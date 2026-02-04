@@ -1,0 +1,109 @@
+# Locanara Community SDK Quick Reference
+
+> Locanara: On-device AI SDK for iOS/macOS and Android
+> Documentation: https://locanara.com
+> Full Reference: https://locanara.com/llms-full.txt
+> Generated: 2026-02-04T13:41:29.120Z
+
+## Overview
+
+Locanara provides unified on-device AI capabilities. Privacy-first, no cloud.
+
+## Installation
+
+### iOS (Swift Package Manager)
+```
+https://github.com/hyodotdev/locanara
+```
+Requires: iOS 26+ / macOS 26+
+
+### iOS (CocoaPods)
+```ruby
+pod 'Locanara', '~> 1.0'
+```
+
+### Android (Gradle)
+```kotlin
+implementation("com.locanara:locanara:1.0.0")
+```
+Requires: Android 14+ (API 34+)
+
+## API (All Platforms)
+
+```
+getDeviceCapability() -> DeviceCapability
+summarize(text, options?) -> String
+classify(text, categories) -> String
+extract(text, schema) -> String
+translate(text, targetLanguage) -> String
+rewrite(text, tone) -> String
+proofread(text) -> String
+chat(messages) -> AsyncStream<String>
+describeImage(imageData) -> String
+```
+
+## iOS Usage
+
+```swift
+import Locanara
+
+// Check capability
+let capability = await Locanara.getDeviceCapability()
+
+// Summarize
+let summary = try await Locanara.summarize("Long text...")
+
+// Chat (streaming)
+for try await chunk in Locanara.chat(messages: [...]) {
+    print(chunk)
+}
+```
+
+## Android Usage
+
+```kotlin
+import com.locanara.Locanara
+
+// Check capability
+val capability = Locanara.getDeviceCapability()
+
+// Summarize
+val summary = Locanara.summarize(text = "Long text...")
+
+// Chat (streaming)
+Locanara.chat(messages = listOf(...)).collect { chunk ->
+    print(chunk)
+}
+```
+
+## Core Types
+
+### DeviceCapability
+```swift
+struct DeviceCapability {
+    let tier: Tier                    // .community
+    let isAppleIntelligenceAvailable: Bool
+    let isFoundationModelsAvailable: Bool
+    let supportedFeatures: [Feature]
+}
+```
+
+### Error Handling
+```swift
+enum LocanaraError: Error {
+    case notAvailable              // AI not available
+    case executionFailed(String)
+}
+```
+
+## Naming Conventions
+
+- Cross-platform: No suffix (`summarize`, `classify`)
+- iOS-only: `IOS` suffix (`getStorefrontIOS`)
+- Android-only: `Android` suffix (in cross-platform package)
+- Errors: `Locanara` prefix (`LocanaraError`)
+
+## Links
+
+- Docs: https://locanara.com
+- GitHub: https://github.com/hyodotdev/locanara

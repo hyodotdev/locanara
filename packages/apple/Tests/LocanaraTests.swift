@@ -5,7 +5,7 @@ import XCTest
 final class LocanaraTests: XCTestCase {
 
     func testSDKVersion() {
-        XCTAssertEqual(LocanaraClient.version, "1.0.0")
+        XCTAssertEqual(LocanaraClient.version, "1.0.1")
     }
 
     func testInitialization() async throws {

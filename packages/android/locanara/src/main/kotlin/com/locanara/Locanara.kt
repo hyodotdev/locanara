@@ -553,8 +553,9 @@ class Locanara private constructor(
                 promptApiStatus = PromptApiStatus.Available
                 Log.w(TAG, "Prompt API model download completed")
                 // Refresh device capabilities
-                deviceCapability = checkDeviceCapabilities()
-                _capabilityChangedFlow.emit(deviceCapability!!)
+                val capability = checkDeviceCapabilities()
+                deviceCapability = capability
+                _capabilityChangedFlow.emit(capability)
             } catch (e: Exception) {
                 Log.e(TAG, "Prompt API model download failed", e)
                 promptApiStatus = PromptApiStatus.NotAvailable("Download failed: ${e.message}")
