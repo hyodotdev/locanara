@@ -1,0 +1,106 @@
+# Android-specific types for Locanara
+
+# Gemini Nano information
+type GeminiNanoInfoAndroid {
+  """
+  Model version
+  """
+  version: String!
+  """
+  Model variant (nano, nano-multimodal, etc.)
+  """
+  variant: String
+  """
+  Supported languages
+  """
+  supportedLanguages: [String!]!
+  """
+  Model capabilities
+  """
+  capabilities: [String!]!
+  """
+  Whether model is downloaded
+  """
+  isDownloaded: Boolean!
+  """
+  Download size in MB
+  """
+  downloadSizeMB: Int
+  """
+  Whether model is ready for inference
+  """
+  isReady: Boolean!
+}
+
+# Android-specific execution options
+input ExecuteFeatureOptionsAndroid {
+  """
+  Use Gemini Nano
+  """
+  useGeminiNano: Boolean
+  """
+  Model variant to use
+  """
+  modelVariant: String
+  """
+  Enable GPU acceleration
+  """
+  enableGPU: Boolean
+  """
+  Number of threads for inference
+  """
+  numThreads: Int
+}
+
+# Android-specific device info
+type DeviceInfoAndroid {
+  """
+  Device manufacturer
+  """
+  manufacturer: String!
+  """
+  Device model
+  """
+  model: String!
+  """
+  Android API level
+  """
+  apiLevel: Int!
+  """
+  Android version
+  """
+  androidVersion: String!
+  """
+  Whether device supports Gemini Nano
+  """
+  supportsGeminiNano: Boolean!
+  """
+  Available system languages
+  """
+  systemLanguages: [String!]!
+  """
+  GPU information
+  """
+  gpuInfo: String
+  """
+  Total RAM in MB
+  """
+  totalRAMMB: Int!
+}
+
+# Android-specific Image Description parameters (describeImageAndroid)
+# Uses ML Kit GenAI Image Description with Gemini Nano
+input ImageDescriptionParametersAndroid {
+  """
+  Base64 encoded image data
+  """
+  imageBase64: String
+  """
+  Image file path (alternative to base64)
+  """
+  imagePath: String
+  """
+  Language for description output
+  """
+  language: MLKitLanguage
+}

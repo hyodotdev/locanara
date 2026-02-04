@@ -1,0 +1,46 @@
+# Android-specific API operations
+
+extend type Query {
+  """
+  Get Android device information
+  """
+  getDeviceInfoAndroid: DeviceInfoAndroid!
+
+  """
+  Get Gemini Nano status
+  """
+  getGeminiNanoStatus: GeminiNanoInfoAndroid!
+
+  """
+  Check if device meets minimum requirements
+  """
+  meetsMinimumRequirements: Boolean!
+}
+
+extend type Mutation {
+  """
+  Download Gemini Nano model
+  """
+  downloadGeminiNano(variant: String): VoidResult!
+
+  """
+  Execute feature with Android-specific options
+  """
+  executeFeatureAndroid(
+    input: ExecuteFeatureInput!
+    options: ExecuteFeatureOptionsAndroid
+  ): ExecutionResult!
+
+  """
+  Initialize Gemini Nano
+  """
+  initializeGeminiNano: VoidResult!
+
+  """
+  Describe image using Android ML Kit GenAI (Gemini Nano)
+  Community tier - uses on-device Gemini Nano vision model
+  """
+  describeImageAndroid(
+    parameters: ImageDescriptionParametersAndroid!
+  ): ImageDescriptionResult!
+}

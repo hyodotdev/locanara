@@ -1,0 +1,71 @@
+# Error types for OnDeviceAI
+
+enum ErrorCode {
+  # SDK initialization errors
+  SDK_NOT_INITIALIZED
+  INITIALIZATION_FAILED
+
+  # Feature availability errors
+  FEATURE_NOT_AVAILABLE
+  FEATURE_NOT_SUPPORTED
+  MODEL_NOT_LOADED
+  MODEL_DOWNLOAD_REQUIRED
+
+  # Execution errors
+  EXECUTION_FAILED
+  EXECUTION_TIMEOUT
+  EXECUTION_CANCELLED
+  INVALID_INPUT
+  INPUT_TOO_LONG
+
+  # Device capability errors
+  INSUFFICIENT_MEMORY
+  LOW_POWER_MODE
+  DEVICE_NOT_SUPPORTED
+
+  # Context errors
+  CONTEXT_NOT_FOUND
+  CONTEXT_INVALID
+
+  # Permission errors
+  PERMISSION_DENIED
+  PERMISSION_NOT_GRANTED
+
+  # Network errors (for hybrid processing)
+  NETWORK_UNAVAILABLE
+  API_ERROR
+
+  # Tier/licensing errors
+  PRO_TIER_REQUIRED
+
+  # Generic errors
+  UNKNOWN_ERROR
+  INTERNAL_ERROR
+}
+
+type ErrorDetails {
+  """
+  Error code
+  """
+  code: ErrorCode!
+  """
+  Human-readable error message
+  """
+  message: String!
+  """
+  Detailed technical information
+  """
+  technicalDetails: String
+  """
+  Suggested action for recovery
+  """
+  suggestedAction: String
+  """
+  Whether the operation can be retried
+  """
+  canRetry: Boolean!
+  """
+  Platform where error occurred
+  """
+  platform: Platform
+}

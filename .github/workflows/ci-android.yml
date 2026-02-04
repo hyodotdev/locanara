@@ -1,0 +1,38 @@
+name: CI Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/android/**'
+      - '.github/workflows/ci-android.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/android/**'
+      - '.github/workflows/ci-android.yml'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Android SDK
+        working-directory: packages/android
+        run: ./gradlew :locanara:build :example:assembleDebug
+
+      - name: Run Unit Tests
+        working-directory: packages/android
+        run: ./gradlew :locanara:testReleaseUnitTest

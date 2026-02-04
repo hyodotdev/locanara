@@ -1,0 +1,52 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "🍎 Open Example App in Xcode",
+            "command": "open Example/LocanaraExample.xcodeproj",
+            "cwd": "${workspaceFolder}/packages/apple"
+        },
+        {
+            "name": "🤖 Open Gemini (Android) in Android Studio",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "bash",
+            "runtimeArgs": [
+                "-lc",
+                "./scripts/open-android-studio.sh"
+            ],
+            "cwd": "${workspaceFolder}/packages/android",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "📝 GQL: Generate Types",
+            "command": "bun run generate",
+            "cwd": "${workspaceFolder}/packages/gql"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "📚 Docs: Dev Server",
+            "command": "bun run dev",
+            "cwd": "${workspaceFolder}/packages/docs"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "🧪 Test: Apple (Swift)",
+            "command": "swift test",
+            "cwd": "${workspaceFolder}/packages/apple"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "🧪 Test: Gemini (Android)",
+            "command": "./gradlew :locanara:test",
+            "cwd": "${workspaceFolder}/packages/android"
+        }
+    ]
+}

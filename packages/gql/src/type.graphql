@@ -1,0 +1,765 @@
+# Locanara GraphQL Types (common)
+
+# Platform discriminators
+enum Platform {
+  IOS
+  ANDROID
+  WEB
+}
+
+# AI Feature types
+#
+# Model Download Requirements:
+# - Android: Uses Gemini Nano (ML Kit GenAI, no download needed)
+# - iOS: Uses Apple Intelligence (Foundation Models, no download needed)
+#
+enum FeatureType {
+  # Text features - native AI (no download)
+  SUMMARIZE
+  CLASSIFY
+  EXTRACT
+  CHAT
+  TRANSLATE
+  REWRITE
+  PROOFREAD
+
+  # Platform-specific image features - NO DOWNLOAD NEEDED
+  DESCRIBE_IMAGE_ANDROID # Android: Gemini Nano (OS managed)
+  GENERATE_IMAGE_IOS # iOS: Image Playground (OS managed)
+}
+
+# ML Kit Summarization InputType
+enum SummarizeInputType {
+  ARTICLE
+  CONVERSATION
+}
+
+# ML Kit Summarization OutputType
+enum SummarizeOutputType {
+  ONE_BULLET
+  TWO_BULLETS
+  THREE_BULLETS
+}
+
+# ML Kit Rewrite OutputType (Style)
+enum RewriteOutputType {
+  ELABORATE
+  EMOJIFY
+  SHORTEN
+  FRIENDLY
+  PROFESSIONAL
+  REPHRASE
+}
+
+# ML Kit Proofreading InputType
+enum ProofreadInputType {
+  KEYBOARD
+  VOICE
+}
+
+# Supported languages for ML Kit GenAI
+enum MLKitLanguage {
+  ENGLISH
+  JAPANESE
+  KOREAN
+  FRENCH
+  GERMAN
+  ITALIAN
+  SPANISH
+}
+
+# Feature download status (from ML Kit)
+enum FeatureStatus {
+  UNAVAILABLE
+  DOWNLOADABLE
+  DOWNLOADING
+  AVAILABLE
+}
+
+# Device capability levels
+enum CapabilityLevel {
+  NONE
+  LIMITED
+  FULL
+}
+
+# Processing location preference
+enum ProcessingPreference {
+  ON_DEVICE_ONLY
+  ON_DEVICE_PREFERRED
+  CLOUD_PREFERRED
+  AUTO
+}
+
+# Privacy levels
+enum PrivacyLevel {
+  STRICT
+  BALANCED
+  PERMISSIVE
+}
+
+# Model execution state
+enum ExecutionState {
+  IDLE
+  PREPARING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+# Event types emitted by Locanara
+enum LocanaraEvent {
+  CAPABILITY_CHANGED
+  MODEL_LOADED
+  MODEL_UNLOADED
+  EXECUTION_STARTED
+  EXECUTION_COMPLETED
+  EXECUTION_FAILED
+  CONTEXT_UPDATED
+}
+
+# Device capabilities for AI features
+type DeviceCapability {
+  platform: Platform!
+  """
+  Whether the device supports on-device AI
+  """
+  supportsOnDeviceAI: Boolean!
+  """
+  Available features on this device
+  """
+  availableFeatures: [FeatureType!]!
+  """
+  Capability level for each feature
+  """
+  featureCapabilities: [FeatureCapability!]!
+  """
+  Total available memory for AI processing (in MB)
+  """
+  availableMemoryMB: Int
+  """
+  Whether the device is currently in low power mode
+  """
+  isLowPowerMode: Boolean!
+  """
+  Model information (iOS: Foundation Models, Android: Gemini Nano)
+  """
+  modelInfo: ModelInfo
+}
+
+type FeatureCapability {
+  feature: FeatureType!
+  level: CapabilityLevel!
+  """
+  Estimated processing time in milliseconds
+  """
+  estimatedProcessingTimeMs: Int
+  """
+  Maximum input length supported
+  """
+  maxInputLength: Int
+}
+
+type ModelInfo {
+  """
+  Model name or identifier
+  """
+  name: String!
+  """
+  Model version
+  """
+  version: String
+  """
+  Model size in MB
+  """
+  sizeMB: Int
+  """
+  Whether the model is currently loaded
+  """
+  isLoaded: Boolean!
+  """
+  iOS: Foundation model details
+  """
+  foundationModelIOS: FoundationModelInfoIOS
+  """
+  Android: Gemini Nano details
+  """
+  geminiNanoAndroid: GeminiNanoInfoAndroid
+}
+
+# Context for AI operations
+type ExecutionContext {
+  """
+  Unique context identifier
+  """
+  id: ID!
+  """
+  Recent user actions or app events
+  """
+  recentActions: [String!]
+  """
+  Current app state
+  """
+  appState: String
+  """
+  User preferences for this session
+  """
+  preferences: ContextPreferences
+  """
+  Timestamp of last update
+  """
+  lastUpdated: Float!
+}
+
+type ContextPreferences {
+  """
+  Processing location preference
+  """
+  processingPreference: ProcessingPreference!
+  """
+  Privacy level
+  """
+  privacyLevel: PrivacyLevel!
+  """
+  Maximum processing time in milliseconds
+  """
+  maxProcessingTimeMs: Int
+  """
+  Whether to cache results
+  """
+  enableCaching: Boolean!
+}
+
+# Execution result for AI operations
+type ExecutionResult {
+  """
+  Unique execution identifier
+  """
+  id: ID!
+  """
+  The feature that was executed
+  """
+  feature: FeatureType!
+  """
+  Execution state
+  """
+  state: ExecutionState!
+  """
+  Result data (feature-specific)
+  """
+  result: ExecutionResultData
+  """
+  Where the processing occurred
+  """
+  processedOn: ProcessingLocation!
+  """
+  Actual processing time in milliseconds
+  """
+  processingTimeMs: Int
+  """
+  Error if execution failed
+  """
+  error: ExecutionError
+  """
+  Timestamp of execution start
+  """
+  startedAt: Float!
+  """
+  Timestamp of execution completion
+  """
+  completedAt: Float
+}
+
+enum ProcessingLocation {
+  ON_DEVICE
+  CLOUD
+  HYBRID
+}
+
+# Union for different result types
+union ExecutionResultData =
+  | SummarizeResult
+  | ClassifyResult
+  | ExtractResult
+  | ChatResult
+  | TranslateResult
+  | RewriteResult
+  | ProofreadResult
+  | ImageDescriptionResult
+  | ImageGenerationResult
+
+# Feature-specific result types
+type SummarizeResult {
+  """
+  Summarized text
+  """
+  summary: String!
+  """
+  Original text length
+  """
+  originalLength: Int!
+  """
+  Summary length
+  """
+  summaryLength: Int!
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  confidence: Float
+}
+
+type ClassifyResult {
+  """
+  Classification labels with scores
+  """
+  classifications: [Classification!]!
+  """
+  Top classification
+  """
+  topClassification: Classification!
+}
+
+type Classification {
+  """
+  Label or category
+  """
+  label: String!
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  score: Float!
+  """
+  Additional metadata
+  """
+  metadata: String
+}
+
+type ExtractResult {
+  """
+  Extracted entities
+  """
+  entities: [Entity!]!
+  """
+  Extracted key-value pairs
+  """
+  keyValuePairs: [KeyValuePair!]
+}
+
+type Entity {
+  """
+  Entity type (person, location, date, etc.)
+  """
+  type: String!
+  """
+  Entity value
+  """
+  value: String!
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  confidence: Float!
+  """
+  Start position in original text
+  """
+  startPos: Int
+  """
+  End position in original text
+  """
+  endPos: Int
+}
+
+type KeyValuePair {
+  key: String!
+  value: String!
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  confidence: Float
+}
+
+type ChatResult {
+  """
+  AI response message
+  """
+  message: String!
+  """
+  Conversation ID for context
+  """
+  conversationId: String
+  """
+  Whether the conversation can continue
+  """
+  canContinue: Boolean!
+  """
+  Suggested follow-up prompts
+  """
+  suggestedPrompts: [String!]
+}
+
+type TranslateResult {
+  """
+  Translated text
+  """
+  translatedText: String!
+  """
+  Source language code
+  """
+  sourceLanguage: String!
+  """
+  Target language code
+  """
+  targetLanguage: String!
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  confidence: Float
+}
+
+type RewriteResult {
+  """
+  Rewritten text
+  """
+  rewrittenText: String!
+  """
+  Style or tone applied (ML Kit OutputType)
+  """
+  style: RewriteOutputType
+  """
+  Alternative suggestions (ML Kit returns multiple)
+  """
+  alternatives: [String!]
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  confidence: Float
+}
+
+type ProofreadResult {
+  """
+  Corrected text
+  """
+  correctedText: String!
+  """
+  List of corrections made
+  """
+  corrections: [ProofreadCorrection!]!
+  """
+  Whether any corrections were made
+  """
+  hasCorrections: Boolean!
+}
+
+type ProofreadCorrection {
+  """
+  Original text segment
+  """
+  original: String!
+  """
+  Corrected text segment
+  """
+  corrected: String!
+  """
+  Type of correction (grammar, spelling, etc.)
+  """
+  type: String
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  confidence: Float
+  """
+  Start position in original text
+  """
+  startPos: Int
+  """
+  End position in original text
+  """
+  endPos: Int
+}
+
+type ImageDescriptionResult {
+  """
+  Generated description of the image
+  """
+  description: String!
+  """
+  Alternative descriptions (if available)
+  """
+  alternatives: [String!]
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  confidence: Float
+}
+
+type ImageGenerationResult {
+  """
+  URLs or paths to generated images
+  """
+  imageUrls: [String!]!
+  """
+  Number of images generated
+  """
+  count: Int!
+  """
+  Style used for generation
+  """
+  style: String
+  """
+  Original prompt used
+  """
+  prompt: String
+}
+
+type ExecutionError {
+  """
+  Error code
+  """
+  code: String!
+  """
+  Human-readable error message
+  """
+  message: String!
+  """
+  Detailed error information
+  """
+  details: String
+  """
+  Whether the error is recoverable
+  """
+  isRecoverable: Boolean!
+}
+
+# Generic result for APIs that do not return payloads
+type VoidResult {
+  success: Boolean!
+}
+
+# Input types
+
+input ExecuteFeatureInput {
+  """
+  Feature to execute
+  """
+  feature: FeatureType!
+  """
+  Input data (feature-specific)
+  """
+  input: String!
+  """
+  Optional execution context
+  """
+  contextId: String
+  """
+  Optional preferences for this execution
+  """
+  preferences: ContextPreferencesInput
+  """
+  Feature-specific parameters
+  """
+  parameters: FeatureParametersInput
+}
+
+input ContextPreferencesInput {
+  """
+  Processing location preference
+  """
+  processingPreference: ProcessingPreference
+  """
+  Privacy level
+  """
+  privacyLevel: PrivacyLevel
+  """
+  Maximum processing time in milliseconds
+  """
+  maxProcessingTimeMs: Int
+  """
+  Whether to cache results
+  """
+  enableCaching: Boolean
+}
+
+input FeatureParametersInput {
+  """
+  Parameters for summarize feature
+  """
+  summarize: SummarizeParametersInput
+  """
+  Parameters for classify feature
+  """
+  classify: ClassifyParametersInput
+  """
+  Parameters for extract feature
+  """
+  extract: ExtractParametersInput
+  """
+  Parameters for chat feature
+  """
+  chat: ChatParametersInput
+  """
+  Parameters for translate feature
+  """
+  translate: TranslateParametersInput
+  """
+  Parameters for rewrite feature
+  """
+  rewrite: RewriteParametersInput
+  """
+  Parameters for proofread feature
+  """
+  proofread: ProofreadParametersInput
+  """
+  Parameters for image description feature
+  """
+  imageDescription: ImageDescriptionParametersInput
+  """
+  Parameters for image generation feature
+  """
+  imageGeneration: ImageGenerationParametersInput
+}
+
+input SummarizeParametersInput {
+  """
+  Input type (ML Kit: ARTICLE or CONVERSATION)
+  """
+  inputType: SummarizeInputType
+  """
+  Output type (ML Kit: ONE_BULLET, TWO_BULLETS, THREE_BULLETS)
+  """
+  outputType: SummarizeOutputType
+  """
+  Language for summarization
+  """
+  language: MLKitLanguage
+  """
+  Auto-truncate long inputs (default: true, max 4000 tokens)
+  """
+  autoTruncate: Boolean
+}
+
+input ClassifyParametersInput {
+  """
+  Predefined categories to classify into
+  """
+  categories: [String!]
+  """
+  Maximum number of classifications to return
+  """
+  maxResults: Int
+}
+
+input ExtractParametersInput {
+  """
+  Types of entities to extract
+  """
+  entityTypes: [String!]
+  """
+  Whether to extract key-value pairs
+  """
+  extractKeyValues: Boolean
+}
+
+input ChatParametersInput {
+  """
+  Conversation ID for context
+  """
+  conversationId: String
+  """
+  System prompt or personality
+  """
+  systemPrompt: String
+  """
+  Chat history for context
+  """
+  history: [ChatMessageInput!]
+}
+
+input ChatMessageInput {
+  """
+  Message role (user, assistant, system)
+  """
+  role: String!
+  """
+  Message content
+  """
+  content: String!
+}
+
+input TranslateParametersInput {
+  """
+  Source language code (auto-detect if not provided)
+  """
+  sourceLanguage: String
+  """
+  Target language code
+  """
+  targetLanguage: String!
+}
+
+input RewriteParametersInput {
+  """
+  Output type (ML Kit: ELABORATE, EMOJIFY, SHORTEN, FRIENDLY, PROFESSIONAL, REPHRASE)
+  """
+  outputType: RewriteOutputType!
+  """
+  Language for rewriting
+  """
+  language: MLKitLanguage
+}
+
+input ProofreadParametersInput {
+  """
+  Input type (ML Kit: KEYBOARD or VOICE)
+  """
+  inputType: ProofreadInputType
+  """
+  Language for proofreading
+  """
+  language: MLKitLanguage
+}
+
+input ImageDescriptionParametersInput {
+  """
+  Base64 encoded image data (if not using file path)
+  """
+  imageBase64: String
+  """
+  Image file path (alternative to base64)
+  """
+  imagePath: String
+}
+
+input ImageGenerationParametersInput {
+  """
+  Text prompt describing the image to generate
+  """
+  prompt: String!
+  """
+  Style for image generation (iOS: animation, illustration, sketch)
+  """
+  style: String
+  """
+  Number of images to generate
+  """
+  count: Int
+}
+
+input UpdateContextInput {
+  """
+  Context ID to update
+  """
+  contextId: ID!
+  """
+  Actions to add
+  """
+  addActions: [String!]
+  """
+  New app state
+  """
+  appState: String
+  """
+  Updated preferences
+  """
+  preferences: ContextPreferencesInput
+}
+

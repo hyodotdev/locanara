@@ -1,0 +1,38 @@
+name: CI GQL
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/gql/**'
+      - '.github/workflows/ci-gql.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/gql/**'
+      - '.github/workflows/ci-gql.yml'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Generate Types
+        working-directory: packages/gql
+        run: |
+          bun install
+          bun run generate
+
+      - name: Verify No Changes
+        run: |
+          if [ -n "$(git status --porcelain packages/gql/src/generated/)" ]; then
+            echo "Generated files are out of sync. Run 'bun run generate' locally."
+            git diff packages/gql/src/generated/
+            exit 1
+          fi

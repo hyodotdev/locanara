@@ -1,0 +1,40 @@
+name: CI Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/docs/**'
+      - '.github/workflows/ci-docs.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/docs/**'
+      - '.github/workflows/ci-docs.yml'
+
+jobs:
+  build:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        working-directory: packages/docs
+        run: bun install
+
+      - name: Type Check
+        working-directory: packages/docs
+        run: bun run typecheck
+
+      - name: Format Check
+        working-directory: packages/docs
+        run: bun run format:check
+
+      - name: Build
+        working-directory: packages/docs
+        run: bun run build

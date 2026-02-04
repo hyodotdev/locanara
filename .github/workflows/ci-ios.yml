@@ -1,0 +1,29 @@
+name: CI iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/apple/**'
+      - '.github/workflows/ci-ios.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/apple/**'
+      - '.github/workflows/ci-ios.yml'
+
+jobs:
+  build:
+    name: Build
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build iOS SDK
+        working-directory: packages/apple
+        run: swift build
+
+      - name: Run Unit Tests
+        working-directory: packages/apple
+        run: swift test

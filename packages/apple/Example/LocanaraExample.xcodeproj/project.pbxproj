@@ -1,0 +1,651 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 63;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		03E84C086561367DE8EE9F0A /* FeatureRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B5FCD3F7D5FBDC99F611BC9 /* FeatureRow.swift */; };
+		0777AE67FFEF7E639F2A9D46 /* TypingIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C240E5BEF75F7AE62C0CB00 /* TypingIndicator.swift */; };
+		105B5805DF3E34C82AB997AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A626C4F4DEA9AA86B81D4F92 /* Assets.xcassets */; };
+		10D46DDD1E30743E19F9F6BC /* LocanaraExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC959C020D815C035FAA19C0 /* LocanaraExampleApp.swift */; };
+		1ED963E4A0BAF63F8A9DFFAB /* StatBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E222B08603FA1C80E87021E /* StatBadge.swift */; };
+		251558B1293619AE849EBC82 /* TranslateDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32848C7DDB8800A3C5CF5975 /* TranslateDemo.swift */; };
+		26476BDFFA0C35650CFAA117 /* FeatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6F7E05F95C21B2CC3B3309 /* FeatureDetail.swift */; };
+		3699B2C78DB286EC00FF2588 /* SummarizeDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6198F9DF8C0411E8979D23B /* SummarizeDemo.swift */; };
+		382E4FA977DD416708F2F890 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56AE0D8F20E5AB8E7409333D /* ContentView.swift */; };
+		3A154924EC2F1B13FB08F3C4 /* TranslateDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32848C7DDB8800A3C5CF5975 /* TranslateDemo.swift */; };
+		482B146CABFBD808A466AF7B /* DemoLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A4E381484BC9C5690CDD6F /* DemoLogger.swift */; };
+		4F7FDEE3B4C1EBA53686C1CF /* ExtractDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D9403FF98086B801ED3B2C /* ExtractDemo.swift */; };
+		4FF7864ADC184867E8CE8242 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BFA1174FD8218C726ADD1FB /* ChatBubble.swift */; };
+		51262FA3A61DDA4EF053802D /* LocanaraExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC959C020D815C035FAA19C0 /* LocanaraExampleApp.swift */; };
+		51F795D25CEA8FE74A5CC98E /* FeatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6F7E05F95C21B2CC3B3309 /* FeatureDetail.swift */; };
+		52F3C3C0ED6E05FAA45FFF88 /* DescribeImageDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D89CFB5545310CFF3FD5C30 /* DescribeImageDemo.swift */; };
+		568BAA3D81AA3843B8CB5F60 /* ProofreadDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EE732A1A85ED6CD3400B998 /* ProofreadDemo.swift */; };
+		573531E9B8753CA6071B5EEC /* ClassifyDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9845604554C1AE056964C6 /* ClassifyDemo.swift */; };
+		60D3A0A9F373B6CFFCA187AE /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BFA1174FD8218C726ADD1FB /* ChatBubble.swift */; };
+		6206F15F1FDB3416393B6B42 /* SummarizeDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6198F9DF8C0411E8979D23B /* SummarizeDemo.swift */; };
+		6606542D12B3CE4682B989C0 /* InfoRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0F30B39CB45988659088026 /* InfoRow.swift */; };
+		6D162C7FD5C63830E396D44E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A626C4F4DEA9AA86B81D4F92 /* Assets.xcassets */; };
+		6D72FED80702951EFDB1D916 /* ChatDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1686ACC4BC323495391CC13C /* ChatDemo.swift */; };
+		7324AD4BF7A301EFA1C65B54 /* ClassifyDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9845604554C1AE056964C6 /* ClassifyDemo.swift */; };
+		7411F96AAB85B891C9B55F2E /* FeaturesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70784626F8E1999CC904CA7D /* FeaturesList.swift */; };
+		864618017AEE1540FC0B881E /* StatBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E222B08603FA1C80E87021E /* StatBadge.swift */; };
+		88B44677E030E550BA120937 /* Locanara in Frameworks */ = {isa = PBXBuildFile; productRef = 2838B44EBC1C608BB9FA4FEB /* Locanara */; };
+		9EAD4037F1FA8849B8A054F2 /* AppleIntelligenceRequiredBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD32E29EDE4B0F00F7F2EBDC /* AppleIntelligenceRequiredBanner.swift */; };
+		9F9BF151EB0538569494C747 /* AIStatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F958E9612893E6169035AFF /* AIStatusBanner.swift */; };
+		A2CA53369B34A0E3FEDD8F3B /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7BD0808663B046E58E02FF /* Settings.swift */; };
+		A35F3B61F02E24818E9C240B /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7BD0808663B046E58E02FF /* Settings.swift */; };
+		A65FDF067870F71DD270A9E6 /* MainTabNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0A5E394E716479D0E7E00E /* MainTabNavigation.swift */; };
+		ABE0CD2B773CEC1B1443C7E3 /* ProofreadDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EE732A1A85ED6CD3400B998 /* ProofreadDemo.swift */; };
+		B563FA190A56D67AEB73AD00 /* FeatureRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B5FCD3F7D5FBDC99F611BC9 /* FeatureRow.swift */; };
+		BA2BBA2D12C1B20802DBC234 /* ChatDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1686ACC4BC323495391CC13C /* ChatDemo.swift */; };
+		C6E14109817B95FA9F4CA994 /* ExtractDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D9403FF98086B801ED3B2C /* ExtractDemo.swift */; };
+		C8BE8FAF6E0F813F947AB61C /* DemoLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A4E381484BC9C5690CDD6F /* DemoLogger.swift */; };
+		CEAD335C42B0117374CBC9FB /* TypingIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C240E5BEF75F7AE62C0CB00 /* TypingIndicator.swift */; };
+		CFF9545BB4052519E94D30FE /* AIStatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F958E9612893E6169035AFF /* AIStatusBanner.swift */; };
+		D8FD4FACB14111E9AD42ED11 /* RewriteDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8849A61A0168C84452125F0B /* RewriteDemo.swift */; };
+		D987634951E9FF54FCC1D253 /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B473B2301DE4474A086DD214 /* DeviceInfo.swift */; };
+		DA0E13AAC512E69A6238CB37 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56AE0D8F20E5AB8E7409333D /* ContentView.swift */; };
+		DAC6EB73CCE64E1DB3CC1F19 /* DescribeImageDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D89CFB5545310CFF3FD5C30 /* DescribeImageDemo.swift */; };
+		DBE3F484758F2272B9CECCBC /* InfoRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0F30B39CB45988659088026 /* InfoRow.swift */; };
+		E65196A14AAA30EDDB9F5DC8 /* MainTabNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0A5E394E716479D0E7E00E /* MainTabNavigation.swift */; };
+		EC104F695DC61D69513FE0A2 /* Locanara in Frameworks */ = {isa = PBXBuildFile; productRef = 831A09E1E953C54A99DDD70D /* Locanara */; };
+		EE594E220EB80E30CB731649 /* RewriteDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8849A61A0168C84452125F0B /* RewriteDemo.swift */; };
+		F9A53EBB2FBDB4D6F31154F6 /* AppleIntelligenceRequiredBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD32E29EDE4B0F00F7F2EBDC /* AppleIntelligenceRequiredBanner.swift */; };
+		FBDC6285C31EF9357FA2C51B /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B473B2301DE4474A086DD214 /* DeviceInfo.swift */; };
+		FBF9D999FD382B64AA12E59E /* FeaturesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70784626F8E1999CC904CA7D /* FeaturesList.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0D0A5E394E716479D0E7E00E /* MainTabNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabNavigation.swift; sourceTree = "<group>"; };
+		0F9845604554C1AE056964C6 /* ClassifyDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassifyDemo.swift; sourceTree = "<group>"; };
+		1686ACC4BC323495391CC13C /* ChatDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDemo.swift; sourceTree = "<group>"; };
+		1B5FCD3F7D5FBDC99F611BC9 /* FeatureRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureRow.swift; sourceTree = "<group>"; };
+		1BFA1174FD8218C726ADD1FB /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
+		32848C7DDB8800A3C5CF5975 /* TranslateDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateDemo.swift; sourceTree = "<group>"; };
+		37A4E381484BC9C5690CDD6F /* DemoLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLogger.swift; sourceTree = "<group>"; };
+		4C240E5BEF75F7AE62C0CB00 /* TypingIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypingIndicator.swift; sourceTree = "<group>"; };
+		5317931F33817243C2D39748 /* LocanaraExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocanaraExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		56AE0D8F20E5AB8E7409333D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5D89CFB5545310CFF3FD5C30 /* DescribeImageDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DescribeImageDemo.swift; sourceTree = "<group>"; };
+		5EE732A1A85ED6CD3400B998 /* ProofreadDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProofreadDemo.swift; sourceTree = "<group>"; };
+		5F958E9612893E6169035AFF /* AIStatusBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIStatusBanner.swift; sourceTree = "<group>"; };
+		5F99DD0098B6EA555B9CCB6C /* LocanaraExampleMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocanaraExampleMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6E222B08603FA1C80E87021E /* StatBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatBadge.swift; sourceTree = "<group>"; };
+		70784626F8E1999CC904CA7D /* FeaturesList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeaturesList.swift; sourceTree = "<group>"; };
+		7F91188F94A2CADADD830CB8 /* apple */ = {isa = PBXFileReference; lastKnownFileType = folder; name = apple; path = ..; sourceTree = SOURCE_ROOT; };
+		8849A61A0168C84452125F0B /* RewriteDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewriteDemo.swift; sourceTree = "<group>"; };
+		A0F30B39CB45988659088026 /* InfoRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoRow.swift; sourceTree = "<group>"; };
+		A6198F9DF8C0411E8979D23B /* SummarizeDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummarizeDemo.swift; sourceTree = "<group>"; };
+		A626C4F4DEA9AA86B81D4F92 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AE6F7E05F95C21B2CC3B3309 /* FeatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureDetail.swift; sourceTree = "<group>"; };
+		B473B2301DE4474A086DD214 /* DeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfo.swift; sourceTree = "<group>"; };
+		BB7BD0808663B046E58E02FF /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		BC959C020D815C035FAA19C0 /* LocanaraExampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocanaraExampleApp.swift; sourceTree = "<group>"; };
+		D9D9403FF98086B801ED3B2C /* ExtractDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractDemo.swift; sourceTree = "<group>"; };
+		FD32E29EDE4B0F00F7F2EBDC /* AppleIntelligenceRequiredBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligenceRequiredBanner.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		244DD16C8571977E73ED8625 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				88B44677E030E550BA120937 /* Locanara in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		850F7D0A9619B648EBD80FA1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC104F695DC61D69513FE0A2 /* Locanara in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		16B3562C3C723F83DD00D01F /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				7F91188F94A2CADADD830CB8 /* apple */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		22534010BF2BC56D679DDBF1 = {
+			isa = PBXGroup;
+			children = (
+				95DD3841DCEC0124F3FC48A3 /* LocanaraExample */,
+				16B3562C3C723F83DD00D01F /* Packages */,
+				FD8CB013B0ACA13CBE1C439C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		24FA5F5F5140CE46A2C99F27 /* pages */ = {
+			isa = PBXGroup;
+			children = (
+				B473B2301DE4474A086DD214 /* DeviceInfo.swift */,
+				70784626F8E1999CC904CA7D /* FeaturesList.swift */,
+				BB7BD0808663B046E58E02FF /* Settings.swift */,
+				93F67E22B9080854B0FDB809 /* FeatureDetail */,
+			);
+			path = pages;
+			sourceTree = "<group>";
+		};
+		52790E17D954946788FD17ED /* navigation */ = {
+			isa = PBXGroup;
+			children = (
+				0D0A5E394E716479D0E7E00E /* MainTabNavigation.swift */,
+			);
+			path = navigation;
+			sourceTree = "<group>";
+		};
+		93F67E22B9080854B0FDB809 /* FeatureDetail */ = {
+			isa = PBXGroup;
+			children = (
+				0F9845604554C1AE056964C6 /* ClassifyDemo.swift */,
+				37A4E381484BC9C5690CDD6F /* DemoLogger.swift */,
+				5D89CFB5545310CFF3FD5C30 /* DescribeImageDemo.swift */,
+				D9D9403FF98086B801ED3B2C /* ExtractDemo.swift */,
+				AE6F7E05F95C21B2CC3B3309 /* FeatureDetail.swift */,
+				5EE732A1A85ED6CD3400B998 /* ProofreadDemo.swift */,
+				8849A61A0168C84452125F0B /* RewriteDemo.swift */,
+				6E222B08603FA1C80E87021E /* StatBadge.swift */,
+				A6198F9DF8C0411E8979D23B /* SummarizeDemo.swift */,
+				32848C7DDB8800A3C5CF5975 /* TranslateDemo.swift */,
+				B1662F612C76C03D5061C20A /* ChatDemo */,
+			);
+			path = FeatureDetail;
+			sourceTree = "<group>";
+		};
+		95DD3841DCEC0124F3FC48A3 /* LocanaraExample */ = {
+			isa = PBXGroup;
+			children = (
+				A626C4F4DEA9AA86B81D4F92 /* Assets.xcassets */,
+				56AE0D8F20E5AB8E7409333D /* ContentView.swift */,
+				BC959C020D815C035FAA19C0 /* LocanaraExampleApp.swift */,
+				9D2D22E9178DB95F6F2B6A03 /* components */,
+			);
+			path = LocanaraExample;
+			sourceTree = "<group>";
+		};
+		9D2D22E9178DB95F6F2B6A03 /* components */ = {
+			isa = PBXGroup;
+			children = (
+				52790E17D954946788FD17ED /* navigation */,
+				24FA5F5F5140CE46A2C99F27 /* pages */,
+				C2E6D1BA90F019DC55AED0BF /* shared */,
+			);
+			path = components;
+			sourceTree = "<group>";
+		};
+		B1662F612C76C03D5061C20A /* ChatDemo */ = {
+			isa = PBXGroup;
+			children = (
+				1BFA1174FD8218C726ADD1FB /* ChatBubble.swift */,
+				1686ACC4BC323495391CC13C /* ChatDemo.swift */,
+				4C240E5BEF75F7AE62C0CB00 /* TypingIndicator.swift */,
+			);
+			path = ChatDemo;
+			sourceTree = "<group>";
+		};
+		C2E6D1BA90F019DC55AED0BF /* shared */ = {
+			isa = PBXGroup;
+			children = (
+				5F958E9612893E6169035AFF /* AIStatusBanner.swift */,
+				FD32E29EDE4B0F00F7F2EBDC /* AppleIntelligenceRequiredBanner.swift */,
+				1B5FCD3F7D5FBDC99F611BC9 /* FeatureRow.swift */,
+				A0F30B39CB45988659088026 /* InfoRow.swift */,
+			);
+			path = shared;
+			sourceTree = "<group>";
+		};
+		FD8CB013B0ACA13CBE1C439C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5317931F33817243C2D39748 /* LocanaraExample.app */,
+				5F99DD0098B6EA555B9CCB6C /* LocanaraExampleMac.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0104DFC141AB302249C81C75 /* LocanaraExample */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E6AF23EAC9D1EE885EA11FDA /* Build configuration list for PBXNativeTarget "LocanaraExample" */;
+			buildPhases = (
+				4E4C0C6495D00836A8BBBACC /* Sources */,
+				087B2475B64C8DB65ACE4640 /* Resources */,
+				244DD16C8571977E73ED8625 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LocanaraExample;
+			packageProductDependencies = (
+				2838B44EBC1C608BB9FA4FEB /* Locanara */,
+			);
+			productName = LocanaraExample;
+			productReference = 5317931F33817243C2D39748 /* LocanaraExample.app */;
+			productType = "com.apple.product-type.application";
+		};
+		ADF9BF93265B023D777229E2 /* LocanaraExampleMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ED1B419502B3BCCBE6A0203B /* Build configuration list for PBXNativeTarget "LocanaraExampleMac" */;
+			buildPhases = (
+				D5EBD54807A3FCA810025D8E /* Sources */,
+				2AFEF0070FF8F972492376A1 /* Resources */,
+				850F7D0A9619B648EBD80FA1 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LocanaraExampleMac;
+			packageProductDependencies = (
+				831A09E1E953C54A99DDD70D /* Locanara */,
+			);
+			productName = LocanaraExampleMac;
+			productReference = 5F99DD0098B6EA555B9CCB6C /* LocanaraExampleMac.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		30595967EE0711A15272BE1C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					0104DFC141AB302249C81C75 = {
+						ProvisioningStyle = Automatic;
+					};
+					ADF9BF93265B023D777229E2 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = F786E2491CDB8FB07D17BE3F /* Build configuration list for PBXProject "LocanaraExample" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 22534010BF2BC56D679DDBF1;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D4A9E5ACA69AF760D8097659 /* XCLocalSwiftPackageReference "..//" */,
+			);
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0104DFC141AB302249C81C75 /* LocanaraExample */,
+				ADF9BF93265B023D777229E2 /* LocanaraExampleMac */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		087B2475B64C8DB65ACE4640 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				105B5805DF3E34C82AB997AD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2AFEF0070FF8F972492376A1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6D162C7FD5C63830E396D44E /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4E4C0C6495D00836A8BBBACC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F9BF151EB0538569494C747 /* AIStatusBanner.swift in Sources */,
+				F9A53EBB2FBDB4D6F31154F6 /* AppleIntelligenceRequiredBanner.swift in Sources */,
+				60D3A0A9F373B6CFFCA187AE /* ChatBubble.swift in Sources */,
+				BA2BBA2D12C1B20802DBC234 /* ChatDemo.swift in Sources */,
+				7324AD4BF7A301EFA1C65B54 /* ClassifyDemo.swift in Sources */,
+				DA0E13AAC512E69A6238CB37 /* ContentView.swift in Sources */,
+				C8BE8FAF6E0F813F947AB61C /* DemoLogger.swift in Sources */,
+				DAC6EB73CCE64E1DB3CC1F19 /* DescribeImageDemo.swift in Sources */,
+				D987634951E9FF54FCC1D253 /* DeviceInfo.swift in Sources */,
+				C6E14109817B95FA9F4CA994 /* ExtractDemo.swift in Sources */,
+				26476BDFFA0C35650CFAA117 /* FeatureDetail.swift in Sources */,
+				03E84C086561367DE8EE9F0A /* FeatureRow.swift in Sources */,
+				FBF9D999FD382B64AA12E59E /* FeaturesList.swift in Sources */,
+				6606542D12B3CE4682B989C0 /* InfoRow.swift in Sources */,
+				51262FA3A61DDA4EF053802D /* LocanaraExampleApp.swift in Sources */,
+				E65196A14AAA30EDDB9F5DC8 /* MainTabNavigation.swift in Sources */,
+				ABE0CD2B773CEC1B1443C7E3 /* ProofreadDemo.swift in Sources */,
+				EE594E220EB80E30CB731649 /* RewriteDemo.swift in Sources */,
+				A35F3B61F02E24818E9C240B /* Settings.swift in Sources */,
+				864618017AEE1540FC0B881E /* StatBadge.swift in Sources */,
+				6206F15F1FDB3416393B6B42 /* SummarizeDemo.swift in Sources */,
+				3A154924EC2F1B13FB08F3C4 /* TranslateDemo.swift in Sources */,
+				0777AE67FFEF7E639F2A9D46 /* TypingIndicator.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D5EBD54807A3FCA810025D8E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CFF9545BB4052519E94D30FE /* AIStatusBanner.swift in Sources */,
+				9EAD4037F1FA8849B8A054F2 /* AppleIntelligenceRequiredBanner.swift in Sources */,
+				4FF7864ADC184867E8CE8242 /* ChatBubble.swift in Sources */,
+				6D72FED80702951EFDB1D916 /* ChatDemo.swift in Sources */,
+				573531E9B8753CA6071B5EEC /* ClassifyDemo.swift in Sources */,
+				382E4FA977DD416708F2F890 /* ContentView.swift in Sources */,
+				482B146CABFBD808A466AF7B /* DemoLogger.swift in Sources */,
+				52F3C3C0ED6E05FAA45FFF88 /* DescribeImageDemo.swift in Sources */,
+				FBDC6285C31EF9357FA2C51B /* DeviceInfo.swift in Sources */,
+				4F7FDEE3B4C1EBA53686C1CF /* ExtractDemo.swift in Sources */,
+				51F795D25CEA8FE74A5CC98E /* FeatureDetail.swift in Sources */,
+				B563FA190A56D67AEB73AD00 /* FeatureRow.swift in Sources */,
+				7411F96AAB85B891C9B55F2E /* FeaturesList.swift in Sources */,
+				DBE3F484758F2272B9CECCBC /* InfoRow.swift in Sources */,
+				10D46DDD1E30743E19F9F6BC /* LocanaraExampleApp.swift in Sources */,
+				A65FDF067870F71DD270A9E6 /* MainTabNavigation.swift in Sources */,
+				568BAA3D81AA3843B8CB5F60 /* ProofreadDemo.swift in Sources */,
+				D8FD4FACB14111E9AD42ED11 /* RewriteDemo.swift in Sources */,
+				A2CA53369B34A0E3FEDD8F3B /* Settings.swift in Sources */,
+				1ED963E4A0BAF63F8A9DFFAB /* StatBadge.swift in Sources */,
+				3699B2C78DB286EC00FF2588 /* SummarizeDemo.swift in Sources */,
+				251558B1293619AE849EBC82 /* TranslateDemo.swift in Sources */,
+				CEAD335C42B0117374CBC9FB /* TypingIndicator.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1876AC6905A3FC5D3BF19797 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_GENERATION_MODE = GeneratedFile;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.locanara.example.mac;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		5001395EF7D12C2A20EBF215 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Locanara for Community";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		5E196C24B5574A333310CB1D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = PRDQGB267K;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_GENERATION_MODE = GeneratedFile;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.locanara.example;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		9CC6F5A7528AE1770EB19861 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_GENERATION_MODE = GeneratedFile;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.locanara.example.mac;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		B4E9C5EBB09248E8B5790354 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Locanara for Community";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		FD404A9ECD2C877520D2EF83 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = PRDQGB267K;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_GENERATION_MODE = GeneratedFile;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.locanara.example;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E6AF23EAC9D1EE885EA11FDA /* Build configuration list for PBXNativeTarget "LocanaraExample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD404A9ECD2C877520D2EF83 /* Debug */,
+				5E196C24B5574A333310CB1D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		ED1B419502B3BCCBE6A0203B /* Build configuration list for PBXNativeTarget "LocanaraExampleMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9CC6F5A7528AE1770EB19861 /* Debug */,
+				1876AC6905A3FC5D3BF19797 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F786E2491CDB8FB07D17BE3F /* Build configuration list for PBXProject "LocanaraExample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5001395EF7D12C2A20EBF215 /* Debug */,
+				B4E9C5EBB09248E8B5790354 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D4A9E5ACA69AF760D8097659 /* XCLocalSwiftPackageReference "..//" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "..//";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2838B44EBC1C608BB9FA4FEB /* Locanara */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Locanara;
+		};
+		831A09E1E953C54A99DDD70D /* Locanara */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Locanara;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 30595967EE0711A15272BE1C /* Project object */;
+}
