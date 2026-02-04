@@ -1,21 +1,12 @@
 # Locanara
 
-<p align="center">
-  <img src="logo.png" alt="Locanara" width="120" height="120" />
-</p>
+![Locanara](logo.png)
 
-<p align="center">
-  <strong>Unified On-Device AI SDK for iOS and Android</strong>
-</p>
+Unified On-Device AI SDK for iOS and Android
 
-<p align="center">
-  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />
-</p>
-
-<p align="center">
-  <img src="https://github.com/hyodotdev/locanara/actions/workflows/ci-ios.yml/badge.svg" alt="CI iOS" />
-  <img src="https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml/badge.svg" alt="CI Android" />
-</p>
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI iOS](https://github.com/hyodotdev/locanara/actions/workflows/ci-ios.yml/badge.svg)](https://github.com/hyodotdev/locanara/actions/workflows/ci-ios.yml)
+[![CI Android](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml/badge.svg)](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml)
 
 ---
 
@@ -34,7 +25,7 @@ All AI processing happens locally on the device. No cloud. No data leaves.
 
 | Package | Description | Version |
 | ------- | ----------- | ------- |
-| [**apple**](packages/apple) | iOS/macOS SDK | [![CocoaPods](https://img.shields.io/cocoapods/v/Locanara?style=flat-square&label=pod)](https://cocoapods.org/pods/Locanara) [![SPM](https://img.shields.io/github/v/tag/hyodotdev/locanara-swift?style=flat-square&logo=swift&label=spm)](https://github.com/hyodotdev/locanara-swift) |
+| [**apple**](packages/apple) | iOS/macOS SDK | [![CocoaPods](https://img.shields.io/cocoapods/v/Locanara?style=flat-square&label=pod)](https://cocoapods.org/pods/Locanara) |
 | [**android**](packages/android) | Android SDK | [![Maven Central](https://img.shields.io/maven-central/v/com.locanara/locanara?style=flat-square&label=maven)](https://central.sonatype.com/artifact/com.locanara/locanara) |
 | [**docs**](packages/docs) | Documentation | [locanara.com](https://locanara.com) |
 
@@ -52,8 +43,6 @@ All AI processing happens locally on the device. No cloud. No data leaves.
 | Rewrite | Apple Intelligence | Gemini Nano |
 | Proofread | Apple Intelligence | Gemini Nano |
 
-> **Looking for more?** [Locanara PRO](https://locanara.com/pro) adds llama.cpp fallback for universal device coverage, RAG pipelines, and personalization features.
-
 ---
 
 ## Quick Start
@@ -63,7 +52,7 @@ All AI processing happens locally on the device. No cloud. No data leaves.
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/hyodotdev/locanara-swift.git", from: "1.0.0")
+    .package(url: "https://github.com/hyodotdev/locanara", from: "1.0.0")
 ]
 ```
 
@@ -75,6 +64,12 @@ let capability = await Locanara.getDeviceCapability()
 
 // Summarize text
 let result = await Locanara.summarize(text: "Your text here...")
+```
+
+### iOS/macOS (CocoaPods)
+
+```ruby
+pod 'Locanara', '~> 1.0'
 ```
 
 ### Android (Gradle)
@@ -98,23 +93,23 @@ val result = Locanara.summarize(text = "Your text here...")
 
 ---
 
-## Documentation
+## Requirements
 
-Full documentation is available at [locanara.com](https://locanara.com).
+### iOS/macOS
+
+- iOS 26+ / macOS 26+
+- Device with Apple Intelligence support
+
+### Android
+
+- Android 14+ (API 34+)
+- Device with Gemini Nano support
 
 ---
 
-## Community vs PRO
+## Documentation
 
-| Feature | Community | PRO |
-| ------- | --------- | --- |
-| OS-level AI (Apple Intelligence, Gemini Nano) | Yes | Yes |
-| Fallback Engine (llama.cpp for unsupported devices) | - | Yes |
-| Local RAG Pipeline | - | Yes |
-| Personalization & Memory | - | Yes |
-| Model Manager | - | Yes |
-
-[Learn more about PRO](https://locanara.com/pro)
+Full documentation is available at [locanara.com](https://locanara.com).
 
 ---
 
@@ -124,6 +119,4 @@ MIT License - see [LICENSE](./LICENSE) for details.
 
 ---
 
-<p align="center">
-  <sub>Built with conviction that AI should run where your data lives - on your device.</sub>
-</p>
+*Built with conviction that AI should run where your data lives - on your device.*

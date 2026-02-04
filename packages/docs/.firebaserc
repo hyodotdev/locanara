@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "locanara"
+  },
+  "targets": {
+    "locanara": {
+      "hosting": {
+        "docs": ["locanara-docs"]
+      }
+    }
+  }
+}

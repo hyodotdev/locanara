@@ -1,0 +1,105 @@
+# iOS-specific types for Locanara
+
+# Apple Foundation Models information
+type FoundationModelInfoIOS {
+  """
+  Model identifier
+  """
+  modelId: String!
+  """
+  Model version
+  """
+  version: String
+  """
+  Supported languages
+  """
+  supportedLanguages: [String!]!
+  """
+  Model capabilities
+  """
+  capabilities: [String!]!
+  """
+  Whether model requires download
+  """
+  requiresDownload: Boolean!
+  """
+  Download size in MB
+  """
+  downloadSizeMB: Int
+  """
+  Whether model is currently available
+  """
+  isAvailable: Boolean!
+}
+
+# iOS-specific execution options
+input ExecuteFeatureOptionsIOS {
+  """
+  Use Apple Intelligence framework
+  """
+  useAppleIntelligence: Boolean
+  """
+  Specific model to use
+  """
+  modelId: String
+  """
+  Enable on-device processing only
+  """
+  requireOnDevice: Boolean
+}
+
+# iOS-specific device info
+type DeviceInfoIOS {
+  """
+  Device model identifier
+  """
+  modelIdentifier: String!
+  """
+  iOS version
+  """
+  osVersion: String!
+  """
+  Whether device supports Apple Intelligence
+  """
+  supportsAppleIntelligence: Boolean!
+  """
+  Available system languages
+  """
+  systemLanguages: [String!]!
+  """
+  Neural Engine availability
+  """
+  hasNeuralEngine: Boolean!
+}
+
+# iOS-specific Image Playground parameters (generateImageIOS)
+input ImagePlaygroundParametersIOS {
+  """
+  Text prompt describing the image to generate
+  """
+  prompt: String!
+  """
+  Image style (animation, illustration, sketch)
+  """
+  style: ImagePlaygroundStyleIOS
+  """
+  Source image for editing (optional)
+  """
+  sourceImageBase64: String
+}
+
+# iOS Image Playground styles
+enum ImagePlaygroundStyleIOS {
+  """
+  Animated/cartoon style
+  """
+  ANIMATION
+  """
+  Digital illustration style
+  """
+  ILLUSTRATION
+  """
+  Hand-drawn sketch style
+  """
+  SKETCH
+}

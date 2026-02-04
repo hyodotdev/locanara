@@ -1,0 +1,265 @@
+# Web-specific types for Locanara (Chrome Built-in AI)
+
+# Chrome Built-in AI Summarize options
+enum SummarizeTypeWeb {
+  KEY_POINTS
+  TLDR
+  TEASER
+  HEADLINE
+}
+
+enum SummarizeLengthWeb {
+  SHORT
+  MEDIUM
+  LONG
+}
+
+enum SummarizeFormatWeb {
+  MARKDOWN
+  PLAIN_TEXT
+}
+
+# Chrome Built-in AI Rewrite options
+enum RewriteToneWeb {
+  MORE_FORMAL
+  AS_IS
+  MORE_CASUAL
+}
+
+enum RewriteLengthWeb {
+  SHORTER
+  AS_IS
+  LONGER
+}
+
+# Chrome Built-in AI Writer options
+enum WriterToneWeb {
+  FORMAL
+  NEUTRAL
+  CASUAL
+}
+
+enum WriterLengthWeb {
+  SHORT
+  MEDIUM
+  LONG
+}
+
+# Chrome Built-in AI feature availability
+enum FeatureAvailabilityWeb {
+  AVAILABLE
+  DOWNLOADABLE
+  UNAVAILABLE
+}
+
+# Chrome Built-in AI model information
+type ChromeAIModelInfo {
+  """
+  Model name (Gemini Nano)
+  """
+  name: String!
+  """
+  Whether model is downloaded
+  """
+  isDownloaded: Boolean!
+  """
+  Whether model is ready for inference
+  """
+  isReady: Boolean!
+  """
+  Supported APIs
+  """
+  supportedAPIs: [String!]!
+}
+
+# Web-specific execution options
+input ExecuteFeatureOptionsWeb {
+  """
+  Summarize type (for summarize feature)
+  """
+  summarizeType: SummarizeTypeWeb
+  """
+  Summarize length (for summarize feature)
+  """
+  summarizeLength: SummarizeLengthWeb
+  """
+  Summarize format
+  """
+  summarizeFormat: SummarizeFormatWeb
+  """
+  Rewrite tone (for rewrite feature)
+  """
+  rewriteTone: RewriteToneWeb
+  """
+  Rewrite length (for rewrite feature)
+  """
+  rewriteLength: RewriteLengthWeb
+  """
+  Writer tone (for write feature)
+  """
+  writerTone: WriterToneWeb
+  """
+  Writer length (for write feature)
+  """
+  writerLength: WriterLengthWeb
+  """
+  Source language (for translate)
+  """
+  sourceLanguage: String
+  """
+  Target language (for translate)
+  """
+  targetLanguage: String
+  """
+  Categories (for classify)
+  """
+  categories: [String!]
+  """
+  System prompt (for chat)
+  """
+  systemPrompt: String
+  """
+  Temperature (for chat)
+  """
+  temperature: Float
+  """
+  Top-K (for chat)
+  """
+  topK: Int
+  """
+  Context/shared context for operations
+  """
+  context: String
+}
+
+# Web browser/environment info
+type BrowserInfoWeb {
+  """
+  Browser name
+  """
+  browserName: String!
+  """
+  Browser version
+  """
+  browserVersion: String!
+  """
+  Whether browser supports Chrome Built-in AI
+  """
+  supportsChromeAI: Boolean!
+  """
+  User agent string
+  """
+  userAgent: String!
+  """
+  Available Chrome AI APIs
+  """
+  availableAPIs: [String!]!
+}
+
+# Feature capability for web
+type FeatureCapabilityWeb {
+  """
+  Feature type
+  """
+  feature: FeatureType!
+  """
+  Availability status
+  """
+  availability: FeatureAvailabilityWeb!
+}
+
+# Web-specific summarize result
+type SummarizeResultWeb {
+  """
+  Summarized text
+  """
+  summary: String!
+}
+
+# Web-specific translate result
+type TranslateResultWeb {
+  """
+  Translated text
+  """
+  translatedText: String!
+  """
+  Source language code
+  """
+  sourceLanguage: String!
+  """
+  Target language code
+  """
+  targetLanguage: String!
+}
+
+# Web-specific chat result
+type ChatResultWeb {
+  """
+  AI response
+  """
+  response: String!
+}
+
+# Web-specific rewrite result
+type RewriteResultWeb {
+  """
+  Rewritten text
+  """
+  rewrittenText: String!
+}
+
+# Web-specific classify result
+type ClassifyResultWeb {
+  """
+  Classified category
+  """
+  category: String!
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  confidence: Float!
+}
+
+# Web-specific extract result
+type ExtractResultWeb {
+  """
+  Extracted entities as JSON string
+  """
+  entities: String!
+}
+
+# Web-specific proofread result
+type ProofreadResultWeb {
+  """
+  Corrected text
+  """
+  correctedText: String!
+}
+
+# Web-specific describe image result
+type DescribeImageResultWeb {
+  """
+  Image description
+  """
+  description: String!
+}
+
+# Web-specific language detection result
+type DetectLanguageResultWeb {
+  """
+  Detected language code
+  """
+  detectedLanguage: String!
+  """
+  Confidence score (0.0 - 1.0)
+  """
+  confidence: Float!
+}
+
+# Web-specific write result (Chrome Writer API)
+type WriteResultWeb {
+  """
+  Generated text
+  """
+  text: String!
+}

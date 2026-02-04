@@ -1,0 +1,275 @@
+name: Release Apple SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type (or "current" to re-release)'
+        required: true
+        type: choice
+        options:
+          - current
+          - patch
+          - minor
+          - major
+        default: patch
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate version
+        id: version
+        run: |
+          CURRENT_VERSION=$(jq -r '.apple' locanara-versions.json)
+          echo "Current version: $CURRENT_VERSION"
+
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            NEW_VERSION="$CURRENT_VERSION"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+            case "${{ github.event.inputs.version }}" in
+              major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+              patch) PATCH=$((PATCH + 1)) ;;
+            esac
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          echo "New version: $NEW_VERSION"
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit version update
+        if: github.event.inputs.version != 'current'
+        run: |
+          # Update version files
+          jq --arg version "$VERSION" '.apple = $version' locanara-versions.json > tmp.json
+          mv tmp.json locanara-versions.json
+          cp locanara-versions.json packages/docs/locanara-versions.json
+
+          # Commit directly to main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add locanara-versions.json packages/docs/locanara-versions.json
+
+          if git diff --staged --quiet; then
+            echo "No version changes to commit"
+          else
+            git commit -m "chore: bump apple SDK to $VERSION"
+            git pull --rebase origin main || true
+            git push origin main
+          fi
+
+      - name: Build XCFramework
+        working-directory: packages/apple
+        run: |
+          rm -rf build
+          DERIVED_DATA="$HOME/Library/Developer/Xcode/DerivedData"
+
+          # Build for iOS
+          xcodebuild archive \
+            -scheme Locanara \
+            -destination "generic/platform=iOS" \
+            -archivePath build/Locanara-iOS.xcarchive \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+
+          # Copy iOS swiftmodule
+          mkdir -p build/Locanara-iOS.xcarchive/Products/usr/local/lib/Locanara.framework/Modules
+          cp -r "$DERIVED_DATA"/apple-*/Build/Intermediates.noindex/ArchiveIntermediates/Locanara/BuildProductsPath/Release-iphoneos/Locanara.swiftmodule \
+            build/Locanara-iOS.xcarchive/Products/usr/local/lib/Locanara.framework/Modules/
+
+          # Build for iOS Simulator
+          xcodebuild archive \
+            -scheme Locanara \
+            -destination "generic/platform=iOS Simulator" \
+            -archivePath build/Locanara-iOS-Simulator.xcarchive \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+
+          # Copy iOS Simulator swiftmodule
+          mkdir -p build/Locanara-iOS-Simulator.xcarchive/Products/usr/local/lib/Locanara.framework/Modules
+          cp -r "$DERIVED_DATA"/apple-*/Build/Intermediates.noindex/ArchiveIntermediates/Locanara/BuildProductsPath/Release-iphonesimulator/Locanara.swiftmodule \
+            build/Locanara-iOS-Simulator.xcarchive/Products/usr/local/lib/Locanara.framework/Modules/
+
+          # Build for macOS
+          xcodebuild archive \
+            -scheme Locanara \
+            -destination "generic/platform=macOS" \
+            -archivePath build/Locanara-macOS.xcarchive \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+
+          # Copy macOS swiftmodule (framework has Versions structure)
+          mkdir -p build/Locanara-macOS.xcarchive/Products/usr/local/lib/Locanara.framework/Versions/A/Modules
+          cp -r "$DERIVED_DATA"/apple-*/Build/Intermediates.noindex/ArchiveIntermediates/Locanara/BuildProductsPath/Release/Locanara.swiftmodule \
+            build/Locanara-macOS.xcarchive/Products/usr/local/lib/Locanara.framework/Versions/A/Modules/
+          ln -sf Versions/Current/Modules build/Locanara-macOS.xcarchive/Products/usr/local/lib/Locanara.framework/Modules
+
+          # Create XCFramework
+          xcodebuild -create-xcframework \
+            -framework build/Locanara-iOS.xcarchive/Products/usr/local/lib/Locanara.framework \
+            -framework build/Locanara-iOS-Simulator.xcarchive/Products/usr/local/lib/Locanara.framework \
+            -framework build/Locanara-macOS.xcarchive/Products/usr/local/lib/Locanara.framework \
+            -output build/Locanara.xcframework
+
+      - name: Package XCFramework
+        working-directory: packages/apple
+        run: |
+          cd build
+          zip -r Locanara.xcframework.zip Locanara.xcframework
+          CHECKSUM=$(swift package compute-checksum Locanara.xcframework.zip)
+          echo "CHECKSUM=$CHECKSUM" >> $GITHUB_ENV
+          echo "Checksum: $CHECKSUM"
+
+      - name: Create Git tag
+        run: |
+          TAG_NAME="apple-$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Delete existing tag if re-releasing
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            git push origin --delete "$TAG_NAME" 2>/dev/null || true
+            git tag -d "$TAG_NAME" 2>/dev/null || true
+          fi
+
+          git tag -a "$TAG_NAME" -m "Apple SDK $VERSION"
+          git push origin "$TAG_NAME"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="apple-$VERSION"
+
+          # Delete existing release if re-releasing
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            gh release delete "$TAG_NAME" --yes 2>/dev/null || true
+          fi
+
+          gh release create "$TAG_NAME" \
+            --title "Apple SDK $VERSION" \
+            --notes "Locanara Apple SDK v$VERSION
+
+          ## Installation
+
+          ### Swift Package Manager
+          \`\`\`
+          https://github.com/hyodotdev/locanara
+          \`\`\`
+
+          ### CocoaPods
+          \`\`\`ruby
+          pod 'Locanara', '~> $VERSION'
+          \`\`\`
+
+          ## Features
+          - Apple Intelligence (Foundation Models)
+
+          ## Requirements
+          - iOS 17+ / macOS 14+
+          - Xcode 15+
+
+          ## Checksum
+          \`$CHECKSUM\`
+          " \
+            packages/apple/build/Locanara.xcframework.zip
+
+      # Update Package.swift for SPM binary target distribution
+      - name: Update Package.swift
+        run: |
+          # Create Package.swift at repo root for SPM binary target distribution
+          cat > Package.swift << EOF
+          // swift-tools-version: 5.9
+          // Locanara Community - On-device AI SDK for iOS/macOS
+          // https://locanara.dev
+
+          import PackageDescription
+
+          let package = Package(
+              name: "Locanara",
+              platforms: [
+                  .iOS(.v17),
+                  .macOS(.v14)
+              ],
+              products: [
+                  .library(
+                      name: "Locanara",
+                      targets: ["Locanara"]
+                  )
+              ],
+              targets: [
+                  .binaryTarget(
+                      name: "Locanara",
+                      url: "https://github.com/hyodotdev/locanara/releases/download/apple-$VERSION/Locanara.xcframework.zip",
+                      checksum: "$CHECKSUM"
+                  )
+              ]
+          )
+          EOF
+
+          # Commit Package.swift update
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Package.swift
+          git commit -m "chore: update Package.swift for apple-$VERSION" || echo "No changes to commit"
+          git push origin main
+
+      - name: Create Locanara.podspec
+        run: |
+          cat > Locanara.podspec << EOF
+          Pod::Spec.new do |s|
+            s.name             = 'Locanara'
+            s.version          = '$VERSION'
+            s.summary          = 'Unified on-device AI SDK for iOS and macOS'
+            s.description      = <<-DESC
+              Locanara provides a unified API for on-device AI features using Apple Intelligence.
+              All processing happens locally on device for maximum privacy.
+            DESC
+
+            s.homepage         = 'https://github.com/hyodotdev/locanara'
+            s.license          = { :type => 'MIT' }
+            s.author           = { 'Locanara' => 'hyo@hyo.dev' }
+            s.source           = { :http => "https://github.com/hyodotdev/locanara/releases/download/apple-$VERSION/Locanara.xcframework.zip" }
+
+            s.ios.deployment_target = '17.0'
+            s.osx.deployment_target = '14.0'
+
+            s.vendored_frameworks = 'Locanara.xcframework'
+            s.swift_version = '5.9'
+          end
+          EOF
+
+      - name: Publish to CocoaPods Trunk
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          gem install cocoapods
+          pod trunk push Locanara.podspec --allow-warnings
+
+      - name: Summary
+        run: |
+          echo "## Apple SDK Released" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Swift Package Manager" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "https://github.com/hyodotdev/locanara" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### CocoaPods" >> $GITHUB_STEP_SUMMARY
+          echo '```ruby' >> $GITHUB_STEP_SUMMARY
+          echo "pod 'Locanara', '~> $VERSION'" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+

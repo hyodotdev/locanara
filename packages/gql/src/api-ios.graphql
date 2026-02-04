@@ -1,0 +1,46 @@
+# iOS-specific API operations
+
+extend type Query {
+  """
+  Get iOS device information
+  """
+  getDeviceInfoIOS: DeviceInfoIOS!
+
+  """
+  Get available Foundation Models
+  """
+  getAvailableFoundationModels: [FoundationModelInfoIOS!]!
+
+  """
+  Check Apple Intelligence availability
+  """
+  isAppleIntelligenceAvailable: Boolean!
+}
+
+extend type Mutation {
+  """
+  Download a specific Foundation Model
+  """
+  downloadFoundationModel(modelId: String!): VoidResult!
+
+  """
+  Execute feature with iOS-specific options
+  """
+  executeFeatureIOS(
+    input: ExecuteFeatureInput!
+    options: ExecuteFeatureOptionsIOS
+  ): ExecutionResult!
+
+  """
+  Request Apple Intelligence permissions
+  """
+  requestAppleIntelligencePermission: VoidResult!
+
+  """
+  Generate image using iOS Image Playground (iOS 18.2+)
+  Community tier - uses on-device Image Playground API
+  """
+  generateImageIOS(
+    parameters: ImagePlaygroundParametersIOS!
+  ): ImageGenerationResult!
+}

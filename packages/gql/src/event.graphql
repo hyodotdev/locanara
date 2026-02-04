@@ -1,0 +1,154 @@
+# Event types for OnDeviceAI
+
+# Event categories
+enum EventCategory {
+  CAPABILITY
+  MODEL
+  EXECUTION
+  CONTEXT
+  SYSTEM
+}
+
+# Detailed event data structures
+type CapabilityChangedEvent {
+  """
+  Previous capability
+  """
+  previous: DeviceCapability
+  """
+  Current capability
+  """
+  current: DeviceCapability!
+  """
+  Reason for change
+  """
+  reason: String
+}
+
+type ModelLoadedEvent {
+  """
+  Model information
+  """
+  modelInfo: ModelInfo!
+  """
+  Features now available
+  """
+  availableFeatures: [FeatureType!]!
+  """
+  Load time in milliseconds
+  """
+  loadTimeMs: Int
+}
+
+type ModelUnloadedEvent {
+  """
+  Model information
+  """
+  modelInfo: ModelInfo!
+  """
+  Reason for unloading
+  """
+  reason: String
+}
+
+type ExecutionStartedEvent {
+  """
+  Execution ID
+  """
+  executionId: ID!
+  """
+  Feature being executed
+  """
+  feature: FeatureType!
+  """
+  Processing location
+  """
+  processingLocation: ProcessingLocation!
+}
+
+type ExecutionCompletedEvent {
+  """
+  Execution ID
+  """
+  executionId: ID!
+  """
+  Feature that was executed
+  """
+  feature: FeatureType!
+  """
+  Processing time in milliseconds
+  """
+  processingTimeMs: Int!
+  """
+  Result size in bytes
+  """
+  resultSizeBytes: Int
+}
+
+type ExecutionFailedEvent {
+  """
+  Execution ID
+  """
+  executionId: ID!
+  """
+  Feature that failed
+  """
+  feature: FeatureType!
+  """
+  Error details
+  """
+  error: ExecutionError!
+}
+
+type ContextUpdatedEvent {
+  """
+  Context ID
+  """
+  contextId: ID!
+  """
+  Number of actions in context
+  """
+  actionCount: Int!
+  """
+  Updated preferences
+  """
+  preferences: ContextPreferences
+}
+
+# Union for all event data types
+union EventData =
+    CapabilityChangedEvent
+  | ModelLoadedEvent
+  | ModelUnloadedEvent
+  | ExecutionStartedEvent
+  | ExecutionCompletedEvent
+  | ExecutionFailedEvent
+  | ContextUpdatedEvent
+
+# Complete event structure
+type Event {
+  """
+  Event ID
+  """
+  id: ID!
+  """
+  Event type
+  """
+  type: LocanaraEvent!
+  """
+  Event category
+  """
+  category: EventCategory!
+  """
+  Event timestamp
+  """
+  timestamp: Float!
+  """
+  Event data
+  """
+  data: EventData
+  """
+  Platform where event occurred
+  """
+  platform: Platform
+}
