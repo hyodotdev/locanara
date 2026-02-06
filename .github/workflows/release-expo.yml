@@ -1,0 +1,116 @@
+name: Release expo-ondevice-ai
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Choose version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      tag:
+        description: 'npm dist-tag to publish under'
+        required: true
+        default: latest
+        type: choice
+        options:
+          - latest
+          - next
+      create_release:
+        description: 'Also create a GitHub Release from the tag'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libraries/expo-ondevice-ai
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.1.38'
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('libraries/expo-ondevice-ai/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --immutable
+
+      - name: Lint
+        run: bun run lint:ci
+
+      - name: Test
+        run: bun run test
+
+      - name: Verify no files have changed after auto-fix
+        run: git diff -- ":(exclude)example/*" --exit-code HEAD
+
+      - name: Configure Git user
+        run: |
+          git config user.name "expo-ondevice-ai bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version and tag
+        id: bump
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          npm version "$INPUT_VERSION" --tag-version-prefix="expo-ondevice-ai@" -m "chore(release): expo-ondevice-ai@%s"
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare package (build + codegen)
+        run: bun run prepare
+
+      - name: Push commit and tags
+        run: git push --follow-tags
+
+      - name: Ensure npm CLI v11.5.1 or later (required for OIDC)
+        run: npm install -g npm@latest
+
+      - name: Publish to npm with OIDC trusted publishing
+        run: |
+          if [ "${{ github.event.inputs.tag }}" = "latest" ]; then
+            npm publish --access public --provenance
+          else
+            npm publish --tag ${{ github.event.inputs.tag }} --access public --provenance
+          fi
+
+      - name: Create GitHub Release
+        if: ${{ github.event.inputs.create_release == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: expo-ondevice-ai@${{ steps.bump.outputs.version }}
+          name: expo-ondevice-ai@${{ steps.bump.outputs.version }}
+          draft: false
+          prerelease: ${{ github.event.inputs.tag != 'latest' }}
+          generate_release_notes: true

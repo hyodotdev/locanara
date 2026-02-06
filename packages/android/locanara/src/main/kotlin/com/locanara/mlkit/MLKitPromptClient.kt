@@ -313,29 +313,15 @@ class MLKitPromptClient(private val context: Context) : Closeable {
             Extract entities from the following text.
             Entity types to find: $entityTypesList
 
-            For each entity found, provide:
-            - Type (one of: $entityTypesList)
-            - Value (the exact text)
-            - Confidence (0.0 to 1.0)
-
-            Respond ONLY in this exact format (one entity per line):
-            ENTITY|type|value|confidence
+            Return ONLY a JSON array of objects with "type", "value", "confidence" fields.
+            Example: [{"type":"person","value":"John","confidence":0.95}]
         """.trimIndent()
 
         if (extractKeyValues) {
-            prompt += """
-
-            Also extract any key-value pairs in the text.
-            For key-value pairs, use this format:
-            KEYVALUE|key|value|confidence
-            """.trimIndent()
+            prompt += "\n\nAlso extract key-value pairs as: {\"kv\":[{\"key\":\"k\",\"value\":\"v\",\"confidence\":0.9}]}"
         }
 
-        prompt += """
-
-            Text to analyze:
-            $text
-        """.trimIndent()
+        prompt += "\n\nText:\n$text"
 
         Log.d(TAG, "Sending extract request...")
         val request = generateContentRequest(TextPart(prompt)) {
@@ -348,55 +334,49 @@ class MLKitPromptClient(private val context: Context) : Closeable {
 
         Log.d(TAG, "Extract response: $responseText")
 
-        // Parse extraction results
+        parseExtractResponse(responseText, extractKeyValues)
+    }
+
+    private fun parseExtractResponse(
+        responseText: String,
+        extractKeyValues: Boolean
+    ): ExtractResult {
         val entities = mutableListOf<Entity>()
         val keyValuePairs = if (extractKeyValues) mutableListOf<KeyValuePair>() else null
 
-        val lines = responseText.lines()
+        // Try JSON parsing: match {"type":"...","value":"...","confidence":...} objects
+        val entityPattern = Regex(""""type"\s*:\s*"([^"]+)"\s*,\s*"value"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)""")
+        for (match in entityPattern.findAll(responseText)) {
+            val (type, value, confStr) = match.destructured
+            val confidence = confStr.toDoubleOrNull() ?: continue
+            entities.add(Entity(type = type, value = value, confidence = confidence.coerceIn(0.0, 1.0)))
+        }
 
-        for (line in lines) {
-            val trimmed = line.trim()
-            if (trimmed.isEmpty()) continue
-
-            val parts = trimmed.split("|")
-
-            if (parts.size >= 4 && parts[0] == "ENTITY") {
-                val type = parts[1].trim()
-                val value = parts[2].trim()
-                val confidenceStr = parts[3].trim()
-
-                val confidence = confidenceStr.toDoubleOrNull() ?: continue
-
-                entities.add(
-                    Entity(
-                        type = type,
-                        value = value,
-                        confidence = confidence.coerceIn(0.0, 1.0),
-                        startPos = null,
-                        endPos = null
-                    )
-                )
-            } else if (parts.size >= 4 && parts[0] == "KEYVALUE" && extractKeyValues) {
-                val key = parts[1].trim()
-                val value = parts[2].trim()
-                val confidenceStr = parts[3].trim()
-
-                val confidence = confidenceStr.toDoubleOrNull() ?: continue
-
-                keyValuePairs?.add(
-                    KeyValuePair(
-                        key = key,
-                        value = value,
-                        confidence = confidence.coerceIn(0.0, 1.0)
-                    )
-                )
+        if (extractKeyValues) {
+            val kvSection = responseText.substringAfter("\"kv\"", "")
+            val kvPattern = Regex(""""key"\s*:\s*"([^"]+)"\s*,\s*"value"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)""")
+            for (match in kvPattern.findAll(kvSection)) {
+                val (key, value, confStr) = match.destructured
+                val confidence = confStr.toDoubleOrNull() ?: continue
+                keyValuePairs?.add(KeyValuePair(key = key, value = value, confidence = confidence.coerceIn(0.0, 1.0)))
             }
         }
 
-        ExtractResult(
-            entities = entities,
-            keyValuePairs = keyValuePairs
-        )
+        // Fallback: pipe-delimited format (ENTITY|type|value|confidence)
+        if (entities.isEmpty()) {
+            for (line in responseText.lines()) {
+                val parts = line.trim().split("|")
+                if (parts.size >= 4 && parts[0].trim().equals("ENTITY", ignoreCase = true)) {
+                    val confidence = parts[3].trim().toDoubleOrNull() ?: continue
+                    entities.add(Entity(type = parts[1].trim(), value = parts[2].trim(), confidence = confidence.coerceIn(0.0, 1.0)))
+                } else if (parts.size >= 4 && parts[0].trim().equals("KEYVALUE", ignoreCase = true) && extractKeyValues) {
+                    val confidence = parts[3].trim().toDoubleOrNull() ?: continue
+                    keyValuePairs?.add(KeyValuePair(key = parts[1].trim(), value = parts[2].trim(), confidence = confidence.coerceIn(0.0, 1.0)))
+                }
+            }
+        }
+
+        return ExtractResult(entities = entities, keyValuePairs = keyValuePairs)
     }
 
     // ============================================

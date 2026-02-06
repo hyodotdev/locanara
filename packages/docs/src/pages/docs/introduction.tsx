@@ -88,7 +88,7 @@ function Introduction() {
           </Link>
         </div>
 
-        <div className="alert-card alert-card--info">
+{/* <div className="alert-card alert-card--info">
           <p>
             <strong>Looking for broader device support?</strong> The Community
             SDK requires devices with Apple Intelligence or Gemini Nano. For
@@ -105,7 +105,7 @@ function Introduction() {
             <strong>Founding Members</strong> to shape the future of on-device
             AI together.
           </p>
-        </div>
+        </div> */}
       </section>
 
       <section>

@@ -1,0 +1,16 @@
+{
+  "platforms": [
+    "ios",
+    "android"
+  ],
+  "ios": {
+    "modules": [
+      "ExpoOndeviceAiModule"
+    ]
+  },
+  "android": {
+    "modules": [
+      "expo.modules.ondeviceai.ExpoOndeviceAiModule"
+    ]
+  }
+}

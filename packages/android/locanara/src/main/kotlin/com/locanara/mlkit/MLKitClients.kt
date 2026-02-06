@@ -252,24 +252,77 @@ class MLKitClients(private val context: Context) : Closeable {
         val suggestions = result.results
         val correctedText = suggestions.firstOrNull()?.text ?: text
 
+        val corrections = if (correctedText != text) {
+            extractWordCorrections(text, correctedText)
+        } else {
+            emptyList()
+        }
+
         ProofreadResult(
             correctedText = correctedText,
-            corrections = if (correctedText != text) {
-                listOf(
-                    ProofreadCorrection(
-                        original = text,
-                        corrected = correctedText,
-                        type = null,
-                        confidence = null,
-                        startPos = null,
-                        endPos = null
-                    )
-                )
-            } else {
-                emptyList()
-            },
-            hasCorrections = correctedText != text
+            corrections = corrections,
+            hasCorrections = corrections.isNotEmpty()
         )
+    }
+
+    /**
+     * Extract individual word-level corrections by diffing original and corrected text.
+     */
+    private fun extractWordCorrections(
+        original: String,
+        corrected: String
+    ): List<ProofreadCorrection> {
+        val corrections = mutableListOf<ProofreadCorrection>()
+        val wordPattern = Regex("""\S+""")
+        val origWords = wordPattern.findAll(original).toList()
+        val corrWords = wordPattern.findAll(corrected).toList()
+
+        if (origWords.size == corrWords.size) {
+            for (i in origWords.indices) {
+                val ow = origWords[i]
+                val cw = corrWords[i]
+                if (ow.value != cw.value) {
+                    corrections.add(
+                        ProofreadCorrection(
+                            original = ow.value,
+                            corrected = cw.value,
+                            type = guessErrorType(ow.value, cw.value),
+                            confidence = 0.9,
+                            startPos = ow.range.first,
+                            endPos = ow.range.last + 1
+                        )
+                    )
+                }
+            }
+        }
+
+        // Fallback: if word counts differ or no corrections found, return single correction
+        if (corrections.isEmpty() && original != corrected) {
+            corrections.add(
+                ProofreadCorrection(
+                    original = original,
+                    corrected = corrected,
+                    type = null,
+                    confidence = null,
+                    startPos = null,
+                    endPos = null
+                )
+            )
+        }
+
+        return corrections
+    }
+
+    private fun guessErrorType(original: String, corrected: String): String {
+        val origLower = original.lowercase().filter { it.isLetter() }
+        val corrLower = corrected.lowercase().filter { it.isLetter() }
+        if (origLower != corrLower) return "spelling"
+
+        val origPunct = original.filter { !it.isLetterOrDigit() }
+        val corrPunct = corrected.filter { !it.isLetterOrDigit() }
+        if (origPunct != corrPunct) return "punctuation"
+
+        return "grammar"
     }
 
     // ============================================
@@ -353,7 +406,7 @@ class MLKitClients(private val context: Context) : Closeable {
         RewriteResult(
             rewrittenText = suggestions.firstOrNull()?.text ?: text,
             style = outputType,
-            alternatives = suggestions.map { it.text },
+            alternatives = null,
             confidence = null
         )
     }

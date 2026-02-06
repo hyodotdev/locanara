@@ -73,79 +73,95 @@ internal final class ExtractExecutor {
         Extract entities from the following text.
         Entity types to find: \(entityTypesList)
 
-        For each entity found, provide:
-        - Type (one of: \(entityTypesList))
-        - Value (the exact text)
-        - Confidence (0.0 to 1.0)
-
-        Respond ONLY in this exact format (one entity per line):
-        ENTITY|type|value|confidence
-
+        Return ONLY a JSON array of objects with "type", "value", "confidence" fields.
+        Example: [{"type":"person","value":"John","confidence":0.95}]
         """
 
         if extractKeyValues {
-            prompt += """
-
-            Also extract any key-value pairs in the text.
-            For key-value pairs, use this format:
-            KEYVALUE|key|value|confidence
-
-            """
+            prompt += "\n\nAlso extract key-value pairs as: {\"kv\":[{\"key\":\"k\",\"value\":\"v\",\"confidence\":0.9}]}"
         }
 
-        prompt += """
-
-        Text to analyze:
-        \(input)
-        """
+        prompt += "\n\nText:\n\(input)"
 
         let response = try await session.respond(to: prompt)
         let responseText = response.content
 
+        return Self.parseExtractResponse(responseText, extractKeyValues: extractKeyValues)
+    }
+    #endif
+
+    static func parseExtractResponse(
+        _ responseText: String,
+        extractKeyValues: Bool
+    ) -> ExtractResult {
         var entities: [Entity] = []
         var keyValuePairs: [KeyValuePair]? = extractKeyValues ? [] : nil
 
-        let lines = responseText.components(separatedBy: .newlines)
+        // Try JSON parsing: match {"type":"...","value":"...","confidence":...} objects
+        let entityPattern = try? NSRegularExpression(
+            pattern: #""type"\s*:\s*"([^"]+)"\s*,\s*"value"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)"#
+        )
+        let nsText = responseText as NSString
+        let matches = entityPattern?.matches(in: responseText, range: NSRange(location: 0, length: nsText.length)) ?? []
+        for match in matches {
+            guard match.numberOfRanges >= 4 else { continue }
+            let type = nsText.substring(with: match.range(at: 1))
+            let value = nsText.substring(with: match.range(at: 2))
+            let confStr = nsText.substring(with: match.range(at: 3))
+            guard let confidence = Double(confStr) else { continue }
+            entities.append(Entity(
+                type: type,
+                value: value,
+                confidence: min(max(confidence, 0.0), 1.0),
+                startPos: nil,
+                endPos: nil
+            ))
+        }
 
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { continue }
+        if extractKeyValues, let kvStart = responseText.range(of: "\"kv\"") {
+            let kvSection = String(responseText[kvStart.lowerBound...])
+            let kvPattern = try? NSRegularExpression(
+                pattern: #""key"\s*:\s*"([^"]+)"\s*,\s*"value"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)"#
+            )
+            let nsKv = kvSection as NSString
+            let kvMatches = kvPattern?.matches(in: kvSection, range: NSRange(location: 0, length: nsKv.length)) ?? []
+            for match in kvMatches {
+                guard match.numberOfRanges >= 4 else { continue }
+                let key = nsKv.substring(with: match.range(at: 1))
+                let value = nsKv.substring(with: match.range(at: 2))
+                let confStr = nsKv.substring(with: match.range(at: 3))
+                guard let confidence = Double(confStr) else { continue }
+                keyValuePairs?.append(KeyValuePair(
+                    key: key, value: value, confidence: min(max(confidence, 0.0), 1.0)
+                ))
+            }
+        }
 
-            let parts = trimmed.split(separator: "|")
-
-            if parts.count >= 4 && parts[0] == "ENTITY" {
-                let type = String(parts[1]).trimmingCharacters(in: .whitespaces)
-                let value = String(parts[2]).trimmingCharacters(in: .whitespaces)
-                let confidenceStr = String(parts[3]).trimmingCharacters(in: .whitespaces)
-
-                if let confidence = Double(confidenceStr) {
+        // Fallback: pipe-delimited format (ENTITY|type|value|confidence)
+        if entities.isEmpty {
+            for line in responseText.components(separatedBy: .newlines) {
+                let parts = line.trimmingCharacters(in: .whitespaces).split(separator: "|")
+                guard parts.count >= 4 else { continue }
+                let prefix = String(parts[0]).trimmingCharacters(in: .whitespaces).lowercased()
+                if prefix == "entity" {
+                    guard let confidence = Double(String(parts[3]).trimmingCharacters(in: .whitespaces)) else { continue }
                     entities.append(Entity(
-                        type: type,
-                        value: value,
+                        type: String(parts[1]).trimmingCharacters(in: .whitespaces),
+                        value: String(parts[2]).trimmingCharacters(in: .whitespaces),
                         confidence: min(max(confidence, 0.0), 1.0),
-                        startPos: nil,
-                        endPos: nil
+                        startPos: nil, endPos: nil
                     ))
-                }
-            } else if parts.count >= 4 && parts[0] == "KEYVALUE" && extractKeyValues {
-                let key = String(parts[1]).trimmingCharacters(in: .whitespaces)
-                let value = String(parts[2]).trimmingCharacters(in: .whitespaces)
-                let confidenceStr = String(parts[3]).trimmingCharacters(in: .whitespaces)
-
-                if let confidence = Double(confidenceStr) {
+                } else if prefix == "keyvalue" && extractKeyValues {
+                    guard let confidence = Double(String(parts[3]).trimmingCharacters(in: .whitespaces)) else { continue }
                     keyValuePairs?.append(KeyValuePair(
-                        key: key,
-                        value: value,
+                        key: String(parts[1]).trimmingCharacters(in: .whitespaces),
+                        value: String(parts[2]).trimmingCharacters(in: .whitespaces),
                         confidence: min(max(confidence, 0.0), 1.0)
                     ))
                 }
             }
         }
 
-        return ExtractResult(
-            entities: entities,
-            keyValuePairs: keyValuePairs
-        )
+        return ExtractResult(entities: entities, keyValuePairs: keyValuePairs)
     }
-    #endif
 }

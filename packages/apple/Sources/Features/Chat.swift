@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
@@ -7,6 +8,20 @@ import FoundationModels
 ///
 /// Generates conversational responses using Apple Intelligence Foundation Models.
 internal final class ChatExecutor {
+
+    /// Default system prompt for general-purpose chat behavior.
+    /// Used when the caller does not provide a custom systemPrompt.
+    private static let defaultSystemPrompt =
+        "You are a friendly, helpful assistant. Respond naturally to the user's messages. " +
+        "Keep your responses concise and conversational."
+
+    /// Detect the dominant language of the given text using NLLanguageRecognizer.
+    private static func detectLanguage(_ text: String) -> String? {
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        guard let lang = recognizer.dominantLanguage else { return nil }
+        return Locale.current.localizedString(forIdentifier: lang.rawValue)
+    }
 
     /// Conversation storage for context
     private var conversations: [String: [ChatMessageInput]] = [:]
@@ -71,10 +86,16 @@ internal final class ChatExecutor {
         let session = LanguageModelSession()
 
         var history = conversations[conversationId] ?? []
-        var contextPrompt = ""
 
-        if history.isEmpty, let systemPrompt = parameters?.systemPrompt {
-            contextPrompt = "System instruction: \(systemPrompt)\n\n"
+        // Use caller's systemPrompt if provided, otherwise use default
+        let systemPrompt = parameters?.systemPrompt ?? Self.defaultSystemPrompt
+
+        // Detect user's language and add explicit instruction
+        let languageName = Self.detectLanguage(input)
+        let languageInstruction = languageName.map { " You MUST respond in \($0)." } ?? ""
+
+        var contextPrompt = "System instruction: \(systemPrompt)\(languageInstruction)\n\n"
+        if history.isEmpty {
             history.append(ChatMessageInput(role: "system", content: systemPrompt))
         }
 
@@ -92,12 +113,7 @@ internal final class ChatExecutor {
 
         history.append(ChatMessageInput(role: "user", content: input))
 
-        let prompt: String
-        if contextPrompt.isEmpty {
-            prompt = input
-        } else {
-            prompt = contextPrompt + "User: \(input)\nAssistant:"
-        }
+        let prompt = contextPrompt + "User: \(input)\nAssistant:"
 
         let response = try await session.respond(to: prompt)
         let message = response.content

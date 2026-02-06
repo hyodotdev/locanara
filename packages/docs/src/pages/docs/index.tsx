@@ -40,6 +40,8 @@ import WebChatTutorial from "./tutorials/web-chat";
 import WebTranslateTutorial from "./tutorials/web-translate";
 import Introduction from "./introduction";
 import WhyLocanara from "./why-locanara";
+import LibrariesIndex from "./libraries/index";
+import ExpoLibrary from "./libraries/expo";
 import NotFound from "../404";
 
 function Docs() {
@@ -120,7 +122,7 @@ function Docs() {
               </NavLink>
             </li>
           </ul>
-          <CommunityOnly>
+          {/* <CommunityOnly>
             <a
               href="http://docs-pro.locanara.com/"
               target="_blank"
@@ -130,7 +132,7 @@ function Docs() {
               <span>Locanara Pro</span>
               <span className="pro-arrow">→</span>
             </a>
-          </CommunityOnly>
+          </CommunityOnly> */}
           <h3 style={{ marginTop: "2rem" }}>Reference</h3>
           <ul>
             <MenuDropdown
@@ -232,6 +234,18 @@ function Docs() {
               />
             </ProOnly>
           </ul>
+          <h3 style={{ marginTop: "2rem" }}>Libraries</h3>
+          <ul>
+            <li>
+              <NavLink
+                to="/docs/libraries/expo"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                expo-ondevice-ai
+              </NavLink>
+            </li>
+          </ul>
         </nav>
       </aside>
       <main className="docs-content">
@@ -299,6 +313,8 @@ function Docs() {
             path="tutorials/web-translate"
             element={<WebTranslateTutorial />}
           />
+          <Route path="libraries" element={<LibrariesIndex />} />
+          <Route path="libraries/expo" element={<ExpoLibrary />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
