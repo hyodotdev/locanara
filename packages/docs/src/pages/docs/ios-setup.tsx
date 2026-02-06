@@ -286,7 +286,7 @@ case .failure(let error):
         <Callout type="warning" title="Apple Intelligence Not Available">
           <ul>
             <li>Verify device is iPhone 15 Pro or later, or M-series Mac</li>
-            <li>Check iOS/macOS version is 18.0+ / 15.0+</li>
+            <li>Check iOS/macOS version is 26.0+ / 26.0+</li>
             <li>
               Enable Apple Intelligence in Settings → Apple Intelligence & Siri
             </li>

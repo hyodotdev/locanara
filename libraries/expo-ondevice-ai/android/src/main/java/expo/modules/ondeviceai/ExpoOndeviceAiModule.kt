@@ -12,7 +12,8 @@ import kotlinx.coroutines.launch
 
 class ExpoOndeviceAiModule : Module() {
     private val locanara: Locanara by lazy {
-        Locanara.getInstance(appContext.reactContext!!.applicationContext)
+        Locanara.getInstance(appContext.reactContext?.applicationContext
+            ?: throw IllegalStateException("React context is not available"))
     }
     private val scope = CoroutineScope(Dispatchers.Main)
 

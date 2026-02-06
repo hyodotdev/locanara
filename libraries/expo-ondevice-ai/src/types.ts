@@ -26,7 +26,7 @@ export interface DeviceCapability {
   /** Whether the AI model is ready for use */
   isModelReady: boolean;
   /** Whether the device supports Apple Intelligence (iOS only) */
-  supportsAppleIntelligence: boolean;
+  supportsAppleIntelligence?: boolean;
   /** The platform */
   platform: Platform;
   /** Available AI features (keys are feature names from the native SDK) */

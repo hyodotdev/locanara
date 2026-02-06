@@ -1,9 +1,10 @@
 import type {ConfigContext, ExpoConfig} from '@expo/config';
+import * as path from 'path';
 
 const LOCAL_LOCANARA_PATHS = {
-  ios: '/Users/hyo/Github/hyodotdev/locanara/packages/apple',
-  android: '/Users/hyo/Github/hyodotdev/locanara/packages/android',
-} as const;
+  ios: path.resolve(__dirname, '..', '..', '..', 'packages', 'apple'),
+  android: path.resolve(__dirname, '..', '..', '..', 'packages', 'android'),
+};
 
 export default ({config}: ConfigContext): ExpoConfig => {
   const expoConfig: ExpoConfig = {

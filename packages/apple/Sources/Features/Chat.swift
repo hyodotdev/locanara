@@ -20,7 +20,7 @@ internal final class ChatExecutor {
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
         guard let lang = recognizer.dominantLanguage else { return nil }
-        return Locale.current.localizedString(forIdentifier: lang.rawValue)
+        return Locale(identifier: "en").localizedString(forIdentifier: lang.rawValue)
     }
 
     /// Conversation storage for context

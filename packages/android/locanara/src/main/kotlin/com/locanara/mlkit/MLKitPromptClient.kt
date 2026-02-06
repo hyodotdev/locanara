@@ -344,22 +344,46 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         val entities = mutableListOf<Entity>()
         val keyValuePairs = if (extractKeyValues) mutableListOf<KeyValuePair>() else null
 
-        // Try JSON parsing: match {"type":"...","value":"...","confidence":...} objects
-        val entityPattern = Regex(""""type"\s*:\s*"([^"]+)"\s*,\s*"value"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)""")
-        for (match in entityPattern.findAll(responseText)) {
-            val (type, value, confStr) = match.destructured
-            val confidence = confStr.toDoubleOrNull() ?: continue
-            entities.add(Entity(type = type, value = value, confidence = confidence.coerceIn(0.0, 1.0)))
-        }
-
-        if (extractKeyValues) {
-            val kvSection = responseText.substringAfter("\"kv\"", "")
-            val kvPattern = Regex(""""key"\s*:\s*"([^"]+)"\s*,\s*"value"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)""")
-            for (match in kvPattern.findAll(kvSection)) {
-                val (key, value, confStr) = match.destructured
-                val confidence = confStr.toDoubleOrNull() ?: continue
-                keyValuePairs?.add(KeyValuePair(key = key, value = value, confidence = confidence.coerceIn(0.0, 1.0)))
+        // Try JSON parsing with JSONArray/JSONObject for robustness
+        try {
+            // Find the first JSON array in the response
+            val arrayStart = responseText.indexOf('[')
+            val arrayEnd = responseText.lastIndexOf(']')
+            if (arrayStart >= 0 && arrayEnd > arrayStart) {
+                val jsonArray = org.json.JSONArray(responseText.substring(arrayStart, arrayEnd + 1))
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    val type = obj.optString("type", "")
+                    val value = obj.optString("value", "")
+                    val confidence = obj.optDouble("confidence", 0.0)
+                    if (type.isNotEmpty() && value.isNotEmpty()) {
+                        entities.add(Entity(type = type, value = value, confidence = confidence.coerceIn(0.0, 1.0)))
+                    }
+                }
             }
+
+            // Parse key-value pairs from "kv" field if present
+            if (extractKeyValues) {
+                val kvStart = responseText.indexOf("\"kv\"")
+                if (kvStart >= 0) {
+                    val kvArrayStart = responseText.indexOf('[', kvStart)
+                    val kvArrayEnd = responseText.indexOf(']', kvArrayStart)
+                    if (kvArrayStart >= 0 && kvArrayEnd > kvArrayStart) {
+                        val kvArray = org.json.JSONArray(responseText.substring(kvArrayStart, kvArrayEnd + 1))
+                        for (i in 0 until kvArray.length()) {
+                            val obj = kvArray.getJSONObject(i)
+                            val key = obj.optString("key", "")
+                            val value = obj.optString("value", "")
+                            val confidence = obj.optDouble("confidence", 0.0)
+                            if (key.isNotEmpty() && value.isNotEmpty()) {
+                                keyValuePairs?.add(KeyValuePair(key = key, value = value, confidence = confidence.coerceIn(0.0, 1.0)))
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "JSON parsing failed, trying fallback: ${e.message}")
         }
 
         // Fallback: pipe-delimited format (ENTITY|type|value|confidence)
@@ -383,18 +407,15 @@ class MLKitPromptClient(private val context: Context) : Closeable {
     // Translate
     // ============================================
 
-    private val languageNames = mapOf(
-        "en" to "English",
-        "ko" to "Korean",
-        "ja" to "Japanese",
-        "zh" to "Chinese",
-        "es" to "Spanish",
-        "fr" to "French",
-        "de" to "German",
-        "it" to "Italian",
-        "pt" to "Portuguese",
-        "ru" to "Russian"
-    )
+    /**
+     * Resolve a language code to its English display name using java.util.Locale.
+     * Falls back to the raw code if the system cannot resolve it.
+     */
+    private fun languageName(code: String): String {
+        val locale = java.util.Locale.forLanguageTag(code)
+        val name = locale.getDisplayLanguage(java.util.Locale.ENGLISH)
+        return if (name.isNotEmpty() && name != code) name else code
+    }
 
     /**
      * Translate text to target language
@@ -416,8 +437,8 @@ class MLKitPromptClient(private val context: Context) : Closeable {
 
         val model = getModel()
 
-        val sourceLangName = languageNames[sourceLanguage] ?: sourceLanguage
-        val targetLangName = languageNames[targetLanguage] ?: targetLanguage
+        val sourceLangName = languageName(sourceLanguage)
+        val targetLangName = languageName(targetLanguage)
 
         val prompt = """
             Translate the following text from $sourceLangName to $targetLangName.

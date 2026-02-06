@@ -1,3 +1,7 @@
+#!/bin/sh
+
+cd "$(dirname "$0")/.." || exit 1
+
 # Lint TypeScript/JS (and Kotlin if available)
 echo "Linting (tsc/eslint/prettier/kt)..."
 if command -v bun >/dev/null 2>&1; then

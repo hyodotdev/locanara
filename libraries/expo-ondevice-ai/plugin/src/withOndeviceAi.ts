@@ -84,7 +84,7 @@ const withOndeviceAi: ConfigPlugin<ExpoOndeviceAiPluginOptions | void> = (
           );
           let podfileContent = fs.readFileSync(podfilePath, 'utf8');
 
-          const localPodLine = `  pod 'Locanara', :path => '${iosPath}'`;
+          const localPodLine = `  pod 'Locanara', :path => '${resolvedIosPath}'`;
           if (!podfileContent.includes(localPodLine)) {
             podfileContent = podfileContent.replace(
               'use_expo_modules!',

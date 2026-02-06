@@ -16,7 +16,7 @@ object ExpoOndeviceAiSerialization {
 
         return mapOf(
             "isSupported" to capability.supportsOnDeviceAI,
-            "isModelReady" to capability.supportsOnDeviceAI,
+            "isModelReady" to (capability.modelInfo?.isLoaded == true),
             "platform" to "ANDROID",
             "features" to features,
             "availableMemoryMB" to (capability.availableMemoryMB ?: 0),
