@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Route, Routes, Navigate, NavLink } from "react-router-dom";
 import { MenuDropdown } from "../../components/MenuDropdown";
-import ProOnly, { CommunityOnly } from "../../components/ProOnly";
+
 import TypesIndex from "./types/index";
 import TypesIOS from "./types/ios";
 import TypesAndroid from "./types/android";
@@ -122,17 +122,6 @@ function Docs() {
               </NavLink>
             </li>
           </ul>
-          {/* <CommunityOnly>
-            <a
-              href="http://docs-pro.locanara.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pro-upgrade-banner"
-            >
-              <span>Locanara Pro</span>
-              <span className="pro-arrow">→</span>
-            </a>
-          </CommunityOnly> */}
           <h3 style={{ marginTop: "2rem" }}>Reference</h3>
           <ul>
             <MenuDropdown
@@ -218,21 +207,6 @@ function Docs() {
               isExpanded={expandedTutorial === "android"}
               onToggle={() => handleTutorialToggle("android")}
             />
-            <ProOnly>
-              <MenuDropdown
-                title="Web SDK"
-                titleTo="/docs/tutorials/web"
-                items={[
-                  { to: "/docs/web-setup", label: "Setup Guide" },
-                  { to: "/docs/tutorials/web-summarize", label: "Summarize" },
-                  { to: "/docs/tutorials/web-chat", label: "Chat" },
-                  { to: "/docs/tutorials/web-translate", label: "Translate" },
-                ]}
-                onItemClick={closeSidebar}
-                isExpanded={expandedTutorial === "web"}
-                onToggle={() => handleTutorialToggle("web")}
-              />
-            </ProOnly>
           </ul>
           <h3 style={{ marginTop: "2rem" }}>Libraries</h3>
           <ul>

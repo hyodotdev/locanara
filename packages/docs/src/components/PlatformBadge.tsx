@@ -20,13 +20,8 @@ const platformInfo: Record<
   flutter: { label: "Flutter", color: "#02569b", darkColor: "#54c5f8" },
 };
 
-const isPro = () => import.meta.env.VITE_DOCS_TIER === "pro";
-
 export function PlatformBadge({ platforms, size = "md" }: PlatformBadgeProps) {
-  // Filter out "web" platform in Community tier
-  const filteredPlatforms = isPro()
-    ? platforms
-    : platforms.filter((p) => p !== "web");
+  const filteredPlatforms = platforms.filter((p) => p !== "web");
 
   return (
     <div className={`platform-badges platform-badges-${size}`}>

@@ -4,7 +4,6 @@ import AnchorLink from "../../components/AnchorLink";
 import Callout from "../../components/Callout";
 import PlatformBadge from "../../components/PlatformBadge";
 import PageNavigation from "../../components/PageNavigation";
-import ProOnly, { CommunityOnly } from "../../components/ProOnly";
 
 function IOSSetup() {
   return (
@@ -56,159 +55,41 @@ function IOSSetup() {
           Installation
         </AnchorLink>
 
-        <CommunityOnly>
-          <AnchorLink id="project-setup" level="h3">
-            1. Project Setup
-          </AnchorLink>
-          <p>Create a new SwiftUI project and add the Locanara SDK.</p>
+        <AnchorLink id="project-setup" level="h3">
+          1. Project Setup
+        </AnchorLink>
+        <p>Create a new SwiftUI project and add the Locanara SDK.</p>
 
-          <p>
-            <strong>Option A: Swift Package Manager (Recommended)</strong>
-          </p>
-          <p>
-            In Xcode, go to <strong>File → Add Package Dependencies</strong> and
-            add:
-          </p>
-          <CodeBlock
-            language="text"
-            code={`https://github.com/locanara/locanara-swift.git`}
-          />
+        <p>
+          <strong>Option A: Swift Package Manager (Recommended)</strong>
+        </p>
+        <p>
+          In Xcode, go to <strong>File → Add Package Dependencies</strong> and
+          add:
+        </p>
+        <CodeBlock
+          language="text"
+          code={`https://github.com/locanara/locanara-swift.git`}
+        />
 
-          <p>
-            <strong>Option B: CocoaPods</strong>
-          </p>
-          <p>
-            Add to your <code>Podfile</code>:
-          </p>
-          <CodeBlock language="ruby" code={`pod 'Locanara', '~> 1.0.0'`} />
-          <p>Then run:</p>
-          <CodeBlock language="bash" code={`pod install`} />
+        <p>
+          <strong>Option B: CocoaPods</strong>
+        </p>
+        <p>
+          Add to your <code>Podfile</code>:
+        </p>
+        <CodeBlock language="ruby" code={`pod 'Locanara', '~> 1.0.0'`} />
+        <p>Then run:</p>
+        <CodeBlock language="bash" code={`pod install`} />
 
-          <AnchorLink id="import" level="h3">
-            Import Locanara
-          </AnchorLink>
-          <CodeBlock
-            language="swift"
-            code={`import SwiftUI
+        <AnchorLink id="import" level="h3">
+          Import Locanara
+        </AnchorLink>
+        <CodeBlock
+          language="swift"
+          code={`import SwiftUI
 import Locanara`}
-          />
-        </CommunityOnly>
-
-        <ProOnly>
-          <AnchorLink id="github-auth" level="h3">
-            1. GitHub Authentication Setup
-          </AnchorLink>
-          <p>
-            Locanara Pro is hosted on GitHub Packages. Configure authentication
-            first:
-          </p>
-
-          <p>
-            <strong>Option A: Xcode GitHub Account (Recommended)</strong>
-          </p>
-          <ol>
-            <li>
-              Go to <strong>Xcode → Settings → Accounts</strong>
-            </li>
-            <li>
-              Click <strong>+</strong> and select <strong>GitHub</strong>
-            </li>
-            <li>Sign in with your GitHub account</li>
-            <li>Ensure your account has access to the locanara organization</li>
-          </ol>
-
-          <p>
-            <strong>Option B: SSH Key</strong>
-          </p>
-          <CodeBlock
-            language="bash"
-            code={`# Generate SSH key (if not exists)
-ssh-keygen -t ed25519 -C "your_email@example.com"
-
-# Add to ssh-agent
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
-
-# Copy public key and add to GitHub Settings → SSH Keys
-cat ~/.ssh/id_ed25519.pub`}
-          />
-
-          <p>
-            <strong>Option C: Personal Access Token (PAT)</strong>
-          </p>
-          <ol>
-            <li>
-              Go to{" "}
-              <a
-                href="https://github.com/settings/tokens"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub → Settings → Developer settings → Personal access tokens
-              </a>
-            </li>
-            <li>
-              Generate a new token (classic) with <code>repo</code> and{" "}
-              <code>read:packages</code> scopes
-            </li>
-            <li>Use this token when Xcode prompts for authentication</li>
-          </ol>
-
-          <AnchorLink id="add-dependency" level="h3">
-            2. Add Package Dependency
-          </AnchorLink>
-          <p>
-            In Xcode, go to <strong>File → Add Package Dependencies</strong> and
-            add:
-          </p>
-          <CodeBlock
-            language="text"
-            code={`https://github.com/locanara/locanara.git`}
-          />
-
-          <p>
-            Or add to <code>Package.swift</code>:
-          </p>
-          <CodeBlock
-            language="swift"
-            code={`dependencies: [
-    .package(url: "https://github.com/locanara/locanara.git", from: "1.0.0")
-]`}
-          />
-
-          <AnchorLink id="import" level="h3">
-            3. Import Locanara
-          </AnchorLink>
-          <CodeBlock
-            language="swift"
-            code={`import SwiftUI
-import Locanara`}
-          />
-
-          <Callout type="warning" title="Gemma License Attribution">
-            <p>
-              Locanara Pro uses the <strong>Gemma 3</strong> model for on-device
-              AI on devices without Apple Intelligence or Gemini Nano support.
-              You must include the following attribution in your app (e.g., in
-              Settings, About, or Licenses screen):
-            </p>
-            <CodeBlock
-              language="text"
-              code={`Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms`}
-            />
-            <p>
-              For full license details, see the{" "}
-              <a
-                href="https://ai.google.dev/gemma/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Gemma Terms of Use
-              </a>
-              .
-            </p>
-          </Callout>
-        </ProOnly>
+        />
       </section>
 
       <section>

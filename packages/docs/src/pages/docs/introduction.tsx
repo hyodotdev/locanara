@@ -87,34 +87,13 @@ function Introduction() {
             </p>
           </Link>
         </div>
-
-{/* <div className="alert-card alert-card--info">
-          <p>
-            <strong>Looking for broader device support?</strong> The Community
-            SDK requires devices with Apple Intelligence or Gemini Nano. For
-            devices without these native AI capabilities,{" "}
-            <a
-              href="https://locanara.com/pricing"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Locanara Pro
-            </a>{" "}
-            provides a standalone inference engine that works on virtually any
-            device. We are currently recruiting{" "}
-            <strong>Founding Members</strong> to shape the future of on-device
-            AI together.
-          </p>
-        </div> */}
       </section>
 
       <section>
         <h2 id="features">Available Features</h2>
 
-        <h4>Community (Free)</h4>
         <p className="feature-subtitle">
-          Requires devices with Apple Intelligence, Gemini Nano, or Chrome
-          Built-in AI
+          Requires devices with Apple Intelligence or Gemini Nano
         </p>
         <table>
           <thead>
@@ -122,75 +101,24 @@ function Introduction() {
               <th>Feature</th>
               <th className="text-center">iOS</th>
               <th className="text-center">Android</th>
-              <th className="text-center">
-                Web <span className="badge badge-pro">Pro</span>
-              </th>
             </tr>
           </thead>
           <tbody>
             {[
-              { name: "Summarize", ios: true, android: true, web: true },
-              { name: "Classify", ios: true, android: true, web: true },
-              { name: "Extract", ios: true, android: true, web: true },
-              { name: "Chat", ios: true, android: true, web: true },
-              { name: "Translate", ios: true, android: true, web: true },
-              { name: "Rewrite", ios: true, android: true, web: true },
-              { name: "Proofread", ios: true, android: true, web: true },
-              { name: "Describe Image", ios: false, android: true, web: false },
-              { name: "Generate Image", ios: true, android: false, web: false },
+              { name: "Summarize", ios: true, android: true },
+              { name: "Classify", ios: true, android: true },
+              { name: "Extract", ios: true, android: true },
+              { name: "Chat", ios: true, android: true },
+              { name: "Translate", ios: true, android: true },
+              { name: "Rewrite", ios: true, android: true },
+              { name: "Proofread", ios: true, android: true },
+              { name: "Describe Image", ios: false, android: true },
+              { name: "Generate Image", ios: true, android: false },
             ].map((feature) => (
               <tr key={feature.name}>
                 <td>{feature.name}</td>
                 <td className="text-center">{feature.ios ? "✓" : "—"}</td>
                 <td className="text-center">{feature.android ? "✓" : "—"}</td>
-                <td className="text-center">{feature.web ? "✓" : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h4>
-          Pro{" "}
-          <a
-            href="https://locanara.com/pricing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="header-inline-link"
-          >
-            (Founding Members)
-          </a>
-        </h4>
-        <p className="feature-subtitle">
-          Works on any device with standalone inference engine
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th>Feature</th>
-              <th className="text-center">iOS</th>
-              <th className="text-center">Android</th>
-              <th className="text-center">
-                Web <span className="badge badge-pro">Pro</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              {
-                name: "All Community Features",
-                ios: true,
-                android: true,
-                web: true,
-              },
-              { name: "Describe Image", ios: true, android: true, web: true },
-              { name: "Generate Image", ios: true, android: true, web: true },
-              { name: "Fallback Engine", ios: true, android: true, web: true },
-            ].map((feature) => (
-              <tr key={feature.name}>
-                <td>{feature.name}</td>
-                <td className="text-center">{feature.ios ? "✓" : "—"}</td>
-                <td className="text-center">{feature.android ? "✓" : "—"}</td>
-                <td className="text-center">{feature.web ? "✓" : "—"}</td>
               </tr>
             ))}
           </tbody>

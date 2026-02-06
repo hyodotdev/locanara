@@ -145,11 +145,7 @@ val short = rewrite(original, RewriteOutputType.SHORTEN)
           to: "/docs/tutorials/android-chat",
           label: "Android Chat Tutorial",
         }}
-        next={
-          import.meta.env.VITE_DOCS_TIER === "pro"
-            ? { to: "/docs/tutorials/web", label: "Web Tutorial" }
-            : undefined
-        }
+        next={undefined}
       />
     </div>
   );

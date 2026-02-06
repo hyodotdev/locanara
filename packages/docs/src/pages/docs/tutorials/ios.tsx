@@ -1,11 +1,10 @@
 import { Link } from "react-router-dom";
 import AnchorLink from "../../../components/AnchorLink";
 import CodeBlock from "../../../components/CodeBlock";
-import Callout from "../../../components/Callout";
+
 import PageNavigation from "../../../components/PageNavigation";
 import SEO from "../../../components/SEO";
 import TLDRBox from "../../../components/TLDRBox";
-import ProOnly, { CommunityOnly } from "../../../components/ProOnly";
 
 function IOSTutorial() {
   return (
@@ -47,121 +46,24 @@ function IOSTutorial() {
         </AnchorLink>
         <p>Create a new SwiftUI project and add the Locanara SDK.</p>
 
-        <CommunityOnly>
-          <h4>Option A: Swift Package Manager (Recommended)</h4>
-          <p>
-            In Xcode, go to <strong>File → Add Package Dependencies</strong> and
-            add:
-          </p>
-          <CodeBlock language="text">{`https://github.com/locanara/locanara-swift.git`}</CodeBlock>
+        <h4>Option A: Swift Package Manager (Recommended)</h4>
+        <p>
+          In Xcode, go to <strong>File → Add Package Dependencies</strong> and
+          add:
+        </p>
+        <CodeBlock language="text">{`https://github.com/locanara/locanara-swift.git`}</CodeBlock>
 
-          <h4>Option B: CocoaPods</h4>
-          <p>
-            Add to your <code>Podfile</code>:
-          </p>
-          <CodeBlock language="ruby">{`pod 'Locanara', '~> 1.0.0'`}</CodeBlock>
-          <p>Then run:</p>
-          <CodeBlock language="bash">{`pod install`}</CodeBlock>
+        <h4>Option B: CocoaPods</h4>
+        <p>
+          Add to your <code>Podfile</code>:
+        </p>
+        <CodeBlock language="ruby">{`pod 'Locanara', '~> 1.0.0'`}</CodeBlock>
+        <p>Then run:</p>
+        <CodeBlock language="bash">{`pod install`}</CodeBlock>
 
-          <h4>Import Locanara</h4>
-          <CodeBlock language="swift">{`import SwiftUI
+        <h4>Import Locanara</h4>
+        <CodeBlock language="swift">{`import SwiftUI
 import Locanara`}</CodeBlock>
-        </CommunityOnly>
-
-        <ProOnly>
-          <h4>1. GitHub Authentication Setup</h4>
-          <p>
-            Locanara Pro is hosted on GitHub Packages. Configure authentication
-            first:
-          </p>
-
-          <p>
-            <strong>Option A: Xcode GitHub Account (Recommended)</strong>
-          </p>
-          <ol>
-            <li>
-              Go to <strong>Xcode → Settings → Accounts</strong>
-            </li>
-            <li>
-              Click <strong>+</strong> and select <strong>GitHub</strong>
-            </li>
-            <li>Sign in with your GitHub account</li>
-            <li>Ensure your account has access to the locanara organization</li>
-          </ol>
-
-          <p>
-            <strong>Option B: SSH Key</strong>
-          </p>
-          <CodeBlock language="bash">{`# Generate SSH key (if not exists)
-ssh-keygen -t ed25519 -C "your_email@example.com"
-
-# Add to ssh-agent
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
-
-# Copy public key and add to GitHub Settings → SSH Keys
-cat ~/.ssh/id_ed25519.pub`}</CodeBlock>
-
-          <p>
-            <strong>Option C: Personal Access Token (PAT)</strong>
-          </p>
-          <ol>
-            <li>
-              Go to{" "}
-              <a
-                href="https://github.com/settings/tokens"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub → Settings → Developer settings → Personal access tokens
-              </a>
-            </li>
-            <li>
-              Generate a new token (classic) with <code>repo</code> and{" "}
-              <code>read:packages</code> scopes
-            </li>
-            <li>Use this token when Xcode prompts for authentication</li>
-          </ol>
-
-          <h4>2. Add Package Dependency</h4>
-          <p>
-            In Xcode, go to <strong>File → Add Package Dependencies</strong> and
-            add:
-          </p>
-          <CodeBlock language="text">{`https://github.com/locanara/locanara.git`}</CodeBlock>
-
-          <p>
-            Or add to <code>Package.swift</code>:
-          </p>
-          <CodeBlock language="swift">{`dependencies: [
-    .package(url: "https://github.com/locanara/locanara.git", from: "1.0.0")
-]`}</CodeBlock>
-
-          <h4>3. Import Locanara</h4>
-          <CodeBlock language="swift">{`import SwiftUI
-import Locanara`}</CodeBlock>
-
-          <Callout type="warning" title="Gemma License Attribution">
-            <p>
-              Locanara Pro uses the <strong>Gemma 3</strong> model for on-device
-              AI on devices without Apple Intelligence or Gemini Nano support.
-              You must include the following attribution in your app (e.g., in
-              Settings, About, or Licenses screen):
-            </p>
-            <CodeBlock language="text">{`Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms`}</CodeBlock>
-            <p>
-              For full license details, see the{" "}
-              <a
-                href="https://ai.google.dev/gemma/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Gemma Terms of Use
-              </a>
-              .
-            </p>
-          </Callout>
-        </ProOnly>
       </section>
 
       <section>

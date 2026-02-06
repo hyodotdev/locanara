@@ -2,7 +2,6 @@ import { ExternalLink } from "lucide-react";
 import AnchorLink from "../../components/AnchorLink";
 import SEO from "../../components/SEO";
 import { useScrollToHash } from "../../hooks/useScrollToHash";
-import ProOnly from "../../components/ProOnly";
 
 interface ResourceLinkProps {
   href: string;
@@ -126,39 +125,6 @@ function Resources() {
         </div>
       </section>
 
-      <ProOnly>
-        <section className="doc-section">
-          <AnchorLink id="chrome-ai" level="h2">
-            Chrome Built-in AI
-          </AnchorLink>
-          <p className="section-description">
-            Web platform APIs for on-device AI in Chrome browser.
-          </p>
-          <div className="resource-links">
-            <ResourceLink
-              href="https://developer.chrome.com/docs/ai/built-in"
-              title="Built-in AI Overview"
-              description="Chrome's on-device AI capabilities"
-            />
-            <ResourceLink
-              href="https://developer.chrome.com/docs/ai/prompt-api"
-              title="Prompt API"
-              description="Language model API for web applications"
-            />
-            <ResourceLink
-              href="https://developer.chrome.com/docs/ai/summarizer-api"
-              title="Summarizer API"
-              description="On-device text summarization for web"
-            />
-            <ResourceLink
-              href="https://developer.chrome.com/docs/ai/writer-rewriter-apis"
-              title="Writer & Rewriter APIs"
-              description="Content generation and rewriting"
-            />
-          </div>
-        </section>
-      </ProOnly>
-
       <section className="doc-section">
         <AnchorLink id="news" level="h2">
           Latest Updates
@@ -186,19 +152,6 @@ function Resources() {
               <ExternalLink size={12} className="news-item-link-icon" />
             </a>
           </div>
-          <ProOnly>
-            <div className="news-item">
-              <span className="news-badge web">Chrome 138+</span>
-              <a
-                href="https://developer.chrome.com/docs/ai/built-in"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Chrome Built-in AI APIs Available
-                <ExternalLink size={12} className="news-item-link-icon" />
-              </a>
-            </div>
-          </ProOnly>
         </div>
       </section>
     </div>

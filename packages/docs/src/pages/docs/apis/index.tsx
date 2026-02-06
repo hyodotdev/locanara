@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import APICard from "../../../components/APICard";
-import ProOnly from "../../../components/ProOnly";
+
 import SEO from "../../../components/SEO";
 import TLDRBox from "../../../components/TLDRBox";
 
@@ -50,14 +50,6 @@ function APIsIndex() {
             href="/docs/apis/android"
             count={8}
           />
-          <ProOnly>
-            <APICard
-              title="Web APIs"
-              description="Chrome Built-in AI APIs for Gemini Nano, summarization, translation, chat, and more."
-              href="/docs/apis/web"
-              count={12}
-            />
-          </ProOnly>
         </div>
       </section>
 

@@ -142,20 +142,6 @@
   color: #121212;
 }
 
-.badge-pro {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-  font-size: 0.65rem;
-  padding: 0.15rem 0.4rem;
-  margin-left: 0.35rem;
-  vertical-align: middle;
-}
-
-:root.dark .badge-pro {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: #121212;
-}
-
 .contribute-section {
   margin-top: 3rem;
   padding: 2rem;
