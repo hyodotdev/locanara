@@ -9,6 +9,7 @@ import com.locanara.Platform
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -17,12 +18,17 @@ class ExpoOndeviceAiModule : Module() {
         Locanara.getInstance(appContext.reactContext?.applicationContext
             ?: throw IllegalStateException("React context is not available"))
     }
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(job + Dispatchers.Main)
 
     override fun definition() = ModuleDefinition {
         Name("ExpoOndeviceAi")
 
         Events("onChatStreamChunk")
+
+        OnDestroy {
+            job.cancel("Module destroyed")
+        }
 
         AsyncFunction("initialize") { promise: Promise ->
             scope.launch {

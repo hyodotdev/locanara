@@ -7,6 +7,7 @@ import FoundationModels
 /// Chat feature executor
 ///
 /// Generates conversational responses using Apple Intelligence Foundation Models.
+/// Conversation history is managed entirely by the caller via the `history` parameter.
 internal final class ChatExecutor {
 
     /// Default system prompt for general-purpose chat behavior.
@@ -22,9 +23,6 @@ internal final class ChatExecutor {
         guard let lang = recognizer.dominantLanguage else { return nil }
         return Locale(identifier: "en").localizedString(forIdentifier: lang.rawValue)
     }
-
-    /// Conversation storage for context
-    private var conversations: [String: [ChatMessageInput]] = [:]
 
     /// Execute chat feature
     ///
@@ -84,42 +82,10 @@ internal final class ChatExecutor {
         parameters: ChatParametersInput?
     ) async throws -> ChatResult {
         let session = LanguageModelSession()
-
-        var history = conversations[conversationId] ?? []
-
-        // Use caller's systemPrompt if provided, otherwise use default
-        let systemPrompt = parameters?.systemPrompt ?? Self.defaultSystemPrompt
-
-        // Detect user's language and add explicit instruction
-        let languageName = Self.detectLanguage(input)
-        let languageInstruction = languageName.map { " You MUST respond in \($0)." } ?? ""
-
-        var contextPrompt = "System instruction: \(systemPrompt)\(languageInstruction)\n\n"
-        if history.isEmpty {
-            history.append(ChatMessageInput(role: "system", content: systemPrompt))
-        }
-
-        if let providedHistory = parameters?.history {
-            history.append(contentsOf: providedHistory)
-        }
-
-        for msg in history {
-            if msg.role == "user" {
-                contextPrompt += "User: \(msg.content)\n"
-            } else if msg.role == "assistant" {
-                contextPrompt += "Assistant: \(msg.content)\n"
-            }
-        }
-
-        history.append(ChatMessageInput(role: "user", content: input))
-
-        let prompt = contextPrompt + "User: \(input)\nAssistant:"
+        let prompt = Self.buildPrompt(input: input, parameters: parameters)
 
         let response = try await session.respond(to: prompt)
         let message = response.content
-
-        history.append(ChatMessageInput(role: "assistant", content: message))
-        conversations[conversationId] = history
 
         let suggestedPrompts = generateSuggestedPrompts(for: input, response: message)
 
@@ -180,31 +146,7 @@ internal final class ChatExecutor {
         conversationId: String,
         parameters: ChatParametersInput?
     ) -> AsyncThrowingStream<ChatStreamChunk, Error> {
-        // Pre-capture all values from self before the stream closure
-        var history = conversations[conversationId] ?? []
-        let systemPrompt = parameters?.systemPrompt ?? Self.defaultSystemPrompt
-        let languageName = Self.detectLanguage(input)
-        let languageInstruction = languageName.map { " You MUST respond in \($0)." } ?? ""
-
-        var contextPrompt = "System instruction: \(systemPrompt)\(languageInstruction)\n\n"
-        if history.isEmpty {
-            history.append(ChatMessageInput(role: "system", content: systemPrompt))
-        }
-
-        if let providedHistory = parameters?.history {
-            history.append(contentsOf: providedHistory)
-        }
-
-        for msg in history {
-            if msg.role == "user" {
-                contextPrompt += "User: \(msg.content)\n"
-            } else if msg.role == "assistant" {
-                contextPrompt += "Assistant: \(msg.content)\n"
-            }
-        }
-
-        history.append(ChatMessageInput(role: "user", content: input))
-        let prompt = contextPrompt + "User: \(input)\nAssistant:"
+        let prompt = Self.buildPrompt(input: input, parameters: parameters)
 
         return AsyncThrowingStream { continuation in
             Task { @Sendable in
@@ -247,10 +189,30 @@ internal final class ChatExecutor {
     }
     #endif
 
-    /// Clear conversation history
-    ///
-    /// - Parameter conversationId: Conversation to clear
-    func clearConversation(_ conversationId: String) {
-        conversations.removeValue(forKey: conversationId)
+    // MARK: - Prompt Building
+
+    /// Build a complete prompt string from the input and parameters.
+    /// Both streaming and non-streaming paths use this to ensure consistency.
+    private static func buildPrompt(
+        input: String,
+        parameters: ChatParametersInput?
+    ) -> String {
+        let systemPrompt = parameters?.systemPrompt ?? defaultSystemPrompt
+        let languageName = detectLanguage(input)
+        let languageInstruction = languageName.map { " You MUST respond in \($0)." } ?? ""
+
+        var contextPrompt = "System instruction: \(systemPrompt)\(languageInstruction)\n\n"
+
+        if let history = parameters?.history {
+            for msg in history {
+                if msg.role == "user" {
+                    contextPrompt += "User: \(msg.content)\n"
+                } else if msg.role == "assistant" {
+                    contextPrompt += "Assistant: \(msg.content)\n"
+                }
+            }
+        }
+
+        return contextPrompt + "User: \(input)\nAssistant:"
     }
 }
