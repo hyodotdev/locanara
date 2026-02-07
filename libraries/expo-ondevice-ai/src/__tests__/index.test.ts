@@ -5,10 +5,12 @@ import {
   classify,
   extract,
   chat,
+  chatStream,
   translate,
   rewrite,
   proofread,
 } from '../index';
+import type {ChatStreamChunk} from '../types';
 
 describe('expo-ondevice-ai', () => {
   describe('initialize', () => {
@@ -68,6 +70,84 @@ describe('expo-ondevice-ai', () => {
       });
       expect(result).toHaveProperty('message');
       expect(result).toHaveProperty('canContinue');
+    });
+  });
+
+  describe('chatStream', () => {
+    it('should return final ChatResult', async () => {
+      const result = await chatStream('Hello');
+      expect(result).toHaveProperty('message');
+      expect(result).toHaveProperty('canContinue');
+      expect(result.message).toBe('Hello world');
+      expect(result.canContinue).toBe(true);
+    });
+
+    it('should invoke onChunk callback with streamed chunks', async () => {
+      const chunks: ChatStreamChunk[] = [];
+
+      await chatStream('Hello', {
+        onChunk: (chunk) => {
+          chunks.push(chunk);
+        },
+      });
+
+      expect(chunks.length).toBe(3);
+      expect(chunks[0].delta).toBe('Hello');
+      expect(chunks[0].accumulated).toBe('Hello');
+      expect(chunks[0].isFinal).toBe(false);
+      expect(chunks[1].delta).toBe(' world');
+      expect(chunks[1].accumulated).toBe('Hello world');
+      expect(chunks[1].isFinal).toBe(false);
+      expect(chunks[2].isFinal).toBe(true);
+      expect(chunks[2].accumulated).toBe('Hello world');
+    });
+
+    it('should work without onChunk callback', async () => {
+      const result = await chatStream('Hello', {});
+      expect(result).toHaveProperty('message');
+      expect(result.message).toBe('Hello world');
+    });
+
+    it('should pass options to native module', async () => {
+      const {requireNativeModule} = require('expo-modules-core');
+      const mockModule = requireNativeModule('ExpoOndeviceAi');
+
+      await chatStream('Hello', {
+        systemPrompt: 'Be helpful',
+        history: [{role: 'user', content: 'Hi'}],
+      });
+
+      expect(mockModule.chatStream).toHaveBeenCalledWith('Hello', {
+        systemPrompt: 'Be helpful',
+        history: [{role: 'user', content: 'Hi'}],
+      });
+    });
+
+    it('should clean up subscription after completion', async () => {
+      const {requireNativeModule} = require('expo-modules-core');
+      const mockModule = requireNativeModule('ExpoOndeviceAi');
+
+      const onChunk = jest.fn();
+      await chatStream('Hello', {onChunk});
+
+      // addListener should have been called
+      expect(mockModule.addListener).toHaveBeenCalledWith(
+        'onChatStreamChunk',
+        expect.any(Function),
+      );
+    });
+
+    it('should clean up subscription on error', async () => {
+      const {requireNativeModule} = require('expo-modules-core');
+      const mockModule = requireNativeModule('ExpoOndeviceAi');
+
+      // Temporarily make chatStream reject
+      mockModule.chatStream.mockRejectedValueOnce(new Error('Stream failed'));
+
+      const onChunk = jest.fn();
+      await expect(chatStream('Hello', {onChunk})).rejects.toThrow(
+        'Stream failed',
+      );
     });
   });
 

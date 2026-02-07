@@ -71,6 +71,27 @@ object ExpoOndeviceAiHelper {
         )
     }
 
+    /**
+     * Public helper to decode chat parameters from JS options map.
+     * Used by chatStream bridge to extract ChatParametersInput directly.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun decodeChatParameters(opts: Map<String, Any>?): ChatParametersInput? {
+        val options = opts ?: return null
+        val conversationId = options["conversationId"] as? String
+        val systemPrompt = options["systemPrompt"] as? String
+        val history = (options["history"] as? List<Map<String, String>>)?.mapNotNull { msg ->
+            val role = msg["role"] ?: return@mapNotNull null
+            val content = msg["content"] ?: return@mapNotNull null
+            ChatMessageInput(role = role, content = content)
+        }
+        return ChatParametersInput(
+            conversationId = conversationId,
+            systemPrompt = systemPrompt,
+            history = history
+        )
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun decodeChat(opts: Map<String, Any>): FeatureParametersInput {
         val conversationId = opts["conversationId"] as? String

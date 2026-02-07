@@ -323,8 +323,11 @@ const parsed = JSON.parse(result.text);`}</CodeBlock>
           >
             OpenIAP
           </a>
-          , an open source in-app purchase framework funded by Meta. OpenIAP
-          powers libraries like{" "}
+          , an open source in-app purchase framework funded by{" "}
+          <a href="https://meta.com" target="_blank" rel="noopener noreferrer">
+            Meta
+          </a>
+          . OpenIAP powers libraries like{" "}
           <a
             href="https://github.com/hyochan/react-native-iap"
             target="_blank"

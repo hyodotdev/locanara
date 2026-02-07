@@ -71,6 +71,28 @@ enum ExpoOndeviceAiHelper {
         )
     }
 
+    /// Public helper to decode chat parameters from JS options dictionary.
+    /// Used by chatStream bridge to extract ChatParametersInput directly.
+    static func decodeChatParameters(_ opts: [String: Any]?) -> ChatParametersInput? {
+        guard let opts = opts else { return nil }
+        let conversationId = opts["conversationId"] as? String
+        let systemPrompt = opts["systemPrompt"] as? String
+        var history: [ChatMessageInput]? = nil
+
+        if let historyArray = opts["history"] as? [[String: String]] {
+            history = historyArray.compactMap { msg in
+                guard let role = msg["role"], let content = msg["content"] else { return nil }
+                return ChatMessageInput(role: role, content: content)
+            }
+        }
+
+        return ChatParametersInput(
+            conversationId: conversationId,
+            systemPrompt: systemPrompt,
+            history: history
+        )
+    }
+
     private static func decodeChat(_ opts: [String: Any]) -> FeatureParametersInput? {
         let conversationId = opts["conversationId"] as? String
         let systemPrompt = opts["systemPrompt"] as? String

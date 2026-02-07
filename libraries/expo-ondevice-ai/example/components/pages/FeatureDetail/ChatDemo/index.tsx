@@ -1,6 +1,7 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useCallback} from 'react';
 import {
   View,
+  Text,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -12,6 +13,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {
   chat,
+  chatStream,
   type ChatMessage as ChatMessageType,
   ExpoOndeviceAiLog,
 } from 'expo-ondevice-ai';
@@ -32,7 +34,58 @@ export function ChatDemo() {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [useStreaming, setUseStreaming] = useState(true);
   const flatListRef = useRef<FlatList>(null);
+
+  const sendMessageNonStreaming = useCallback(
+    async (userMessage: string, history: ChatMessageType[]) => {
+      ExpoOndeviceAiLog.d('[ChatDemo] Sending non-streaming message');
+
+      const chatResult = await chat(userMessage, {history});
+
+      ExpoOndeviceAiLog.d('[ChatDemo] Result received');
+      ExpoOndeviceAiLog.json('[ChatDemo] ChatResult', chatResult);
+
+      const assistantMessage: DisplayMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: chatResult.message,
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    },
+    [],
+  );
+
+  const sendMessageStreaming = useCallback(
+    async (
+      userMessage: string,
+      history: ChatMessageType[],
+      assistantId: string,
+    ) => {
+      ExpoOndeviceAiLog.d('[ChatDemo] Sending streaming message');
+
+      // Add empty assistant bubble immediately
+      setMessages((prev) => [
+        ...prev,
+        {id: assistantId, role: 'assistant', content: ''},
+      ]);
+
+      await chatStream(userMessage, {
+        history,
+        onChunk: (chunk) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? {...m, content: chunk.accumulated} : m,
+            ),
+          );
+        },
+      });
+
+      ExpoOndeviceAiLog.d('[ChatDemo] Stream completed');
+    },
+    [],
+  );
 
   const sendMessage = async () => {
     if (!inputText.trim() || isLoading || !isModelReady) return;
@@ -50,29 +103,23 @@ export function ChatDemo() {
     setIsLoading(true);
 
     try {
-      // Build conversation history from previous messages
       const history: ChatMessageType[] = messages.map((m) => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
 
       ExpoOndeviceAiLog.d('[ChatDemo] Sending message:', userMessage);
-      ExpoOndeviceAiLog.d('[ChatDemo] History count:', history.length);
-      ExpoOndeviceAiLog.json('[ChatDemo] History', history);
+      ExpoOndeviceAiLog.d(
+        '[ChatDemo] Mode:',
+        useStreaming ? 'streaming' : 'non-streaming',
+      );
 
-      // Call chat with message and history in options
-      const chatResult = await chat(userMessage, {history});
-
-      ExpoOndeviceAiLog.d('[ChatDemo] Result received');
-      ExpoOndeviceAiLog.json('[ChatDemo] ChatResult', chatResult);
-
-      const assistantMessage: DisplayMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: chatResult.message,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      if (useStreaming) {
+        const assistantId = (Date.now() + 1).toString();
+        await sendMessageStreaming(userMessage, history, assistantId);
+      } else {
+        await sendMessageNonStreaming(userMessage, history);
+      }
     } catch (error: any) {
       ExpoOndeviceAiLog.error(
         '[ChatDemo] Error: ' + (error.message || 'Unknown error'),
@@ -104,6 +151,39 @@ export function ChatDemo() {
         </View>
       )}
 
+      <View style={styles.modeToggle}>
+        <TouchableOpacity
+          style={[styles.toggleButton, !useStreaming && styles.toggleActive]}
+          onPress={() => setUseStreaming(false)}
+        >
+          <Ionicons
+            name="chatbox-outline"
+            size={14}
+            color={!useStreaming ? '#fff' : '#666'}
+          />
+          <Text
+            style={[styles.toggleText, !useStreaming && styles.toggleTextActive]}
+          >
+            Standard
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.toggleButton, useStreaming && styles.toggleActive]}
+          onPress={() => setUseStreaming(true)}
+        >
+          <Ionicons
+            name="flash-outline"
+            size={14}
+            color={useStreaming ? '#fff' : '#666'}
+          />
+          <Text
+            style={[styles.toggleText, useStreaming && styles.toggleTextActive]}
+          >
+            Stream
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -114,7 +194,7 @@ export function ChatDemo() {
           flatListRef.current?.scrollToEnd({animated: true})
         }
         ListFooterComponent={
-          isLoading ? (
+          isLoading && !useStreaming ? (
             <View style={styles.typingContainer}>
               <TypingIndicator />
             </View>
@@ -172,6 +252,33 @@ const styles = StyleSheet.create({
   },
   bannerContainer: {
     padding: 16,
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    gap: 4,
+  },
+  toggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#E5E5EA',
+  },
+  toggleActive: {
+    backgroundColor: '#007AFF',
+  },
+  toggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  toggleTextActive: {
+    color: '#fff',
   },
   messageList: {
     padding: 16,

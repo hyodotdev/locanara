@@ -1,3 +1,5 @@
+const mockListeners = {};
+
 const mockModule = {
   initialize: jest.fn().mockResolvedValue({success: true}),
   getDeviceCapability: jest.fn().mockResolvedValue({
@@ -34,6 +36,28 @@ const mockModule = {
     message: 'Mock response',
     canContinue: true,
   }),
+  chatStream: jest.fn().mockImplementation(() => {
+    // Simulate streaming by emitting chunks before resolving
+    const listeners = mockListeners['onChatStreamChunk'] || [];
+    const chunks = [
+      {delta: 'Hello', accumulated: 'Hello', isFinal: false},
+      {delta: ' world', accumulated: 'Hello world', isFinal: false},
+      {delta: '', accumulated: 'Hello world', isFinal: true},
+    ];
+
+    // Use microtask to emit chunks before promise resolves
+    Promise.resolve().then(() => {
+      chunks.forEach((chunk) => {
+        listeners.forEach((listener) => listener(chunk));
+      });
+    });
+
+    return Promise.resolve({
+      message: 'Hello world',
+      canContinue: true,
+      suggestedPrompts: ['Tell me more'],
+    });
+  }),
   translate: jest.fn().mockResolvedValue({
     translatedText: 'Mock translation',
     sourceLanguage: 'en',
@@ -49,6 +73,25 @@ const mockModule = {
     corrections: [],
     hasCorrections: false,
   }),
+  addListener: jest.fn().mockImplementation((eventName, listener) => {
+    if (!mockListeners[eventName]) {
+      mockListeners[eventName] = [];
+    }
+    mockListeners[eventName].push(listener);
+    return {
+      remove: () => {
+        const idx = mockListeners[eventName]?.indexOf(listener);
+        if (idx !== undefined && idx >= 0) {
+          mockListeners[eventName].splice(idx, 1);
+        }
+      },
+    };
+  }),
+};
+
+// Helper to clear mock listeners between tests
+mockModule.__clearListeners = () => {
+  Object.keys(mockListeners).forEach((key) => delete mockListeners[key]);
 };
 
 module.exports = {

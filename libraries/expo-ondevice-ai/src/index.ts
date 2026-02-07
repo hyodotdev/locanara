@@ -1,3 +1,4 @@
+import { type EventSubscription } from 'expo-modules-core';
 import ExpoOndeviceAiModule from './ExpoOndeviceAiModule';
 import type {
   DeviceCapability,
@@ -9,6 +10,8 @@ import type {
   ExtractResult,
   ChatOptions,
   ChatResult,
+  ChatStreamChunk,
+  ChatStreamOptions,
   TranslateOptions,
   TranslateResult,
   RewriteOptions,
@@ -82,6 +85,44 @@ export async function chat(
   options?: ChatOptions,
 ): Promise<ChatResult> {
   return ExpoOndeviceAiModule.chat(message, options);
+}
+
+/**
+ * Chat with on-device AI using streaming responses
+ * Tokens are delivered progressively via the onChunk callback.
+ * @param message - The user message
+ * @param options - Chat stream options including onChunk callback
+ * @returns Promise resolving to final ChatResult when stream completes
+ */
+export async function chatStream(
+  message: string,
+  options?: ChatStreamOptions,
+): Promise<ChatResult> {
+  let subscription: EventSubscription | undefined;
+
+  try {
+    if (options?.onChunk) {
+      // ExpoOndeviceAiModule is an EventEmitter since expo-modules-core SDK 52+
+      subscription = (
+        ExpoOndeviceAiModule as unknown as {
+          addListener: (
+            name: string,
+            listener: (chunk: ChatStreamChunk) => void,
+          ) => EventSubscription;
+        }
+      ).addListener('onChatStreamChunk', (chunk: ChatStreamChunk) => {
+        options.onChunk!(chunk);
+      });
+    }
+
+    const result: ChatResult = await ExpoOndeviceAiModule.chatStream(
+      message,
+      options,
+    );
+    return result;
+  } finally {
+    subscription?.remove();
+  }
 }
 
 /**

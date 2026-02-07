@@ -176,6 +176,28 @@ export interface ChatResult {
 }
 
 /**
+ * A chunk of streamed chat response
+ */
+export interface ChatStreamChunk {
+  /** New text in this chunk */
+  delta: string;
+  /** Full accumulated text so far */
+  accumulated: string;
+  /** Whether this is the final chunk */
+  isFinal: boolean;
+  /** Conversation ID for context */
+  conversationId?: string;
+}
+
+/**
+ * Options for streaming chat (extends ChatOptions)
+ */
+export interface ChatStreamOptions extends ChatOptions {
+  /** Callback invoked for each streamed chunk */
+  onChunk?: (chunk: ChatStreamChunk) => void;
+}
+
+/**
  * Options for translation
  */
 export interface TranslateOptions {

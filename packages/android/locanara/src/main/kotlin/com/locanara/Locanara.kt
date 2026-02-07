@@ -421,6 +421,42 @@ class Locanara private constructor(
     }
 
     // ============================================
+    // Streaming
+    // ============================================
+
+    /**
+     * Stream a chat response as a Flow of ChatStreamChunk
+     *
+     * @param message User message
+     * @param systemPrompt Optional system prompt
+     * @param history Optional conversation history
+     * @param conversationId Optional conversation ID for context
+     * @return Flow of ChatStreamChunk
+     */
+    fun chatStream(
+        message: String,
+        systemPrompt: String? = null,
+        history: List<ChatMessageInput>? = null,
+        conversationId: String? = null
+    ): Flow<ChatStreamChunk> {
+        if (!_isInitialized.value) {
+            throw LocanaraException.SdkNotInitialized
+        }
+
+        return kotlinx.coroutines.flow.flow {
+            promptClient.chatStream(
+                message = message,
+                systemPrompt = systemPrompt,
+                history = history
+            ).collect { chunk ->
+                emit(
+                    chunk.copy(conversationId = conversationId)
+                )
+            }
+        }
+    }
+
+    // ============================================
     // SubscriptionResolver Implementation
     // ============================================
 

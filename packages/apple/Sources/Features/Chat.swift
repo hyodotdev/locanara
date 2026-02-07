@@ -140,6 +140,118 @@ internal final class ChatExecutor {
         ]
     }
 
+    /// Execute streaming chat feature
+    ///
+    /// - Parameters:
+    ///   - input: User message
+    ///   - parameters: Optional chat parameters
+    /// - Returns: AsyncThrowingStream of ChatStreamChunk
+    /// - Throws: LocanaraError if execution fails
+    func executeStream(
+        input: String,
+        parameters: ChatParametersInput?
+    ) async throws -> AsyncThrowingStream<ChatStreamChunk, Error> {
+        // Validate input
+        guard !input.isEmpty else {
+            throw LocanaraError.invalidInput("Input cannot be empty")
+        }
+
+        let conversationId = parameters?.conversationId ?? UUID().uuidString
+
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, macOS 26.0, *) {
+            if case .available = SystemLanguageModel.default.availability {
+                return streamWithAppleIntelligence(
+                    input: input,
+                    conversationId: conversationId,
+                    parameters: parameters
+                )
+            }
+        }
+        #endif
+
+        throw LocanaraError.featureNotAvailable(.chat)
+    }
+
+    #if canImport(FoundationModels)
+    @available(iOS 26.0, macOS 26.0, *)
+    private func streamWithAppleIntelligence(
+        input: String,
+        conversationId: String,
+        parameters: ChatParametersInput?
+    ) -> AsyncThrowingStream<ChatStreamChunk, Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let session = LanguageModelSession()
+
+                    var history = conversations[conversationId] ?? []
+
+                    let systemPrompt = parameters?.systemPrompt ?? Self.defaultSystemPrompt
+                    let languageName = Self.detectLanguage(input)
+                    let languageInstruction = languageName.map { " You MUST respond in \($0)." } ?? ""
+
+                    var contextPrompt = "System instruction: \(systemPrompt)\(languageInstruction)\n\n"
+                    if history.isEmpty {
+                        history.append(ChatMessageInput(role: "system", content: systemPrompt))
+                    }
+
+                    if let providedHistory = parameters?.history {
+                        history.append(contentsOf: providedHistory)
+                    }
+
+                    for msg in history {
+                        if msg.role == "user" {
+                            contextPrompt += "User: \(msg.content)\n"
+                        } else if msg.role == "assistant" {
+                            contextPrompt += "Assistant: \(msg.content)\n"
+                        }
+                    }
+
+                    history.append(ChatMessageInput(role: "user", content: input))
+                    let prompt = contextPrompt + "User: \(input)\nAssistant:"
+
+                    let stream = session.streamResponse(to: prompt)
+                    var previousContent = ""
+
+                    for try await partialResponse in stream {
+                        let currentContent = partialResponse.content
+                        let delta = String(currentContent.dropFirst(previousContent.count))
+                        previousContent = currentContent
+
+                        if !delta.isEmpty {
+                            let chunk = ChatStreamChunk(
+                                delta: delta,
+                                accumulated: currentContent,
+                                isFinal: false,
+                                conversationId: conversationId
+                            )
+                            continuation.yield(chunk)
+                        }
+                    }
+
+                    // Yield final chunk
+                    let finalChunk = ChatStreamChunk(
+                        delta: "",
+                        accumulated: previousContent,
+                        isFinal: true,
+                        conversationId: conversationId
+                    )
+                    continuation.yield(finalChunk)
+
+                    // Update conversation history
+                    history.append(ChatMessageInput(role: "assistant", content: previousContent))
+                    conversations[conversationId] = history
+
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+    #endif
+
     /// Clear conversation history
     ///
     /// - Parameter conversationId: Conversation to clear

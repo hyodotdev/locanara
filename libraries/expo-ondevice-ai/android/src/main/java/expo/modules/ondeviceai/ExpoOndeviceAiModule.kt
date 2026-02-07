@@ -8,6 +8,7 @@ import com.locanara.FeatureType
 import com.locanara.Platform
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class ExpoOndeviceAiModule : Module() {
@@ -19,6 +20,8 @@ class ExpoOndeviceAiModule : Module() {
 
     override fun definition() = ModuleDefinition {
         Name("ExpoOndeviceAi")
+
+        Events("onChatStreamChunk")
 
         AsyncFunction("initialize") { promise: Promise ->
             scope.launch {
@@ -56,6 +59,43 @@ class ExpoOndeviceAiModule : Module() {
 
         AsyncFunction("chat") { message: String, options: Map<String, Any>?, promise: Promise ->
             executeFeature(FeatureType.CHAT, message, options, promise)
+        }
+
+        AsyncFunction("chatStream") { message: String, options: Map<String, Any>?, promise: Promise ->
+            scope.launch {
+                try {
+                    val params = ExpoOndeviceAiHelper.decodeChatParameters(options)
+                    var finalMessage = ""
+                    var finalConversationId: String? = null
+
+                    locanara.chatStream(
+                        message = message,
+                        systemPrompt = params?.systemPrompt,
+                        history = params?.history,
+                        conversationId = params?.conversationId
+                    ).collect { chunk ->
+                        sendEvent("onChatStreamChunk", mapOf(
+                            "delta" to chunk.delta,
+                            "accumulated" to chunk.accumulated,
+                            "isFinal" to chunk.isFinal,
+                            "conversationId" to chunk.conversationId
+                        ))
+                        if (chunk.isFinal) {
+                            finalMessage = chunk.accumulated
+                            finalConversationId = chunk.conversationId
+                        }
+                    }
+
+                    promise.resolve(mapOf(
+                        "message" to finalMessage,
+                        "conversationId" to finalConversationId,
+                        "canContinue" to true,
+                        "suggestedPrompts" to listOf("Tell me more", "Can you explain?", "What else?")
+                    ))
+                } catch (e: Exception) {
+                    promise.reject("ERR_CHAT_STREAM", e.message, e)
+                }
+            }
         }
 
         AsyncFunction("translate") { text: String, options: Map<String, Any>?, promise: Promise ->

@@ -397,6 +397,25 @@ type ChatResult {
   suggestedPrompts: [String!]
 }
 
+type ChatStreamChunk {
+  """
+  New text in this chunk
+  """
+  delta: String!
+  """
+  Full accumulated text so far
+  """
+  accumulated: String!
+  """
+  Whether this is the final chunk
+  """
+  isFinal: Boolean!
+  """
+  Conversation ID for context
+  """
+  conversationId: String
+}
+
 type TranslateResult {
   """
   Translated text
@@ -762,4 +781,3 @@ input UpdateContextInput {
   """
   preferences: ContextPreferencesInput
 }
-

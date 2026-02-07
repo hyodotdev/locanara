@@ -9,6 +9,7 @@ import com.google.mlkit.genai.prompt.TextPart
 import com.google.mlkit.genai.prompt.generateContentRequest
 import com.locanara.ChatMessageInput
 import com.locanara.ChatResult
+import com.locanara.ChatStreamChunk
 import com.locanara.Classification
 import com.locanara.ClassifyResult
 import com.locanara.Entity
@@ -16,8 +17,11 @@ import com.locanara.ExtractResult
 import com.locanara.KeyValuePair
 import com.locanara.TranslateResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.Closeable
 
@@ -211,6 +215,71 @@ class MLKitPromptClient(private val context: Context) : Closeable {
             suggestedPrompts = listOf("Tell me more", "Can you explain?", "What else?")
         )
     }
+
+    /**
+     * Send a chat message and stream the response as ChatStreamChunks
+     */
+    fun chatStream(
+        message: String,
+        systemPrompt: String? = null,
+        history: List<ChatMessageInput>? = null
+    ): Flow<ChatStreamChunk> = kotlinx.coroutines.flow.flow {
+        val model = getModel()
+
+        val promptBuilder = StringBuilder()
+
+        if (systemPrompt != null) {
+            promptBuilder.appendLine("System: $systemPrompt")
+            promptBuilder.appendLine()
+        }
+
+        history?.forEach { msg ->
+            val role = when (msg.role.lowercase()) {
+                "user" -> "User"
+                "assistant" -> "Assistant"
+                "system" -> "System"
+                else -> msg.role
+            }
+            promptBuilder.appendLine("$role: ${msg.content}")
+        }
+
+        promptBuilder.appendLine("User: $message")
+        promptBuilder.appendLine("Assistant:")
+
+        Log.d(TAG, "Sending streaming chat request...")
+        val request = generateContentRequest(TextPart(promptBuilder.toString())) {
+            temperature = 0.7f
+            topK = 40
+            candidateCount = 1
+        }
+
+        var accumulated = ""
+        model.generateContentStream(request)
+            .collect { response ->
+                val delta = response.candidates.firstOrNull()?.text ?: ""
+                if (delta.isNotEmpty()) {
+                    accumulated += delta
+                    emit(
+                        ChatStreamChunk(
+                            delta = delta,
+                            accumulated = accumulated,
+                            isFinal = false,
+                            conversationId = null
+                        )
+                    )
+                }
+            }
+
+        // Emit final chunk
+        emit(
+            ChatStreamChunk(
+                delta = "",
+                accumulated = accumulated.trim(),
+                isFinal = true,
+                conversationId = null
+            )
+        )
+    }.flowOn(Dispatchers.IO)
 
     // ============================================
     // Classify
