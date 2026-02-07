@@ -121,6 +121,11 @@ export async function chatStream(
       message,
       Object.keys(nativeOptions).length > 0 ? nativeOptions : undefined,
     );
+
+    // Flush the event queue so queued native events (sendEvent) are
+    // delivered before we remove the subscription in the finally block.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
     return result;
   } finally {
     subscription?.remove();
