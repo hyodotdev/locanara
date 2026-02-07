@@ -16,9 +16,9 @@ extension DeviceInfoIOS {
     /// Get current device information
     public static func current() -> DeviceInfoIOS {
         #if os(iOS) || os(tvOS)
-        let device = UIDevice.current
         let modelIdentifier = getModelIdentifier()
-        let osVersion = device.systemVersion
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        let osVersion = "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
         #elseif os(macOS)
         let modelIdentifier = getModelIdentifier()
         let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
