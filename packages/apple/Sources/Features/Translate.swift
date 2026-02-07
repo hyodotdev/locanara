@@ -12,7 +12,7 @@ internal final class TranslateExecutor {
     /// Resolve a language code to its English display name using Locale API.
     /// Falls back to the raw code if the system cannot resolve it.
     private func languageName(for code: String) -> String {
-        Locale(identifier: "en").localizedString(forLanguageCode: code) ?? code
+        Locale(identifier: "en").localizedString(forIdentifier: code) ?? code
     }
 
     /// Execute translate feature

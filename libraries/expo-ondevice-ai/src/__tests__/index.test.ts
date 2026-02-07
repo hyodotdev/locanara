@@ -108,15 +108,17 @@ describe('expo-ondevice-ai', () => {
       expect(result.message).toBe('Hello world');
     });
 
-    it('should pass options to native module', async () => {
+    it('should pass options to native module without onChunk', async () => {
       const {requireNativeModule} = require('expo-modules-core');
       const mockModule = requireNativeModule('ExpoOndeviceAi');
 
       await chatStream('Hello', {
         systemPrompt: 'Be helpful',
         history: [{role: 'user', content: 'Hi'}],
+        onChunk: jest.fn(),
       });
 
+      // onChunk should be stripped — functions are not serializable
       expect(mockModule.chatStream).toHaveBeenCalledWith('Hello', {
         systemPrompt: 'Be helpful',
         history: [{role: 'user', content: 'Hi'}],

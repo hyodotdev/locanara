@@ -8,6 +8,7 @@ import com.locanara.FeatureType
 import com.locanara.Platform
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -16,7 +17,7 @@ class ExpoOndeviceAiModule : Module() {
         Locanara.getInstance(appContext.reactContext?.applicationContext
             ?: throw IllegalStateException("React context is not available"))
     }
-    private val scope = CoroutineScope(Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun definition() = ModuleDefinition {
         Name("ExpoOndeviceAi")
@@ -65,6 +66,7 @@ class ExpoOndeviceAiModule : Module() {
             scope.launch {
                 try {
                     val params = ExpoOndeviceAiHelper.decodeChatParameters(options)
+                    var lastAccumulated = ""
                     var finalMessage = ""
                     var finalConversationId: String? = null
 
@@ -74,6 +76,7 @@ class ExpoOndeviceAiModule : Module() {
                         history = params?.history,
                         conversationId = params?.conversationId
                     ).collect { chunk ->
+                        lastAccumulated = chunk.accumulated
                         sendEvent("onChatStreamChunk", mapOf(
                             "delta" to chunk.delta,
                             "accumulated" to chunk.accumulated,
@@ -84,6 +87,11 @@ class ExpoOndeviceAiModule : Module() {
                             finalMessage = chunk.accumulated
                             finalConversationId = chunk.conversationId
                         }
+                    }
+
+                    // Fallback: use last accumulated text if no isFinal chunk was emitted
+                    if (finalMessage.isEmpty() && lastAccumulated.isNotEmpty()) {
+                        finalMessage = lastAccumulated
                     }
 
                     promise.resolve(mapOf(

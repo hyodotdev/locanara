@@ -52,7 +52,7 @@ function WhyLocanara() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
             gap: "1.5rem",
             margin: "1.5rem 0",
           }}
@@ -185,9 +185,15 @@ const parsed = JSON.parse(result.text);`}</CodeBlock>
                   textAlign: "left",
                 }}
               >
-                <th style={{ padding: "0.75rem 1rem" }}></th>
-                <th style={{ padding: "0.75rem 1rem" }}>Locanara</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Generic LLM SDKs</th>
+                <th scope="col" style={{ padding: "0.75rem 1rem" }}>
+                  <span className="sr-only">Feature</span>
+                </th>
+                <th scope="col" style={{ padding: "0.75rem 1rem" }}>
+                  Locanara
+                </th>
+                <th scope="col" style={{ padding: "0.75rem 1rem" }}>
+                  Generic LLM SDKs
+                </th>
               </tr>
             </thead>
             <tbody>

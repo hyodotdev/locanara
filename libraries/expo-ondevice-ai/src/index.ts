@@ -115,9 +115,11 @@ export async function chatStream(
       });
     }
 
+    // Strip onChunk before sending to native — functions are not serializable
+    const { onChunk: _, ...nativeOptions } = options ?? {};
     const result: ChatResult = await ExpoOndeviceAiModule.chatStream(
       message,
-      options,
+      Object.keys(nativeOptions).length > 0 ? nativeOptions : undefined,
     );
     return result;
   } finally {

@@ -274,7 +274,7 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         emit(
             ChatStreamChunk(
                 delta = "",
-                accumulated = accumulated.trim(),
+                accumulated = accumulated,
                 isFinal = true,
                 conversationId = null
             )
