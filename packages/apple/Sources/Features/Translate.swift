@@ -117,7 +117,7 @@ internal final class TranslateExecutor {
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
         guard let lang = recognizer.dominantLanguage else { return "en" }
-        // Return the BCP-47 language code (e.g. "en", "ko", "ja")
-        return String(lang.rawValue.prefix(2))
+        // Return the full BCP-47 language tag (e.g. "en", "ko", "zh-Hans")
+        return lang.rawValue
     }
 }

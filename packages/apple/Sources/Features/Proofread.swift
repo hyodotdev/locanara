@@ -85,12 +85,21 @@ internal final class ProofreadExecutor {
         let response = try await session.respond(to: prompt)
         let correctedText = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
 
+        // If model returned empty response, treat as no corrections needed
+        guard !correctedText.isEmpty else {
+            return ProofreadResult(
+                correctedText: input,
+                corrections: [],
+                hasCorrections: false
+            )
+        }
+
         let corrections = correctedText != input
             ? Self.extractWordCorrections(original: input, corrected: correctedText)
             : []
 
         return ProofreadResult(
-            correctedText: correctedText.isEmpty ? input : correctedText,
+            correctedText: correctedText,
             corrections: corrections,
             hasCorrections: !corrections.isEmpty
         )

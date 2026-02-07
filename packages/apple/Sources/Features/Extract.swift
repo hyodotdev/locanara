@@ -97,43 +97,47 @@ internal final class ExtractExecutor {
         var entities: [Entity] = []
         var keyValuePairs: [KeyValuePair]? = extractKeyValues ? [] : nil
 
-        // Try JSON parsing: match {"type":"...","value":"...","confidence":...} objects
-        let entityPattern = try? NSRegularExpression(
-            pattern: #""type"\s*:\s*"([^"]+)"\s*,\s*"value"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)"#
-        )
-        let nsText = responseText as NSString
-        let matches = entityPattern?.matches(in: responseText, range: NSRange(location: 0, length: nsText.length)) ?? []
-        for match in matches {
-            guard match.numberOfRanges >= 4 else { continue }
-            let type = nsText.substring(with: match.range(at: 1))
-            let value = nsText.substring(with: match.range(at: 2))
-            let confStr = nsText.substring(with: match.range(at: 3))
-            guard let confidence = Double(confStr) else { continue }
-            entities.append(Entity(
-                type: type,
-                value: value,
-                confidence: min(max(confidence, 0.0), 1.0),
-                startPos: nil,
-                endPos: nil
-            ))
+        // Try JSON parsing using JSONSerialization for field-order independence
+        if let arrayStart = responseText.firstIndex(of: "[") {
+            let arrayEnd = Self.findMatchingBracket(responseText, openPos: arrayStart)
+            if let arrayEnd = arrayEnd {
+                let jsonStr = String(responseText[arrayStart...arrayEnd])
+                if let data = jsonStr.data(using: .utf8),
+                   let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                    for obj in parsed {
+                        guard let type = obj["type"] as? String,
+                              let value = obj["value"] as? String else { continue }
+                        let confidence = (obj["confidence"] as? Double) ?? 0.0
+                        entities.append(Entity(
+                            type: type,
+                            value: value,
+                            confidence: min(max(confidence, 0.0), 1.0),
+                            startPos: nil,
+                            endPos: nil
+                        ))
+                    }
+                }
+            }
         }
 
         if extractKeyValues, let kvStart = responseText.range(of: "\"kv\"") {
             let kvSection = String(responseText[kvStart.lowerBound...])
-            let kvPattern = try? NSRegularExpression(
-                pattern: #""key"\s*:\s*"([^"]+)"\s*,\s*"value"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)"#
-            )
-            let nsKv = kvSection as NSString
-            let kvMatches = kvPattern?.matches(in: kvSection, range: NSRange(location: 0, length: nsKv.length)) ?? []
-            for match in kvMatches {
-                guard match.numberOfRanges >= 4 else { continue }
-                let key = nsKv.substring(with: match.range(at: 1))
-                let value = nsKv.substring(with: match.range(at: 2))
-                let confStr = nsKv.substring(with: match.range(at: 3))
-                guard let confidence = Double(confStr) else { continue }
-                keyValuePairs?.append(KeyValuePair(
-                    key: key, value: value, confidence: min(max(confidence, 0.0), 1.0)
-                ))
+            if let kvArrayStart = kvSection.firstIndex(of: "[") {
+                let kvArrayEnd = Self.findMatchingBracket(kvSection, openPos: kvArrayStart)
+                if let kvArrayEnd = kvArrayEnd {
+                    let kvJsonStr = String(kvSection[kvArrayStart...kvArrayEnd])
+                    if let data = kvJsonStr.data(using: .utf8),
+                       let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                        for obj in parsed {
+                            guard let key = obj["key"] as? String,
+                                  let value = obj["value"] as? String else { continue }
+                            let confidence = (obj["confidence"] as? Double) ?? 0.0
+                            keyValuePairs?.append(KeyValuePair(
+                                key: key, value: value, confidence: min(max(confidence, 0.0), 1.0)
+                            ))
+                        }
+                    }
+                }
             }
         }
 
@@ -163,5 +167,34 @@ internal final class ExtractExecutor {
         }
 
         return ExtractResult(entities: entities, keyValuePairs: keyValuePairs)
+    }
+
+    /// Find the matching closing bracket for an opening '[' using balanced scanning.
+    private static func findMatchingBracket(_ text: String, openPos: String.Index) -> String.Index? {
+        var depth = 0
+        var inString = false
+        var i = openPos
+        while i < text.endIndex {
+            let c = text[i]
+            if inString {
+                if c == "\\" {
+                    i = text.index(after: i)
+                    guard i < text.endIndex else { return nil }
+                } else if c == "\"" {
+                    inString = false
+                }
+            } else {
+                switch c {
+                case "\"": inString = true
+                case "[": depth += 1
+                case "]":
+                    depth -= 1
+                    if depth == 0 { return i }
+                default: break
+                }
+            }
+            i = text.index(after: i)
+        }
+        return nil
     }
 }

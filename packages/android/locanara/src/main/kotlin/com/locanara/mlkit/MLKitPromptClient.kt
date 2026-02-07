@@ -415,9 +415,9 @@ class MLKitPromptClient(private val context: Context) : Closeable {
 
         // Try JSON parsing with JSONArray/JSONObject for robustness
         try {
-            // Find the first JSON array in the response
+            // Find the first JSON array using balanced bracket matching
             val arrayStart = responseText.indexOf('[')
-            val arrayEnd = responseText.lastIndexOf(']')
+            val arrayEnd = if (arrayStart >= 0) findMatchingBracket(responseText, arrayStart) else -1
             if (arrayStart >= 0 && arrayEnd > arrayStart) {
                 val jsonArray = org.json.JSONArray(responseText.substring(arrayStart, arrayEnd + 1))
                 for (i in 0 until jsonArray.length()) {
@@ -436,7 +436,7 @@ class MLKitPromptClient(private val context: Context) : Closeable {
                 val kvStart = responseText.indexOf("\"kv\"")
                 if (kvStart >= 0) {
                     val kvArrayStart = responseText.indexOf('[', kvStart)
-                    val kvArrayEnd = responseText.indexOf(']', kvArrayStart)
+                    val kvArrayEnd = if (kvArrayStart >= 0) findMatchingBracket(responseText, kvArrayStart) else -1
                     if (kvArrayStart >= 0 && kvArrayEnd > kvArrayStart) {
                         val kvArray = org.json.JSONArray(responseText.substring(kvArrayStart, kvArrayEnd + 1))
                         for (i in 0 until kvArray.length()) {
@@ -470,6 +470,37 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         }
 
         return ExtractResult(entities = entities, keyValuePairs = keyValuePairs)
+    }
+
+    /**
+     * Find the matching closing bracket for an opening '[' using balanced scanning.
+     * Returns the index of the matching ']', or -1 if not found.
+     */
+    private fun findMatchingBracket(text: String, openPos: Int): Int {
+        var depth = 0
+        var inString = false
+        var i = openPos
+        while (i < text.length) {
+            val c = text[i]
+            if (inString) {
+                if (c == '\\' && i + 1 < text.length) {
+                    i += 2
+                    continue
+                }
+                if (c == '"') inString = false
+            } else {
+                when (c) {
+                    '"' -> inString = true
+                    '[' -> depth++
+                    ']' -> {
+                        depth--
+                        if (depth == 0) return i
+                    }
+                }
+            }
+            i++
+        }
+        return -1
     }
 
     // ============================================
