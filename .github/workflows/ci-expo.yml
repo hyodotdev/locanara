@@ -1,0 +1,46 @@
+name: CI Expo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'libraries/expo-ondevice-ai/**'
+      - '.github/workflows/ci-expo.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'libraries/expo-ondevice-ai/**'
+      - '.github/workflows/ci-expo.yml'
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libraries/expo-ondevice-ai
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.1.38'
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('libraries/expo-ondevice-ai/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Lint
+        run: bun run lint:ci
+
+      - name: Test
+        run: bun run test:coverage

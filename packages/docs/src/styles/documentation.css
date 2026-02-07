@@ -52,45 +52,6 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* Pro Upgrade Banner */
-.pro-upgrade-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0.5rem 1rem 0 1rem;
-  padding: 0.625rem 0.875rem;
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 0.1),
-    rgba(139, 92, 246, 0.1)
-  );
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #a5a6f6;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.pro-upgrade-banner:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 0.15),
-    rgba(139, 92, 246, 0.15)
-  );
-  color: #c4c5fa;
-}
-
-.pro-arrow {
-  opacity: 0.7;
-  transition: transform 0.2s ease;
-}
-
-.pro-upgrade-banner:hover .pro-arrow {
-  transform: translateX(2px);
-  opacity: 1;
-}
-
 .docs-nav {
   position: relative;
 }

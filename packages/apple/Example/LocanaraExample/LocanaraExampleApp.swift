@@ -142,6 +142,18 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// iOS-relevant feature types (excludes Android-specific duplicates)
+    private static let iosFeatureTypes: [FeatureType] = [
+        .summarize, .classify, .extract, .chat,
+        .translate, .rewrite, .proofread,
+        .describeImage, .generateImage,
+    ]
+
+    /// Features that are not yet implemented (shown as Coming Soon)
+    private static let comingSoonFeatures: Set<FeatureType> = [
+        .describeImage, .generateImage,
+    ]
+
     /// Load available features
     private func loadAvailableFeatures() {
         // Community tier: check device capability
@@ -153,11 +165,12 @@ final class AppState: ObservableObject {
             featuresAvailable = false
         }
 
-        // All features are available when model is ready
-        availableFeatures = FeatureType.allCases.map { feature in
-            FeatureInfo(
+        availableFeatures = Self.iosFeatureTypes.map { feature in
+            let isComingSoon = Self.comingSoonFeatures.contains(feature)
+            return FeatureInfo(
                 type: feature,
-                isAvailable: featuresAvailable,
+                isAvailable: isComingSoon ? false : featuresAvailable,
+                isComingSoon: isComingSoon,
                 description: featureDescription(for: feature)
             )
         }
@@ -208,6 +221,7 @@ struct FeatureInfo: Identifiable, Equatable {
     let id = UUID()
     let type: FeatureType
     let isAvailable: Bool
+    var isComingSoon: Bool = false
     let description: String
 }
 

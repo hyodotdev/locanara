@@ -1,11 +1,10 @@
 import { Link } from "react-router-dom";
 import AnchorLink from "../../../components/AnchorLink";
 import CodeBlock from "../../../components/CodeBlock";
-import Callout from "../../../components/Callout";
+
 import PageNavigation from "../../../components/PageNavigation";
 import SEO from "../../../components/SEO";
 import TLDRBox from "../../../components/TLDRBox";
-import ProOnly, { CommunityOnly } from "../../../components/ProOnly";
 
 function AndroidTutorial() {
   return (
@@ -49,12 +48,11 @@ function AndroidTutorial() {
           SDK.
         </p>
 
-        <CommunityOnly>
-          <h4>Add Dependencies</h4>
-          <p>
-            In your app's <code>build.gradle.kts</code>:
-          </p>
-          <CodeBlock language="kotlin">{`dependencies {
+        <h4>Add Dependencies</h4>
+        <p>
+          In your app's <code>build.gradle.kts</code>:
+        </p>
+        <CodeBlock language="kotlin">{`dependencies {
     implementation("com.locanara:locanara:1.0.0")
 
     // ML Kit GenAI dependencies (included transitively)
@@ -64,11 +62,11 @@ function AndroidTutorial() {
     implementation("com.google.android.gms:play-services-mlkit-genai-proofreading:17.0.0")
 }`}</CodeBlock>
 
-          <h4>Configure Manifest</h4>
-          <p>
-            Add the required permissions in <code>AndroidManifest.xml</code>:
-          </p>
-          <CodeBlock language="xml">{`<manifest>
+        <h4>Configure Manifest</h4>
+        <p>
+          Add the required permissions in <code>AndroidManifest.xml</code>:
+        </p>
+        <CodeBlock language="xml">{`<manifest>
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -80,101 +78,6 @@ function AndroidTutorial() {
             android:value="genai_downloads" />
     </application>
 </manifest>`}</CodeBlock>
-        </CommunityOnly>
-
-        <ProOnly>
-          <h4>1. Configure GitHub Packages Repository</h4>
-          <p>
-            Locanara Pro is hosted on GitHub Packages. Add the repository to
-            your <code>settings.gradle.kts</code>:
-          </p>
-          <CodeBlock language="kotlin">{`// settings.gradle.kts
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven {
-            url = uri("https://maven.pkg.github.com/locanara/locanara")
-            credentials {
-                username = System.getenv("GITHUB_USERNAME") ?: project.findProperty("gpr.user") as String?
-                password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.key") as String?
-            }
-        }
-    }
-}`}</CodeBlock>
-
-          <Callout type="info" title="GitHub Packages Authentication">
-            <p>Set up authentication using one of these methods:</p>
-            <ol>
-              <li>
-                Create a Personal Access Token (PAT) with{" "}
-                <code>read:packages</code> scope at{" "}
-                <a
-                  href="https://github.com/settings/tokens"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  GitHub Settings
-                </a>
-              </li>
-              <li>
-                Add to <code>~/.gradle/gradle.properties</code>:
-              </li>
-            </ol>
-            <CodeBlock language="text">{`gpr.user=YOUR_GITHUB_USERNAME
-gpr.key=YOUR_GITHUB_TOKEN`}</CodeBlock>
-            <p>
-              Or set environment variables: <code>GITHUB_USERNAME</code> and{" "}
-              <code>GITHUB_TOKEN</code>
-            </p>
-          </Callout>
-
-          <h4>2. Add Dependencies</h4>
-          <p>
-            In your app's <code>build.gradle.kts</code>:
-          </p>
-          <CodeBlock language="kotlin">{`dependencies {
-    implementation("com.locanara:locanara:1.0.0")
-}`}</CodeBlock>
-
-          <h4>3. Configure Manifest</h4>
-          <p>
-            Add the required permissions in <code>AndroidManifest.xml</code>:
-          </p>
-          <CodeBlock language="xml">{`<manifest>
-    <uses-permission android:name="android.permission.INTERNET" />
-
-    <application
-        android:name=".LocanaraExampleApp"
-        ...>
-        <!-- Download notification channel for model downloads -->
-        <property
-            android:name="genai.model.downloadNotification.channelId"
-            android:value="genai_downloads" />
-    </application>
-</manifest>`}</CodeBlock>
-
-          <Callout type="warning" title="Gemma License Attribution">
-            <p>
-              Locanara Pro uses the <strong>Gemma 3</strong> model for on-device
-              AI on devices without Apple Intelligence or Gemini Nano support.
-              You must include the following attribution in your app (e.g., in
-              Settings, About, or Licenses screen):
-            </p>
-            <CodeBlock language="text">{`Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms`}</CodeBlock>
-            <p>
-              For full license details, see the{" "}
-              <a
-                href="https://ai.google.dev/gemma/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Gemma Terms of Use
-              </a>
-              .
-            </p>
-          </Callout>
-        </ProOnly>
       </section>
 
       <section>
@@ -411,11 +314,7 @@ println(response.response)`}</CodeBlock>
 
       <PageNavigation
         prev={{ to: "/docs/tutorials/ios", label: "iOS Tutorial" }}
-        next={
-          import.meta.env.VITE_DOCS_TIER === "pro"
-            ? { to: "/docs/tutorials/web", label: "Web Tutorial" }
-            : undefined
-        }
+        next={undefined}
       />
     </div>
   );

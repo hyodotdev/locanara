@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
@@ -8,22 +9,11 @@ import FoundationModels
 /// Translates text between languages using Apple Intelligence Foundation Models.
 internal final class TranslateExecutor {
 
-    /// Supported language codes
-    private let supportedLanguages = ["en", "ko", "ja", "zh", "es", "fr", "de", "it", "pt", "ru"]
-
-    /// Language names for prompts
-    private let languageNames: [String: String] = [
-        "en": "English",
-        "ko": "Korean",
-        "ja": "Japanese",
-        "zh": "Chinese",
-        "es": "Spanish",
-        "fr": "French",
-        "de": "German",
-        "it": "Italian",
-        "pt": "Portuguese",
-        "ru": "Russian"
-    ]
+    /// Resolve a language code to its English display name using Locale API.
+    /// Falls back to the raw code if the system cannot resolve it.
+    private func languageName(for code: String) -> String {
+        Locale(identifier: "en").localizedString(forIdentifier: code) ?? code
+    }
 
     /// Execute translate feature
     ///
@@ -65,11 +55,6 @@ internal final class TranslateExecutor {
         let targetLanguage = parameters.targetLanguage
         let sourceLanguage = parameters.sourceLanguage ?? detectLanguage(input)
 
-        // Validate languages
-        guard supportedLanguages.contains(targetLanguage) else {
-            throw LocanaraError.invalidInput("Target language '\(targetLanguage)' is not supported")
-        }
-
         #if canImport(FoundationModels)
         if #available(iOS 26.0, macOS 26.0, *) {
             if case .available = SystemLanguageModel.default.availability {
@@ -105,8 +90,8 @@ internal final class TranslateExecutor {
 
         let session = LanguageModelSession()
 
-        let sourceLangName = languageNames[sourceLanguage] ?? sourceLanguage
-        let targetLangName = languageNames[targetLanguage] ?? targetLanguage
+        let sourceLangName = languageName(for: sourceLanguage)
+        let targetLangName = languageName(for: targetLanguage)
 
         let prompt = """
         Translate the following text from \(sourceLangName) to \(targetLangName).
@@ -129,18 +114,10 @@ internal final class TranslateExecutor {
     #endif
 
     private func detectLanguage(_ text: String) -> String {
-        // Simple language detection using linguistic tagger
-        let tagger = NSLinguisticTagger(tagSchemes: [.language], options: 0)
-        tagger.string = text
-
-        if let language = tagger.dominantLanguage {
-            // Convert to our supported format
-            let languageCode = String(language.prefix(2))
-            if supportedLanguages.contains(languageCode) {
-                return languageCode
-            }
-        }
-
-        return "en" // Default to English
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        guard let lang = recognizer.dominantLanguage else { return "en" }
+        // Return the full BCP-47 language tag (e.g. "en", "ko", "zh-Hans")
+        return lang.rawValue
     }
 }

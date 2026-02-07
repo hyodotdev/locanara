@@ -373,6 +373,14 @@ data class ChatResult(
 ) : ExecutionResultData
 
 @Serializable
+data class ChatStreamChunk(
+    val delta: String,
+    val accumulated: String,
+    val isFinal: Boolean,
+    val conversationId: String? = null
+)
+
+@Serializable
 data class TranslateResult(
     val translatedText: String,
     val sourceLanguage: String,

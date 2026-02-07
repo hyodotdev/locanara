@@ -95,65 +95,19 @@ internal final class RewriteExecutor {
 
         let prompt = """
         Rewrite the following text \(styleInstruction)
-
-        Provide 3 different versions:
-        1. Main version (labeled as MAIN:)
-        2. First alternative (labeled as ALT1:)
-        3. Second alternative (labeled as ALT2:)
+        Return ONLY the rewritten text with no labels, headers, or alternatives.
 
         Text to rewrite:
-        \(input)
+        <input>\(input)</input>
         """
 
         let response = try await session.respond(to: prompt)
-        let responseText = response.content
-
-        // Parse the response
-        var mainText = ""
-        var alternatives: [String] = []
-
-        let lines = responseText.components(separatedBy: .newlines)
-        var currentSection = ""
-
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("MAIN:") {
-                currentSection = "main"
-                mainText = String(trimmed.dropFirst(5)).trimmingCharacters(in: .whitespaces)
-            } else if trimmed.hasPrefix("ALT1:") {
-                currentSection = "alt1"
-                alternatives.append(String(trimmed.dropFirst(5)).trimmingCharacters(in: .whitespaces))
-            } else if trimmed.hasPrefix("ALT2:") {
-                currentSection = "alt2"
-                alternatives.append(String(trimmed.dropFirst(5)).trimmingCharacters(in: .whitespaces))
-            } else if !trimmed.isEmpty {
-                // Continue previous section
-                switch currentSection {
-                case "main":
-                    mainText += " " + trimmed
-                case "alt1":
-                    if !alternatives.isEmpty {
-                        alternatives[0] += " " + trimmed
-                    }
-                case "alt2":
-                    if alternatives.count > 1 {
-                        alternatives[1] += " " + trimmed
-                    }
-                default:
-                    break
-                }
-            }
-        }
-
-        // If parsing failed, use the whole response as main
-        if mainText.isEmpty {
-            mainText = responseText.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        let rewrittenText = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return RewriteResult(
-            rewrittenText: mainText,
+            rewrittenText: rewrittenText,
             style: outputType,
-            alternatives: alternatives,
+            alternatives: nil,
             confidence: 0.88
         )
     }

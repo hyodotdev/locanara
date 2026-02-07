@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 import SEO from "../../components/SEO";
 import PageNavigation from "../../components/PageNavigation";
+import CodeBlock from "../../components/CodeBlock";
 
 function WhyLocanara() {
   return (
     <div className="doc-page">
       <SEO
         title="Why Locanara?"
-        description="Learn about Locanara - a unified SDK for on-device AI capabilities across iOS (Apple Intelligence), Android (Gemini Nano), and Web (Chrome Built-in AI)."
+        description="Learn why Locanara takes a task-specific approach to on-device AI instead of generic LLM wrappers. Structured outputs, cross-platform type safety, and zero cloud dependency."
         path="/docs/why-locanara"
       />
       <h1>Why Locanara?</h1>
@@ -18,90 +19,277 @@ function WhyLocanara() {
           marginBottom: "2rem",
         }}
       >
-        A unified on-device AI SDK for iOS, Android, and Web. One API, all
-        platforms, complete privacy.
+        On-device AI features your app can use directly — not another LLM
+        wrapper.
       </p>
 
       <section>
         <h2 id="the-problem">The Problem</h2>
         <p>
           On-device AI capabilities are fragmented across platforms. iOS has
-          Apple Intelligence with Foundation Models, Android has Gemini Nano
-          with ML Kit GenAI, and Web has Chrome Built-in AI. Each platform has
-          its own APIs, patterns, and limitations. Developers must learn
-          different APIs for each platform, increasing complexity and
-          development time.
+          Apple Intelligence with Foundation Models, and Android has Gemini Nano
+          with ML Kit GenAI. Each platform has its own APIs, patterns, and
+          limitations.
         </p>
         <p>
-          In the AI coding era, this fragmentation becomes even more
-          problematic. AI assistants struggle to generate consistent code when
-          every platform has different patterns, making on-device AI
-          implementation unnecessarily complex.
+          Most existing solutions focus on giving you raw LLM access —{" "}
+          <code>generateText()</code>, <code>streamText()</code> — and leave it
+          to you to craft prompts, parse outputs, and handle edge cases. This
+          means every app reinvents the same patterns: writing prompt templates,
+          validating JSON responses, normalizing confidence scores across
+          platforms.
         </p>
       </section>
 
       <section>
-        <h2 id="our-solution">Our Solution</h2>
-
-        <h3>Privacy First</h3>
+        <h2 id="our-approach">Task-Specific, Not Generic</h2>
         <p>
-          All AI processing happens on-device. Your users' data never leaves
-          their device, ensuring complete privacy and security. No cloud
-          dependencies, no data transmission, no privacy concerns.
+          Locanara takes a fundamentally different approach. Instead of exposing
+          a generic LLM interface, we provide{" "}
+          <strong>task-specific APIs with structured outputs</strong>.
         </p>
 
-        <h3>Unified API</h3>
-        <p>
-          Locanara defines standard methods like <code>summarize()</code>,{" "}
-          <code>classify()</code>, <code>translate()</code>, and{" "}
-          <code>chat()</code> that work consistently across all platforms. Write
-          your AI features once, deploy everywhere.
-        </p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "1.5rem",
+            margin: "1.5rem 0",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                fontWeight: 600,
+                marginBottom: "0.5rem",
+                color: "var(--text-secondary)",
+              }}
+            >
+              Generic LLM approach
+            </p>
+            <CodeBlock language="typescript">{`const result = await generateText({
+  prompt: "Classify this text into
+    one of: spam, ham, promo.
+    Return JSON with label
+    and confidence..."
+});
+// result.text = '{"label":"spam"...}'
+// Hope it's valid JSON...
+const parsed = JSON.parse(result.text);`}</CodeBlock>
+          </div>
+          <div>
+            <p
+              style={{
+                fontWeight: 600,
+                marginBottom: "0.5rem",
+                color: "var(--text-primary)",
+              }}
+            >
+              Locanara approach
+            </p>
+            <CodeBlock language="typescript">{`const result = await classify(text, {
+  categories: ["spam", "ham", "promo"],
+});
+// result.label = "spam"
+// result.score = 0.94
+// Always typed, always structured`}</CodeBlock>
+          </div>
+        </div>
 
-        <h3>Type Safety</h3>
         <p>
-          All types like <code>DeviceCapability</code>,{" "}
-          <code>ExecutionResult</code>, and <code>FeatureType</code> are
-          consistent across iOS, Android, and Web, ensuring type safety and
-          reducing cognitive load.
-        </p>
-
-        <h3>Zero Cost</h3>
-        <p>
-          The iOS App Store and Google Play grew exponentially because
-          developers could build and distribute apps for free. Locanara follows
-          the same philosophy—completely free and open source. No API keys, no
-          usage fees, no vendor lock-in. Just powerful on-device AI that anyone
-          can use.
+          Every Locanara API returns <strong>structured, typed results</strong>{" "}
+          — confidence scores, position tracking, correction details — not raw
+          text you need to parse yourself.
         </p>
       </section>
 
       <section>
-        <h2 id="supported-features">Supported Features</h2>
+        <h2 id="structured-outputs">Structured Outputs You Can Use</h2>
+        <p>
+          Each feature returns data your app can use directly, without
+          post-processing:
+        </p>
         <ul>
           <li>
-            <strong>Summarize:</strong> Condense long text into key points
+            <strong>classify()</strong> — Returns <code>label</code> and{" "}
+            <code>score</code> (0–1 normalized confidence)
           </li>
           <li>
-            <strong>Classify:</strong> Categorize text into predefined labels
+            <strong>extract()</strong> — Returns entities with <code>type</code>
+            , <code>value</code>, and <code>position</code> in the original text
           </li>
           <li>
-            <strong>Extract:</strong> Extract entities and key-value pairs
+            <strong>proofread()</strong> — Returns an array of{" "}
+            <code>corrections</code> with original text, corrected text,
+            correction type, and position
           </li>
           <li>
-            <strong>Chat:</strong> Conversational AI interactions
+            <strong>summarize()</strong> — Returns structured bullet points, not
+            a blob of text
           </li>
           <li>
-            <strong>Translate:</strong> Multi-language translation
+            <strong>chat()</strong> — Returns response with{" "}
+            <code>suggestedPrompts</code> for follow-up conversations
+          </li>
+        </ul>
+        <p>
+          This matters because real apps need structured data to render UI — a
+          spellchecker needs positions to underline errors, a classifier needs
+          scores to set thresholds, an extractor needs entity types to display
+          badges.
+        </p>
+      </section>
+
+      <section>
+        <h2 id="schema-driven">Schema-Driven Cross-Platform Types</h2>
+        <p>
+          Locanara uses a{" "}
+          <strong>GraphQL schema as the single source of truth</strong> for all
+          types across iOS (Swift), Android (Kotlin), and TypeScript. This
+          means:
+        </p>
+        <ul>
+          <li>
+            Every platform gets the exact same type definitions — not
+            hand-written copies that drift apart
           </li>
           <li>
-            <strong>Rewrite:</strong> Rephrase with different styles
+            Adding a new field to a result type updates all platforms at once
           </li>
           <li>
-            <strong>Proofread:</strong> Grammar and spelling correction
+            IDE autocompletion works identically whether you're writing Swift,
+            Kotlin, or TypeScript
+          </li>
+        </ul>
+        <p>
+          Most cross-platform SDKs maintain separate type definitions per
+          platform. Locanara generates them from a shared schema, guaranteeing
+          consistency.
+        </p>
+      </section>
+
+      <section>
+        <h2 id="how-we-compare">How We Compare</h2>
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "0.9rem",
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  borderBottom: "2px solid var(--border-color)",
+                  textAlign: "left",
+                }}
+              >
+                <th scope="col" style={{ padding: "0.75rem 1rem" }}>
+                  <span className="sr-only">Feature</span>
+                </th>
+                <th scope="col" style={{ padding: "0.75rem 1rem" }}>
+                  Locanara
+                </th>
+                <th scope="col" style={{ padding: "0.75rem 1rem" }}>
+                  Generic LLM SDKs
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                [
+                  "API style",
+                  "Task-specific (summarize, classify, extract…)",
+                  "Generic (generateText, streamText)",
+                ],
+                [
+                  "Output format",
+                  "Structured types with scores, positions",
+                  "Raw text / unstructured JSON",
+                ],
+                [
+                  "Type system",
+                  "GraphQL schema → Swift, Kotlin, TS",
+                  "Per-platform type definitions",
+                ],
+                [
+                  "Backend",
+                  "OS-native AI (Apple Intelligence, Gemini Nano)",
+                  "Downloaded models (GGUF, ONNX, etc.) or OS AI",
+                ],
+                [
+                  "App size impact",
+                  "< 5 MB (no bundled models)",
+                  "Varies (model download required separately)",
+                ],
+                [
+                  "Custom models",
+                  "No (OS models only)",
+                  "Yes (download and customize your own model)",
+                ],
+                [
+                  "Execution tracking",
+                  "Built-in history, context, state events",
+                  "Usually not included",
+                ],
+              ].map(([aspect, locanara, others], i) => (
+                <tr
+                  key={i}
+                  style={{
+                    borderBottom: "1px solid var(--border-color)",
+                  }}
+                >
+                  <td
+                    style={{
+                      padding: "0.75rem 1rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {aspect}
+                  </td>
+                  <td style={{ padding: "0.75rem 1rem" }}>{locanara}</td>
+                  <td style={{ padding: "0.75rem 1rem" }}>{others}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2 id="when-to-use">When to Use Locanara</h2>
+        <p>
+          <strong>Locanara is the right choice when:</strong>
+        </p>
+        <ul>
+          <li>
+            You want to add AI features (summarization, classification,
+            extraction) to your app without managing prompts and parsing
           </li>
           <li>
-            <strong>Describe Image:</strong> Generate image descriptions
+            Privacy matters — all data stays on-device, no cloud dependency
+          </li>
+          <li>
+            You're building for both iOS and Android and want consistent
+            behavior
+          </li>
+          <li>
+            You want minimal app size impact — no separate model downloads
+          </li>
+        </ul>
+        <p>
+          <strong>Consider other solutions when:</strong>
+        </p>
+        <ul>
+          <li>
+            You need to run custom fine-tuned models — Locanara uses OS-provided
+            models only
+          </li>
+          <li>You need raw text generation with full prompt control</li>
+          <li>
+            You're already using Vercel AI SDK and want drop-in on-device
+            support
           </li>
         </ul>
       </section>
@@ -117,47 +305,61 @@ function WhyLocanara() {
             <strong>Android:</strong> Gemini Nano with ML Kit GenAI (Android
             14+, API 34+)
           </li>
-          <li>
-            <strong>Web:</strong> Chrome Built-in AI with Gemini Nano (Chrome
-            128+)
-          </li>
         </ul>
       </section>
 
       <section>
-        <h2 id="benefits">Benefits</h2>
-        <ul>
-          <li>
-            <strong>Privacy:</strong> All processing on-device, no data leaves
-            the device
-          </li>
-          <li>
-            <strong>Offline:</strong> Works without internet connection
-          </li>
-          <li>
-            <strong>Fast:</strong> No network latency, instant responses
-          </li>
-          <li>
-            <strong>Unified:</strong> One API for iOS, Android, and Web
-          </li>
-          <li>
-            <strong>Type Safe:</strong> Consistent types across all platforms
-          </li>
-          <li>
-            <strong>Zero Cost:</strong> No API keys, no usage fees, no vendor
-            lock-in
-          </li>
-        </ul>
-      </section>
-
-      <section>
-        <h2 id="built-by-experts">Built by Open Source Veterans</h2>
+        <h2 id="zero-cost">Zero Cost, No Lock-In</h2>
         <p>
-          Locanara is built by a team with years of experience maintaining
-          cross-platform open source SDKs (react-native-iap,
-          flutter_inapp_purchase, expo-iap) across iOS, Android, React Native,
-          Flutter, and Expo. We specialize in unifying fragmented platform APIs
-          into simple, consistent interfaces.
+          Locanara is completely free and open source. No API keys, no usage
+          fees, no vendor lock-in. Because it uses OS-native AI capabilities,
+          there are no ongoing costs — the AI runtime is already on your users'
+          devices.
+        </p>
+      </section>
+
+      <section>
+        <h2 id="built-by-experts">Built by Open Source Maintainers</h2>
+        <p>
+          Locanara is built by maintainers of{" "}
+          <a
+            href="https://github.com/hyodotdev/openiap"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            OpenIAP
+          </a>
+          , an open source in-app purchase framework funded by{" "}
+          <a href="https://meta.com" target="_blank" rel="noopener noreferrer">
+            Meta
+          </a>
+          . OpenIAP powers libraries like{" "}
+          <a
+            href="https://github.com/hyochan/react-native-iap"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            react-native-iap
+          </a>
+          ,{" "}
+          <a
+            href="https://github.com/hyochan/flutter_inapp_purchase"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            flutter_inapp_purchase
+          </a>
+          , and{" "}
+          <a
+            href="https://github.com/hyochan/expo-iap"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            expo-iap
+          </a>
+          . We've learned a lot from bridging fragmented platform APIs into
+          consistent interfaces, and Locanara applies those lessons to on-device
+          AI.
         </p>
       </section>
 
@@ -173,9 +375,6 @@ function WhyLocanara() {
           </li>
           <li>
             <Link to="/docs/tutorials/android">Android SDK Tutorial</Link>
-          </li>
-          <li>
-            <Link to="/docs/tutorials/web">Web SDK Tutorial</Link>
           </li>
         </ul>
       </section>

@@ -4,7 +4,6 @@ import AnchorLink from "../../components/AnchorLink";
 import Callout from "../../components/Callout";
 import PlatformBadge from "../../components/PlatformBadge";
 import PageNavigation from "../../components/PageNavigation";
-import ProOnly, { CommunityOnly } from "../../components/ProOnly";
 
 function AndroidSetup() {
   return (
@@ -58,10 +57,9 @@ function AndroidSetup() {
         </AnchorLink>
         <p>Add Locanara to your project:</p>
 
-        <CommunityOnly>
-          <CodeBlock
-            language="kotlin"
-            code={`// settings.gradle.kts
+        <CodeBlock
+          language="kotlin"
+          code={`// settings.gradle.kts
 dependencyResolutionManagement {
     repositories {
         google()
@@ -73,82 +71,7 @@ dependencyResolutionManagement {
 dependencies {
     implementation("com.locanara:locanara:1.0.0")
 }`}
-          />
-        </CommunityOnly>
-
-        <ProOnly>
-          <CodeBlock
-            language="kotlin"
-            code={`// settings.gradle.kts
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven {
-            url = uri("https://maven.pkg.github.com/locanara/locanara")
-            credentials {
-                username = System.getenv("GITHUB_USERNAME") ?: project.findProperty("gpr.user") as String?
-                password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.key") as String?
-            }
-        }
-    }
-}
-
-// app/build.gradle.kts
-dependencies {
-    implementation("com.locanara:locanara:1.0.0")
-}`}
-          />
-
-          <Callout type="info" title="GitHub Packages Authentication">
-            <p>
-              The Pro package is hosted on GitHub Packages. Set up
-              authentication:
-            </p>
-            <ol>
-              <li>
-                Create a Personal Access Token (PAT) with{" "}
-                <code>read:packages</code> scope
-              </li>
-              <li>
-                Add to <code>~/.gradle/gradle.properties</code>:
-              </li>
-            </ol>
-            <CodeBlock
-              language="text"
-              code={`gpr.user=YOUR_GITHUB_USERNAME
-gpr.key=YOUR_GITHUB_TOKEN`}
-            />
-            <p>
-              Or set environment variables: <code>GITHUB_USERNAME</code> and{" "}
-              <code>GITHUB_TOKEN</code>
-            </p>
-          </Callout>
-
-          <Callout type="warning" title="Gemma License Attribution">
-            <p>
-              Locanara Pro uses the <strong>Gemma 3</strong> model for on-device
-              AI on devices without Apple Intelligence or Gemini Nano support.
-              You must include the following attribution in your app (e.g., in
-              Settings, About, or Licenses screen):
-            </p>
-            <CodeBlock
-              language="text"
-              code={`Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms`}
-            />
-            <p>
-              For full license details, see the{" "}
-              <a
-                href="https://ai.google.dev/gemma/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Gemma Terms of Use
-              </a>
-              .
-            </p>
-          </Callout>
-        </ProOnly>
+        />
 
         <AnchorLink id="manifest-config" level="h3">
           Manifest Configuration

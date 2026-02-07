@@ -9,6 +9,7 @@ import com.google.mlkit.genai.prompt.TextPart
 import com.google.mlkit.genai.prompt.generateContentRequest
 import com.locanara.ChatMessageInput
 import com.locanara.ChatResult
+import com.locanara.ChatStreamChunk
 import com.locanara.Classification
 import com.locanara.ClassifyResult
 import com.locanara.Entity
@@ -16,8 +17,11 @@ import com.locanara.ExtractResult
 import com.locanara.KeyValuePair
 import com.locanara.TranslateResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.Closeable
 
@@ -212,6 +216,71 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         )
     }
 
+    /**
+     * Send a chat message and stream the response as ChatStreamChunks
+     */
+    fun chatStream(
+        message: String,
+        systemPrompt: String? = null,
+        history: List<ChatMessageInput>? = null
+    ): Flow<ChatStreamChunk> = kotlinx.coroutines.flow.flow {
+        val model = getModel()
+
+        val promptBuilder = StringBuilder()
+
+        if (systemPrompt != null) {
+            promptBuilder.appendLine("System: $systemPrompt")
+            promptBuilder.appendLine()
+        }
+
+        history?.forEach { msg ->
+            val role = when (msg.role.lowercase()) {
+                "user" -> "User"
+                "assistant" -> "Assistant"
+                "system" -> "System"
+                else -> msg.role
+            }
+            promptBuilder.appendLine("$role: ${msg.content}")
+        }
+
+        promptBuilder.appendLine("User: $message")
+        promptBuilder.appendLine("Assistant:")
+
+        Log.d(TAG, "Sending streaming chat request...")
+        val request = generateContentRequest(TextPart(promptBuilder.toString())) {
+            temperature = 0.7f
+            topK = 40
+            candidateCount = 1
+        }
+
+        var accumulated = ""
+        model.generateContentStream(request)
+            .collect { response ->
+                val delta = response.candidates.firstOrNull()?.text ?: ""
+                if (delta.isNotEmpty()) {
+                    accumulated += delta
+                    emit(
+                        ChatStreamChunk(
+                            delta = delta,
+                            accumulated = accumulated,
+                            isFinal = false,
+                            conversationId = null
+                        )
+                    )
+                }
+            }
+
+        // Emit final chunk
+        emit(
+            ChatStreamChunk(
+                delta = "",
+                accumulated = accumulated,
+                isFinal = true,
+                conversationId = null
+            )
+        )
+    }.flowOn(Dispatchers.IO)
+
     // ============================================
     // Classify
     // ============================================
@@ -313,29 +382,15 @@ class MLKitPromptClient(private val context: Context) : Closeable {
             Extract entities from the following text.
             Entity types to find: $entityTypesList
 
-            For each entity found, provide:
-            - Type (one of: $entityTypesList)
-            - Value (the exact text)
-            - Confidence (0.0 to 1.0)
-
-            Respond ONLY in this exact format (one entity per line):
-            ENTITY|type|value|confidence
+            Return ONLY a JSON array of objects with "type", "value", "confidence" fields.
+            Example: [{"type":"person","value":"John","confidence":0.95}]
         """.trimIndent()
 
         if (extractKeyValues) {
-            prompt += """
-
-            Also extract any key-value pairs in the text.
-            For key-value pairs, use this format:
-            KEYVALUE|key|value|confidence
-            """.trimIndent()
+            prompt += "\n\nAlso extract key-value pairs as: {\"kv\":[{\"key\":\"k\",\"value\":\"v\",\"confidence\":0.9}]}"
         }
 
-        prompt += """
-
-            Text to analyze:
-            $text
-        """.trimIndent()
+        prompt += "\n\nText:\n<input>\n$text\n</input>"
 
         Log.d(TAG, "Sending extract request...")
         val request = generateContentRequest(TextPart(prompt)) {
@@ -348,73 +403,123 @@ class MLKitPromptClient(private val context: Context) : Closeable {
 
         Log.d(TAG, "Extract response: $responseText")
 
-        // Parse extraction results
+        parseExtractResponse(responseText, extractKeyValues)
+    }
+
+    private fun parseExtractResponse(
+        responseText: String,
+        extractKeyValues: Boolean
+    ): ExtractResult {
         val entities = mutableListOf<Entity>()
         val keyValuePairs = if (extractKeyValues) mutableListOf<KeyValuePair>() else null
 
-        val lines = responseText.lines()
+        // Try JSON parsing with JSONArray/JSONObject for robustness
+        try {
+            // Find the first JSON array using balanced bracket matching
+            val arrayStart = responseText.indexOf('[')
+            val arrayEnd = if (arrayStart >= 0) findMatchingBracket(responseText, arrayStart) else -1
+            if (arrayStart >= 0 && arrayEnd > arrayStart) {
+                val jsonArray = org.json.JSONArray(responseText.substring(arrayStart, arrayEnd + 1))
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    val type = obj.optString("type", "")
+                    val value = obj.optString("value", "")
+                    val confidence = obj.optDouble("confidence", 0.0)
+                    if (type.isNotEmpty() && value.isNotEmpty()) {
+                        entities.add(Entity(type = type, value = value, confidence = confidence.coerceIn(0.0, 1.0)))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "Entity JSON parsing failed: ${e.message}")
+        }
 
-        for (line in lines) {
-            val trimmed = line.trim()
-            if (trimmed.isEmpty()) continue
-
-            val parts = trimmed.split("|")
-
-            if (parts.size >= 4 && parts[0] == "ENTITY") {
-                val type = parts[1].trim()
-                val value = parts[2].trim()
-                val confidenceStr = parts[3].trim()
-
-                val confidence = confidenceStr.toDoubleOrNull() ?: continue
-
-                entities.add(
-                    Entity(
-                        type = type,
-                        value = value,
-                        confidence = confidence.coerceIn(0.0, 1.0),
-                        startPos = null,
-                        endPos = null
-                    )
-                )
-            } else if (parts.size >= 4 && parts[0] == "KEYVALUE" && extractKeyValues) {
-                val key = parts[1].trim()
-                val value = parts[2].trim()
-                val confidenceStr = parts[3].trim()
-
-                val confidence = confidenceStr.toDoubleOrNull() ?: continue
-
-                keyValuePairs?.add(
-                    KeyValuePair(
-                        key = key,
-                        value = value,
-                        confidence = confidence.coerceIn(0.0, 1.0)
-                    )
-                )
+        // Parse key-value pairs from "kv" field if present (independent try/catch)
+        if (extractKeyValues) {
+            try {
+                val kvStart = responseText.indexOf("\"kv\"")
+                if (kvStart >= 0) {
+                    val kvArrayStart = responseText.indexOf('[', kvStart)
+                    val kvArrayEnd = if (kvArrayStart >= 0) findMatchingBracket(responseText, kvArrayStart) else -1
+                    if (kvArrayStart >= 0 && kvArrayEnd > kvArrayStart) {
+                        val kvArray = org.json.JSONArray(responseText.substring(kvArrayStart, kvArrayEnd + 1))
+                        for (i in 0 until kvArray.length()) {
+                            val obj = kvArray.getJSONObject(i)
+                            val key = obj.optString("key", "")
+                            val value = obj.optString("value", "")
+                            val confidence = obj.optDouble("confidence", 0.0)
+                            if (key.isNotEmpty() && value.isNotEmpty()) {
+                                keyValuePairs?.add(KeyValuePair(key = key, value = value, confidence = confidence.coerceIn(0.0, 1.0)))
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "KV JSON parsing failed: ${e.message}")
             }
         }
 
-        ExtractResult(
-            entities = entities,
-            keyValuePairs = keyValuePairs
-        )
+        // Fallback: pipe-delimited format (ENTITY|type|value|confidence)
+        if (entities.isEmpty()) {
+            for (line in responseText.lines()) {
+                val parts = line.trim().split("|")
+                if (parts.size >= 4 && parts[0].trim().equals("ENTITY", ignoreCase = true)) {
+                    val confidence = parts[3].trim().toDoubleOrNull() ?: continue
+                    entities.add(Entity(type = parts[1].trim(), value = parts[2].trim(), confidence = confidence.coerceIn(0.0, 1.0)))
+                } else if (parts.size >= 4 && parts[0].trim().equals("KEYVALUE", ignoreCase = true) && extractKeyValues) {
+                    val confidence = parts[3].trim().toDoubleOrNull() ?: continue
+                    keyValuePairs?.add(KeyValuePair(key = parts[1].trim(), value = parts[2].trim(), confidence = confidence.coerceIn(0.0, 1.0)))
+                }
+            }
+        }
+
+        return ExtractResult(entities = entities, keyValuePairs = keyValuePairs)
+    }
+
+    /**
+     * Find the matching closing bracket for an opening '[' using balanced scanning.
+     * Returns the index of the matching ']', or -1 if not found.
+     */
+    private fun findMatchingBracket(text: String, openPos: Int): Int {
+        var depth = 0
+        var inString = false
+        var i = openPos
+        while (i < text.length) {
+            val c = text[i]
+            if (inString) {
+                if (c == '\\' && i + 1 < text.length) {
+                    i += 2
+                    continue
+                }
+                if (c == '"') inString = false
+            } else {
+                when (c) {
+                    '"' -> inString = true
+                    '[' -> depth++
+                    ']' -> {
+                        depth--
+                        if (depth == 0) return i
+                    }
+                }
+            }
+            i++
+        }
+        return -1
     }
 
     // ============================================
     // Translate
     // ============================================
 
-    private val languageNames = mapOf(
-        "en" to "English",
-        "ko" to "Korean",
-        "ja" to "Japanese",
-        "zh" to "Chinese",
-        "es" to "Spanish",
-        "fr" to "French",
-        "de" to "German",
-        "it" to "Italian",
-        "pt" to "Portuguese",
-        "ru" to "Russian"
-    )
+    /**
+     * Resolve a language code to its English display name using java.util.Locale.
+     * Falls back to the raw code if the system cannot resolve it.
+     */
+    private fun languageName(code: String): String {
+        val locale = java.util.Locale.forLanguageTag(code)
+        val name = locale.getDisplayLanguage(java.util.Locale.ENGLISH)
+        return if (name.isNotEmpty() && name != code) name else code
+    }
 
     /**
      * Translate text to target language
@@ -436,8 +541,8 @@ class MLKitPromptClient(private val context: Context) : Closeable {
 
         val model = getModel()
 
-        val sourceLangName = languageNames[sourceLanguage] ?: sourceLanguage
-        val targetLangName = languageNames[targetLanguage] ?: targetLanguage
+        val sourceLangName = languageName(sourceLanguage)
+        val targetLangName = languageName(targetLanguage)
 
         val prompt = """
             Translate the following text from $sourceLangName to $targetLangName.

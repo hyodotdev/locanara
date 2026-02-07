@@ -609,6 +609,25 @@ public struct ChatResult: Codable, Sendable {
     }
 }
 
+public struct ChatStreamChunk: Codable, Sendable {
+    public var delta: String
+    public var accumulated: String
+    public var isFinal: Bool
+    public var conversationId: String?
+
+    public init(
+        delta: String,
+        accumulated: String,
+        isFinal: Bool,
+        conversationId: String? = nil
+    ) {
+        self.delta = delta
+        self.accumulated = accumulated
+        self.isFinal = isFinal
+        self.conversationId = conversationId
+    }
+}
+
 public struct TranslateResult: Codable, Sendable {
     public var translatedText: String
     public var sourceLanguage: String

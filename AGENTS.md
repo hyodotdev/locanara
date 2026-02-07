@@ -48,6 +48,9 @@ locanara-community/
 │   │   └── example/    # Example app
 │   ├── gql/            # GraphQL schema definitions
 │   └── docs/           # Documentation website
+├── libraries/          # Third-party framework integrations
+│   ├── expo-ondevice-ai/       # Expo module
+│   └── react-native-ondevice-ai/ # React Native module (planned)
 └── .claude/
     ├── commands/       # Slash commands
     └── guides/         # Project guides
@@ -208,6 +211,52 @@ cd packages/android
 | `packages/apple/Example/**` | iOS Example App |
 | `packages/android/locanara/src/**` | Android SDK + Example App |
 | `packages/android/example/**` | Android Example App |
+
+## Libraries
+
+Third-party framework integrations that use Locanara SDK.
+
+### Available Libraries
+
+| Library | Status | Description |
+|---------|--------|-------------|
+| `expo-ondevice-ai` | In Progress | Expo module for on-device AI |
+| `react-native-ondevice-ai` | Planned | React Native module for on-device AI |
+
+### expo-ondevice-ai
+
+Expo module wrapping Locanara SDK for React Native/Expo apps.
+
+```bash
+cd libraries/expo-ondevice-ai
+bun install
+bun run build     # Build TypeScript
+bun run lint:ci   # Run all linters
+bun run test      # Run tests
+```
+
+**Structure follows expo-iap pattern:**
+- `src/` - TypeScript source
+- `android/` - Kotlin native module
+- `ios/` - Swift native module
+- `plugin/` - Expo config plugin
+- `example/` - Example Expo app
+
+## Publishing & Deployment (STRICTLY FORBIDDEN)
+
+**CRITICAL: AI agents must NEVER publish, deploy, or release any package.**
+
+The following actions are **absolutely prohibited** for AI agents:
+
+- **NEVER** run `publishToMavenCentral`, `publishToMavenLocal`, `publish`, or any Gradle publish task
+- **NEVER** run `pod trunk push` or any CocoaPods publishing command
+- **NEVER** run `npm publish`, `yarn publish`, or any npm registry publishing command
+- **NEVER** create GitHub releases or tags for release purposes
+- **NEVER** trigger CI/CD release workflows
+- **NEVER** modify version numbers in `locanara-versions.json` unless explicitly instructed
+- **NEVER** run any command that uploads artifacts to external registries (Maven Central, CocoaPods, npm, GitHub Packages, etc.)
+
+All publishing and deployment is handled exclusively by the maintainer through CI pipelines. If a task appears to require publishing, **ask the user** instead of proceeding.
 
 ## Important Notes
 

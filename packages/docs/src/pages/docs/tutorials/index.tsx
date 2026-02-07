@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import SEO from "../../../components/SEO";
 import PageNavigation from "../../../components/PageNavigation";
-import ProOnly from "../../../components/ProOnly";
 
 function TutorialsIndex() {
   return (
@@ -65,30 +64,6 @@ function TutorialsIndex() {
               Jetpack Compose.
             </p>
           </Link>
-
-          <ProOnly>
-            <Link to="/docs/tutorials/web" className="api-card">
-              <div className="api-card-icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-              </div>
-              <h3>Web Tutorial</h3>
-              <p>
-                Build a web app with Chrome Built-in AI features using
-                TypeScript.
-              </p>
-            </Link>
-          </ProOnly>
         </div>
       </section>
 
@@ -139,15 +114,6 @@ function TutorialsIndex() {
           <li>Android 14+ (API 34+) device</li>
           <li>Pixel 8/Pro or Samsung Galaxy S24+ with Gemini Nano</li>
         </ul>
-
-        <ProOnly>
-          <h4>Web</h4>
-          <ul>
-            <li>Chrome Canary or Dev channel (version 128+)</li>
-            <li>Built-in AI flags enabled</li>
-            <li>Node.js 18+ for development</li>
-          </ul>
-        </ProOnly>
       </section>
 
       <PageNavigation

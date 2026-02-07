@@ -3,7 +3,7 @@ import Foundation
 /// Locanara SDK Tier
 ///
 /// Community Edition - Uses Apple Intelligence (Foundation Models) for on-device AI.
-public enum LocanaraTier: String {
+public enum LocanaraTier: String, Sendable {
     case community = "community"
 }
 

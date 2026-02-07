@@ -95,7 +95,7 @@ public final class LocanaraClient {
     // MARK: - Properties
 
     /// Shared singleton instance
-    public static let shared = LocanaraClient()
+    public nonisolated(unsafe) static let shared = LocanaraClient()
 
     /// Current SDK version (references LocanaraSDK.version)
     public static let version = LocanaraSDK.version
@@ -590,6 +590,33 @@ public final class LocanaraClient {
         return VoidResult(success: true)
     }
 
+    // MARK: - Streaming
+
+    /// Stream a chat response as a sequence of chunks
+    ///
+    /// - Parameters:
+    ///   - input: User message
+    ///   - parameters: Optional chat parameters
+    /// - Returns: AsyncThrowingStream of ChatStreamChunk
+    /// - Throws: LocanaraError if not initialized or feature unavailable
+    public func chatStream(
+        input: String,
+        parameters: ChatParametersInput? = nil
+    ) async throws -> AsyncThrowingStream<ChatStreamChunk, Error> {
+        guard isInitialized else {
+            throw LocanaraError.sdkNotInitialized
+        }
+
+        guard isFeatureAvailable(.chat) else {
+            throw LocanaraError.featureNotAvailable(.chat)
+        }
+
+        return try await chatExecutor.executeStream(
+            input: input,
+            parameters: parameters
+        )
+    }
+
     // MARK: - Private Methods
 
     private func checkDeviceCapabilities() async throws -> DeviceCapability {
@@ -685,6 +712,8 @@ public final class LocanaraClient {
                 parameters: input.parameters?.chat
             )
             return .chat(result)
+
+        // Note: chatStream is handled separately via chatStream() method
 
         case .translate:
             let result = try await translateExecutor.execute(

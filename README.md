@@ -17,6 +17,8 @@ Locanara provides a unified API for on-device AI across platforms:
 
 All AI processing happens locally on the device. No cloud. No data leaves.
 
+**Documentation**: [locanara.dev](https://locanara.dev)
+
 ---
 
 ## Packages
@@ -36,63 +38,10 @@ All AI processing happens locally on the device. No cloud. No data leaves.
 
 ## Features
 
-| Feature | iOS | Android |
-| ------- | --- | ------- |
-| Summarize | Apple Intelligence | Gemini Nano |
-| Classify | Apple Intelligence | Gemini Nano |
-| Extract | Apple Intelligence | Gemini Nano |
-| Chat | Apple Intelligence | Gemini Nano |
-| Translate | Apple Intelligence | Gemini Nano |
-| Rewrite | Apple Intelligence | Gemini Nano |
-| Proofread | Apple Intelligence | Gemini Nano |
+Summarize, Classify, Extract, Chat, Translate, Rewrite, Proofread
 
----
-
-## Quick Start
-
-### iOS/macOS (Swift Package Manager)
-
-```swift
-// Package.swift
-dependencies: [
-    .package(url: "https://github.com/hyodotdev/locanara", from: "1.0.0")
-]
-```
-
-```swift
-import Locanara
-
-// Check device capability
-let capability = await Locanara.getDeviceCapability()
-
-// Summarize text
-let result = await Locanara.summarize(text: "Your text here...")
-```
-
-### iOS/macOS (CocoaPods)
-
-```ruby
-pod 'Locanara', '~> 1.0'
-```
-
-### Android (Gradle)
-
-```kotlin
-// build.gradle.kts
-dependencies {
-    implementation("com.locanara:locanara:1.0.0")
-}
-```
-
-```kotlin
-import com.locanara.Locanara
-
-// Check device capability
-val capability = Locanara.getDeviceCapability()
-
-// Summarize text
-val result = Locanara.summarize(text = "Your text here...")
-```
+- **iOS**: Apple Intelligence (Foundation Models)
+- **Android**: Gemini Nano (preloaded on-device AI model)
 
 ---
 
@@ -107,12 +56,6 @@ val result = Locanara.summarize(text = "Your text here...")
 
 - Android 14+ (API 34+)
 - Device with Gemini Nano support
-
----
-
-## Documentation
-
-Full documentation is available at [locanara.dev](https://locanara.dev).
 
 ---
 

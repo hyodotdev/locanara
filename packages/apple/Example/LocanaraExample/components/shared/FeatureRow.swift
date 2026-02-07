@@ -25,7 +25,16 @@ struct FeatureRow: View {
 
             Spacer()
 
-            if !feature.isAvailable {
+            if feature.isComingSoon {
+                Text("Coming Soon")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(.gray)
+                    .clipShape(Capsule())
+            } else if !feature.isAvailable {
                 Image(systemName: "lock.fill")
                     .foregroundStyle(.secondary)
             }
