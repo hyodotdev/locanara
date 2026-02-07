@@ -29,7 +29,7 @@ public enum LocanaraError: Error, LocalizedError {
     case upgradeRequired(UpgradeReason)
 
     // Foundation Models specific errors
-    case modelAssetsUnavailable(availability: Any)
+    case modelAssetsUnavailable(availability: String)
 
     public var errorDescription: String? {
         switch self {

@@ -95,7 +95,7 @@ public final class LocanaraClient {
     // MARK: - Properties
 
     /// Shared singleton instance
-    public static let shared = LocanaraClient()
+    public nonisolated(unsafe) static let shared = LocanaraClient()
 
     /// Current SDK version (references LocanaraSDK.version)
     public static let version = LocanaraSDK.version

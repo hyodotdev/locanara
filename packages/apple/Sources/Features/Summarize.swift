@@ -76,7 +76,7 @@ internal final class SummarizeExecutor {
         outputType: SummarizeOutputType
     ) async throws -> SummarizeResult {
         guard case .available = SystemLanguageModel.default.availability else {
-            throw LocanaraError.modelAssetsUnavailable(availability: SystemLanguageModel.default.availability)
+            throw LocanaraError.modelAssetsUnavailable(availability: String(describing: SystemLanguageModel.default.availability))
         }
 
         let session = LanguageModelSession()
@@ -113,7 +113,7 @@ internal final class SummarizeExecutor {
         } catch {
             let errorDescription = error.localizedDescription.lowercased()
             if errorDescription.contains("asset") || errorDescription.contains("unavailable") {
-                throw LocanaraError.modelAssetsUnavailable(availability: SystemLanguageModel.default.availability)
+                throw LocanaraError.modelAssetsUnavailable(availability: String(describing: SystemLanguageModel.default.availability))
             }
             throw LocanaraError.executionFailed(error.localizedDescription)
         }
