@@ -98,7 +98,7 @@ internal final class RewriteExecutor {
         Return ONLY the rewritten text with no labels, headers, or alternatives.
 
         Text to rewrite:
-        \(input)
+        <input>\(input)</input>
         """
 
         let response = try await session.respond(to: prompt)

@@ -321,7 +321,7 @@ class MLKitPromptClient(private val context: Context) : Closeable {
             prompt += "\n\nAlso extract key-value pairs as: {\"kv\":[{\"key\":\"k\",\"value\":\"v\",\"confidence\":0.9}]}"
         }
 
-        prompt += "\n\nText:\n$text"
+        prompt += "\n\nText:\n<input>\n$text\n</input>"
 
         Log.d(TAG, "Sending extract request...")
         val request = generateContentRequest(TextPart(prompt)) {

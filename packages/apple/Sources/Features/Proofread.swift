@@ -79,7 +79,7 @@ internal final class ProofreadExecutor {
         Return ONLY the corrected text with no labels, headers, or explanations.
 
         Text to proofread:
-        \(input)
+        <input>\(input)</input>
         """
 
         let response = try await session.respond(to: prompt)

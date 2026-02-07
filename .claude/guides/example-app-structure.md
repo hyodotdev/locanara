@@ -165,7 +165,7 @@ export function FeatureDemo() {
 
         {/* Execute Button */}
         <TouchableOpacity
-          style={[styles.button, disabled && styles.buttonDisabled]}
+          style={[styles.button, (isLoading || !inputText.trim() || !isModelReady) && styles.buttonDisabled]}
           onPress={executeFeature}
           disabled={isLoading || !inputText.trim() || !isModelReady}
         >

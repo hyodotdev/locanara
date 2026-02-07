@@ -98,7 +98,9 @@ const withOndeviceAi: ConfigPlugin<ExpoOndeviceAiPluginOptions | void> = (
       ]);
     }
 
-    // Android: Build local SDK AAR and install to mavenLocal
+    // Android: Build local SDK AAR and install to mavenLocal.
+    // This only runs during local development (LOCAL_LOCANARA_PATHS env set)
+    // and is scoped to the 'android' withDangerousMod, so it won't execute during iOS-only prebuild.
     if (androidPath) {
       const resolvedAndroidPath = path.resolve(androidPath);
       logOnce(`🔧 [expo-ondevice-ai] Local Android SDK: ${resolvedAndroidPath}`);

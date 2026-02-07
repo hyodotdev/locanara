@@ -81,7 +81,7 @@ internal final class ExtractExecutor {
             prompt += "\n\nAlso extract key-value pairs as: {\"kv\":[{\"key\":\"k\",\"value\":\"v\",\"confidence\":0.9}]}"
         }
 
-        prompt += "\n\nText:\n\(input)"
+        prompt += "\n\nText:\n<input>\n\(input)\n</input>"
 
         let response = try await session.respond(to: prompt)
         let responseText = response.content
