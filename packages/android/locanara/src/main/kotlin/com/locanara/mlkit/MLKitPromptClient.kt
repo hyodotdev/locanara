@@ -430,9 +430,13 @@ class MLKitPromptClient(private val context: Context) : Closeable {
                     }
                 }
             }
+        } catch (e: Exception) {
+            Log.d(TAG, "Entity JSON parsing failed: ${e.message}")
+        }
 
-            // Parse key-value pairs from "kv" field if present
-            if (extractKeyValues) {
+        // Parse key-value pairs from "kv" field if present (independent try/catch)
+        if (extractKeyValues) {
+            try {
                 val kvStart = responseText.indexOf("\"kv\"")
                 if (kvStart >= 0) {
                     val kvArrayStart = responseText.indexOf('[', kvStart)
@@ -450,9 +454,9 @@ class MLKitPromptClient(private val context: Context) : Closeable {
                         }
                     }
                 }
+            } catch (e: Exception) {
+                Log.d(TAG, "KV JSON parsing failed: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.d(TAG, "JSON parsing failed, trying fallback: ${e.message}")
         }
 
         // Fallback: pipe-delimited format (ENTITY|type|value|confidence)

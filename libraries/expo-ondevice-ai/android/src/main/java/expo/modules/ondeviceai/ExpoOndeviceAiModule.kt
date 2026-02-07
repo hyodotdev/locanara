@@ -67,6 +67,7 @@ class ExpoOndeviceAiModule : Module() {
                 try {
                     val params = ExpoOndeviceAiHelper.decodeChatParameters(options)
                     var lastAccumulated = ""
+                    var lastConversationId: String? = null
                     var finalMessage = ""
                     var finalConversationId: String? = null
 
@@ -77,6 +78,7 @@ class ExpoOndeviceAiModule : Module() {
                         conversationId = params?.conversationId
                     ).collect { chunk ->
                         lastAccumulated = chunk.accumulated
+                        lastConversationId = chunk.conversationId
                         sendEvent("onChatStreamChunk", mapOf(
                             "delta" to chunk.delta,
                             "accumulated" to chunk.accumulated,
@@ -92,6 +94,7 @@ class ExpoOndeviceAiModule : Module() {
                     // Fallback: use last accumulated text if no isFinal chunk was emitted
                     if (finalMessage.isEmpty() && lastAccumulated.isNotEmpty()) {
                         finalMessage = lastAccumulated
+                        finalConversationId = finalConversationId ?: lastConversationId
                     }
 
                     promise.resolve(mapOf(
