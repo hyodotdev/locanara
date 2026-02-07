@@ -180,37 +180,36 @@ internal final class ChatExecutor {
         conversationId: String,
         parameters: ChatParametersInput?
     ) -> AsyncThrowingStream<ChatStreamChunk, Error> {
-        AsyncThrowingStream { continuation in
-            Task {
+        // Pre-capture all values from self before the stream closure
+        var history = conversations[conversationId] ?? []
+        let systemPrompt = parameters?.systemPrompt ?? Self.defaultSystemPrompt
+        let languageName = Self.detectLanguage(input)
+        let languageInstruction = languageName.map { " You MUST respond in \($0)." } ?? ""
+
+        var contextPrompt = "System instruction: \(systemPrompt)\(languageInstruction)\n\n"
+        if history.isEmpty {
+            history.append(ChatMessageInput(role: "system", content: systemPrompt))
+        }
+
+        if let providedHistory = parameters?.history {
+            history.append(contentsOf: providedHistory)
+        }
+
+        for msg in history {
+            if msg.role == "user" {
+                contextPrompt += "User: \(msg.content)\n"
+            } else if msg.role == "assistant" {
+                contextPrompt += "Assistant: \(msg.content)\n"
+            }
+        }
+
+        history.append(ChatMessageInput(role: "user", content: input))
+        let prompt = contextPrompt + "User: \(input)\nAssistant:"
+
+        return AsyncThrowingStream { continuation in
+            Task { @Sendable in
                 do {
                     let session = LanguageModelSession()
-
-                    var history = conversations[conversationId] ?? []
-
-                    let systemPrompt = parameters?.systemPrompt ?? Self.defaultSystemPrompt
-                    let languageName = Self.detectLanguage(input)
-                    let languageInstruction = languageName.map { " You MUST respond in \($0)." } ?? ""
-
-                    var contextPrompt = "System instruction: \(systemPrompt)\(languageInstruction)\n\n"
-                    if history.isEmpty {
-                        history.append(ChatMessageInput(role: "system", content: systemPrompt))
-                    }
-
-                    if let providedHistory = parameters?.history {
-                        history.append(contentsOf: providedHistory)
-                    }
-
-                    for msg in history {
-                        if msg.role == "user" {
-                            contextPrompt += "User: \(msg.content)\n"
-                        } else if msg.role == "assistant" {
-                            contextPrompt += "Assistant: \(msg.content)\n"
-                        }
-                    }
-
-                    history.append(ChatMessageInput(role: "user", content: input))
-                    let prompt = contextPrompt + "User: \(input)\nAssistant:"
-
                     let stream = session.streamResponse(to: prompt)
                     var previousContent = ""
 
@@ -238,10 +237,6 @@ internal final class ChatExecutor {
                         conversationId: conversationId
                     )
                     continuation.yield(finalChunk)
-
-                    // Update conversation history
-                    history.append(ChatMessageInput(role: "assistant", content: previousContent))
-                    conversations[conversationId] = history
 
                     continuation.finish()
                 } catch {
