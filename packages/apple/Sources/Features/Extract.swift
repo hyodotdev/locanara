@@ -61,140 +61,84 @@ internal final class ExtractExecutor {
 
     #if canImport(FoundationModels)
     @available(iOS 26.0, macOS 26.0, *)
+    @Generable
+    struct EntityOutput {
+        @Guide(description: "Entity type such as person, location, date, organization")
+        var type: String
+        @Guide(description: "The extracted entity value from the text")
+        var value: String
+        @Guide(description: "Confidence score between 0.0 and 1.0")
+        var confidence: Double
+    }
+
+    @available(iOS 26.0, macOS 26.0, *)
+    @Generable
+    struct KeyValueOutput {
+        @Guide(description: "The key name")
+        var key: String
+        @Guide(description: "The value")
+        var value: String
+        @Guide(description: "Confidence score between 0.0 and 1.0")
+        var confidence: Double
+    }
+
+    @available(iOS 26.0, macOS 26.0, *)
+    @Generable
+    struct ExtractEntitiesOutput {
+        @Guide(description: "Extracted entities from the text")
+        var entities: [EntityOutput]
+    }
+
+    @available(iOS 26.0, macOS 26.0, *)
+    @Generable
+    struct ExtractWithKVOutput {
+        @Guide(description: "Extracted entities from the text")
+        var entities: [EntityOutput]
+        @Guide(description: "Extracted key-value pairs from the text")
+        var keyValues: [KeyValueOutput]
+    }
+
+    @available(iOS 26.0, macOS 26.0, *)
     private func processWithAppleIntelligence(
         input: String,
         entityTypes: [String],
         extractKeyValues: Bool
     ) async throws -> ExtractResult {
         let session = LanguageModelSession()
-
         let entityTypesList = entityTypes.joined(separator: ", ")
-        var prompt = """
-        Extract entities from the following text.
-        Entity types to find: \(entityTypesList)
-
-        Return ONLY a JSON array of objects with "type", "value", "confidence" fields.
-        Example: [{"type":"person","value":"John","confidence":0.95}]
-        """
 
         if extractKeyValues {
-            prompt += "\n\nAlso extract key-value pairs as: {\"kv\":[{\"key\":\"k\",\"value\":\"v\",\"confidence\":0.9}]}"
+            let prompt = """
+            Extract entities and key-value pairs from the following text.
+            Entity types to find: \(entityTypesList)
+
+            Text:
+            <input>\(input.replacingOccurrences(of: "</input>", with: ""))</input>
+            """
+
+            let output = try await session.respond(to: prompt, generating: ExtractWithKVOutput.self).content
+            let entities = output.entities.map { e in
+                Entity(type: e.type, value: e.value, confidence: min(max(e.confidence, 0.0), 1.0), startPos: nil, endPos: nil)
+            }
+            let kvPairs = output.keyValues.map { kv in
+                KeyValuePair(key: kv.key, value: kv.value, confidence: min(max(kv.confidence, 0.0), 1.0))
+            }
+            return ExtractResult(entities: entities, keyValuePairs: kvPairs)
+        } else {
+            let prompt = """
+            Extract entities from the following text.
+            Entity types to find: \(entityTypesList)
+
+            Text:
+            <input>\(input.replacingOccurrences(of: "</input>", with: ""))</input>
+            """
+
+            let output = try await session.respond(to: prompt, generating: ExtractEntitiesOutput.self).content
+            let entities = output.entities.map { e in
+                Entity(type: e.type, value: e.value, confidence: min(max(e.confidence, 0.0), 1.0), startPos: nil, endPos: nil)
+            }
+            return ExtractResult(entities: entities, keyValuePairs: nil)
         }
-
-        prompt += "\n\nText:\n<input>\n\(input)\n</input>"
-
-        let response = try await session.respond(to: prompt)
-        let responseText = response.content
-
-        return Self.parseExtractResponse(responseText, extractKeyValues: extractKeyValues)
     }
     #endif
-
-    static func parseExtractResponse(
-        _ responseText: String,
-        extractKeyValues: Bool
-    ) -> ExtractResult {
-        var entities: [Entity] = []
-        var keyValuePairs: [KeyValuePair]? = extractKeyValues ? [] : nil
-
-        // Try JSON parsing using JSONSerialization for field-order independence
-        if let arrayStart = responseText.firstIndex(of: "[") {
-            let arrayEnd = Self.findMatchingBracket(responseText, openPos: arrayStart)
-            if let arrayEnd = arrayEnd {
-                let jsonStr = String(responseText[arrayStart...arrayEnd])
-                if let data = jsonStr.data(using: .utf8),
-                   let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                    for obj in parsed {
-                        guard let type = obj["type"] as? String,
-                              let value = obj["value"] as? String else { continue }
-                        let confidence = (obj["confidence"] as? Double) ?? 0.0
-                        entities.append(Entity(
-                            type: type,
-                            value: value,
-                            confidence: min(max(confidence, 0.0), 1.0),
-                            startPos: nil,
-                            endPos: nil
-                        ))
-                    }
-                }
-            }
-        }
-
-        if extractKeyValues, let kvStart = responseText.range(of: "\"kv\"") {
-            let kvSection = String(responseText[kvStart.lowerBound...])
-            if let kvArrayStart = kvSection.firstIndex(of: "[") {
-                let kvArrayEnd = Self.findMatchingBracket(kvSection, openPos: kvArrayStart)
-                if let kvArrayEnd = kvArrayEnd {
-                    let kvJsonStr = String(kvSection[kvArrayStart...kvArrayEnd])
-                    if let data = kvJsonStr.data(using: .utf8),
-                       let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                        for obj in parsed {
-                            guard let key = obj["key"] as? String,
-                                  let value = obj["value"] as? String else { continue }
-                            let confidence = (obj["confidence"] as? Double) ?? 0.0
-                            keyValuePairs?.append(KeyValuePair(
-                                key: key, value: value, confidence: min(max(confidence, 0.0), 1.0)
-                            ))
-                        }
-                    }
-                }
-            }
-        }
-
-        // Fallback: pipe-delimited format (ENTITY|type|value|confidence)
-        if entities.isEmpty {
-            for line in responseText.components(separatedBy: .newlines) {
-                let parts = line.trimmingCharacters(in: .whitespaces).split(separator: "|")
-                guard parts.count >= 4 else { continue }
-                let prefix = String(parts[0]).trimmingCharacters(in: .whitespaces).lowercased()
-                if prefix == "entity" {
-                    guard let confidence = Double(String(parts[3]).trimmingCharacters(in: .whitespaces)) else { continue }
-                    entities.append(Entity(
-                        type: String(parts[1]).trimmingCharacters(in: .whitespaces),
-                        value: String(parts[2]).trimmingCharacters(in: .whitespaces),
-                        confidence: min(max(confidence, 0.0), 1.0),
-                        startPos: nil, endPos: nil
-                    ))
-                } else if prefix == "keyvalue" && extractKeyValues {
-                    guard let confidence = Double(String(parts[3]).trimmingCharacters(in: .whitespaces)) else { continue }
-                    keyValuePairs?.append(KeyValuePair(
-                        key: String(parts[1]).trimmingCharacters(in: .whitespaces),
-                        value: String(parts[2]).trimmingCharacters(in: .whitespaces),
-                        confidence: min(max(confidence, 0.0), 1.0)
-                    ))
-                }
-            }
-        }
-
-        return ExtractResult(entities: entities, keyValuePairs: keyValuePairs)
-    }
-
-    /// Find the matching closing bracket for an opening '[' using balanced scanning.
-    private static func findMatchingBracket(_ text: String, openPos: String.Index) -> String.Index? {
-        var depth = 0
-        var inString = false
-        var i = openPos
-        while i < text.endIndex {
-            let c = text[i]
-            if inString {
-                if c == "\\" {
-                    i = text.index(after: i)
-                    guard i < text.endIndex else { return nil }
-                } else if c == "\"" {
-                    inString = false
-                }
-            } else {
-                switch c {
-                case "\"": inString = true
-                case "[": depth += 1
-                case "]":
-                    depth -= 1
-                    if depth == 0 { return i }
-                default: break
-                }
-            }
-            i = text.index(after: i)
-        }
-        return nil
-    }
 }

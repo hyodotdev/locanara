@@ -320,47 +320,68 @@ class MLKitPromptClient(private val context: Context) : Closeable {
 
         Log.d(TAG, "Classify response: $responseText")
 
-        // Parse classification results
-        val classifications = mutableListOf<Classification>()
-        val lines = responseText.lines()
-
-        for (line in lines) {
-            val trimmed = line.trim()
-            if (trimmed.isEmpty()) continue
-
-            val parts = trimmed.split(":", limit = 2)
-            if (parts.size != 2) continue
-
-            val label = parts[0].trim()
-            val scoreStr = parts[1].trim()
-
-            // Check if this category is in our list
-            if (!categories.any { it.equals(label, ignoreCase = true) }) continue
-
-            val score = scoreStr.toDoubleOrNull() ?: continue
-            classifications.add(
-                Classification(
-                    label = label,
-                    score = score.coerceIn(0.0, 1.0),
-                    metadata = null
-                )
-            )
-        }
-
-        // If parsing failed, throw an exception
-        if (classifications.isEmpty()) {
-            throw IllegalStateException("Failed to parse classification response from model: $responseText")
-        }
+        val classifications = parseClassifyResponse(responseText, categories)
 
         // Sort by score descending and limit results
         val sortedClassifications = classifications
             .sortedByDescending { it.score }
-            .take(maxResults)
+            .take(maxResults.coerceAtLeast(1))
 
         ClassifyResult(
             classifications = sortedClassifications,
             topClassification = sortedClassifications.first()
         )
+    }
+
+    /**
+     * Parse classify response with multiple strategies:
+     * 1. Line-based regex (e.g., "spam: 0.85" or "- spam: 0.85" or "**spam**: 0.85")
+     * 2. JSON fallback (e.g., [{"label":"spam","score":0.85}])
+     */
+    private fun parseClassifyResponse(
+        responseText: String,
+        categories: List<String>
+    ): List<Classification> {
+        val classifications = mutableListOf<Classification>()
+
+        // Strategy 1: Regex-based line parsing (handles "label: score" with optional markdown/bullet)
+        val linePattern = Regex("""(?:\*{0,2})([^:*]+?)(?:\*{0,2})\s*:\s*([\d.]+)""")
+        for (line in responseText.lines()) {
+            val match = linePattern.find(line.trim()) ?: continue
+            val label = match.groupValues[1].trim().removePrefix("- ").trim()
+            val score = match.groupValues[2].toDoubleOrNull() ?: continue
+            if (categories.any { it.equals(label, ignoreCase = true) }) {
+                classifications.add(Classification(label = label, score = score.coerceIn(0.0, 1.0), metadata = null))
+            }
+        }
+
+        // Strategy 2: JSON fallback
+        if (classifications.isEmpty()) {
+            try {
+                val cleaned = responseText.replace(Regex("```(?:json)?\\s*"), "").replace("```", "").trim()
+                val arrayStart = cleaned.indexOf('[')
+                val arrayEnd = if (arrayStart >= 0) findMatchingBracket(cleaned, arrayStart) else -1
+                if (arrayStart >= 0 && arrayEnd > arrayStart) {
+                    val jsonArray = org.json.JSONArray(cleaned.substring(arrayStart, arrayEnd + 1))
+                    for (i in 0 until jsonArray.length()) {
+                        val obj = jsonArray.getJSONObject(i)
+                        val label = obj.optString("label", obj.optString("category", ""))
+                        val score = obj.optDouble("score", obj.optDouble("confidence", 0.0))
+                        if (label.isNotEmpty() && categories.any { it.equals(label, ignoreCase = true) }) {
+                            classifications.add(Classification(label = label, score = score.coerceIn(0.0, 1.0), metadata = null))
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "Classify JSON fallback failed: ${e.message}")
+            }
+        }
+
+        if (classifications.isEmpty()) {
+            throw IllegalStateException("Failed to parse classification response from model (length=${responseText.length}): ${responseText.take(200)}")
+        }
+
+        return classifications
     }
 
     // ============================================
@@ -413,13 +434,16 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         val entities = mutableListOf<Entity>()
         val keyValuePairs = if (extractKeyValues) mutableListOf<KeyValuePair>() else null
 
+        // Strip markdown fences (```json ... ```) before parsing
+        val cleaned = responseText.replace(Regex("```(?:json)?\\s*"), "").replace("```", "").trim()
+
         // Try JSON parsing with JSONArray/JSONObject for robustness
         try {
             // Find the first JSON array using balanced bracket matching
-            val arrayStart = responseText.indexOf('[')
-            val arrayEnd = if (arrayStart >= 0) findMatchingBracket(responseText, arrayStart) else -1
+            val arrayStart = cleaned.indexOf('[')
+            val arrayEnd = if (arrayStart >= 0) findMatchingBracket(cleaned, arrayStart) else -1
             if (arrayStart >= 0 && arrayEnd > arrayStart) {
-                val jsonArray = org.json.JSONArray(responseText.substring(arrayStart, arrayEnd + 1))
+                val jsonArray = org.json.JSONArray(cleaned.substring(arrayStart, arrayEnd + 1))
                 for (i in 0 until jsonArray.length()) {
                     val obj = jsonArray.getJSONObject(i)
                     val type = obj.optString("type", "")
@@ -437,12 +461,12 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         // Parse key-value pairs from "kv" field if present (independent try/catch)
         if (extractKeyValues) {
             try {
-                val kvStart = responseText.indexOf("\"kv\"")
+                val kvStart = cleaned.indexOf("\"kv\"")
                 if (kvStart >= 0) {
-                    val kvArrayStart = responseText.indexOf('[', kvStart)
-                    val kvArrayEnd = if (kvArrayStart >= 0) findMatchingBracket(responseText, kvArrayStart) else -1
+                    val kvArrayStart = cleaned.indexOf('[', kvStart)
+                    val kvArrayEnd = if (kvArrayStart >= 0) findMatchingBracket(cleaned, kvArrayStart) else -1
                     if (kvArrayStart >= 0 && kvArrayEnd > kvArrayStart) {
-                        val kvArray = org.json.JSONArray(responseText.substring(kvArrayStart, kvArrayEnd + 1))
+                        val kvArray = org.json.JSONArray(cleaned.substring(kvArrayStart, kvArrayEnd + 1))
                         for (i in 0 until kvArray.length()) {
                             val obj = kvArray.getJSONObject(i)
                             val key = obj.optString("key", "")
@@ -461,7 +485,7 @@ class MLKitPromptClient(private val context: Context) : Closeable {
 
         // Fallback: pipe-delimited format (ENTITY|type|value|confidence)
         if (entities.isEmpty()) {
-            for (line in responseText.lines()) {
+            for (line in cleaned.lines()) {
                 val parts = line.trim().split("|")
                 if (parts.size >= 4 && parts[0].trim().equals("ENTITY", ignoreCase = true)) {
                     val confidence = parts[3].trim().toDoubleOrNull() ?: continue

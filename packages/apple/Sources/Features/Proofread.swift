@@ -63,6 +63,26 @@ internal final class ProofreadExecutor {
 
     #if canImport(FoundationModels)
     @available(iOS 26.0, macOS 26.0, *)
+    @Generable
+    struct ProofreadCorrectionOutput {
+        @Guide(description: "The original incorrect word or phrase")
+        var original: String
+        @Guide(description: "The corrected version")
+        var corrected: String
+        @Guide(description: "Error type: spelling, grammar, or punctuation")
+        var type: String
+    }
+
+    @available(iOS 26.0, macOS 26.0, *)
+    @Generable
+    struct ProofreadOutput {
+        @Guide(description: "The full corrected text with all corrections applied")
+        var correctedText: String
+        @Guide(description: "List of individual corrections made, empty if no corrections needed")
+        var corrections: [ProofreadCorrectionOutput]
+    }
+
+    @available(iOS 26.0, macOS 26.0, *)
     private func processWithAppleIntelligence(
         input: String,
         inputType: ProofreadInputType
@@ -76,94 +96,38 @@ internal final class ProofreadExecutor {
         let prompt = """
         Proofread the following text for grammar, spelling, and punctuation errors.
         \(contextHint)
-        Return ONLY the corrected text with no labels, headers, or explanations.
+        Provide the full corrected text and list each individual correction.
 
         Text to proofread:
-        <input>\(input)</input>
+        <input>\(input.replacingOccurrences(of: "</input>", with: ""))</input>
         """
 
-        let response = try await session.respond(to: prompt)
-        let correctedText = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let output = try await session.respond(to: prompt, generating: ProofreadOutput.self).content
+        let correctedText = output.correctedText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // If model returned empty response, treat as no corrections needed
-        guard !correctedText.isEmpty else {
-            return ProofreadResult(
-                correctedText: input,
-                corrections: [],
-                hasCorrections: false
+        var searchStart = input.startIndex
+        let corrections = output.corrections.map { c in
+            var correction = ProofreadCorrection(
+                original: c.original,
+                corrected: c.corrected,
+                type: c.type,
+                confidence: 0.9,
+                startPos: nil,
+                endPos: nil
             )
+            if let range = input.range(of: c.original, range: searchStart..<input.endIndex) {
+                correction.startPos = input.distance(from: input.startIndex, to: range.lowerBound)
+                correction.endPos = input.distance(from: input.startIndex, to: range.upperBound)
+                searchStart = range.upperBound
+            }
+            return correction
         }
 
-        let corrections = correctedText != input
-            ? Self.extractWordCorrections(original: input, corrected: correctedText)
-            : []
-
         return ProofreadResult(
-            correctedText: correctedText,
+            correctedText: correctedText.isEmpty ? input : correctedText,
             corrections: corrections,
             hasCorrections: !corrections.isEmpty
         )
     }
     #endif
-
-    /// Extract individual word-level corrections by diffing original and corrected text.
-    static func extractWordCorrections(
-        original: String,
-        corrected: String
-    ) -> [ProofreadCorrection] {
-        var corrections: [ProofreadCorrection] = []
-
-        let wordPattern = try! NSRegularExpression(pattern: "\\S+")
-        let origMatches = wordPattern.matches(in: original, range: NSRange(original.startIndex..., in: original))
-        let corrMatches = wordPattern.matches(in: corrected, range: NSRange(corrected.startIndex..., in: corrected))
-
-        if origMatches.count == corrMatches.count {
-            for i in 0..<origMatches.count {
-                let origRange = Range(origMatches[i].range, in: original)!
-                let corrRange = Range(corrMatches[i].range, in: corrected)!
-                let origWord = String(original[origRange])
-                let corrWord = String(corrected[corrRange])
-
-                if origWord != corrWord {
-                    let startPos = original.distance(from: original.startIndex, to: origRange.lowerBound)
-                    let endPos = original.distance(from: original.startIndex, to: origRange.upperBound)
-
-                    corrections.append(ProofreadCorrection(
-                        original: origWord,
-                        corrected: corrWord,
-                        type: Self.guessErrorType(original: origWord, corrected: corrWord),
-                        confidence: 0.9,
-                        startPos: startPos,
-                        endPos: endPos
-                    ))
-                }
-            }
-        }
-
-        // Fallback: if word counts differ or no corrections found
-        if corrections.isEmpty && original != corrected {
-            corrections.append(ProofreadCorrection(
-                original: original,
-                corrected: corrected,
-                type: nil,
-                confidence: nil,
-                startPos: nil,
-                endPos: nil
-            ))
-        }
-
-        return corrections
-    }
-
-    private static func guessErrorType(original: String, corrected: String) -> String {
-        let origLetters = original.lowercased().filter { $0.isLetter }
-        let corrLetters = corrected.lowercased().filter { $0.isLetter }
-        if origLetters != corrLetters { return "spelling" }
-
-        let origPunct = original.filter { !$0.isLetter && !$0.isNumber }
-        let corrPunct = corrected.filter { !$0.isLetter && !$0.isNumber }
-        if origPunct != corrPunct { return "punctuation" }
-
-        return "grammar"
-    }
 }
