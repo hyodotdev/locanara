@@ -113,7 +113,7 @@ internal final class ExtractExecutor {
             Entity types to find: \(entityTypesList)
 
             Text:
-            <input>\(input)</input>
+            <input>\(input.replacingOccurrences(of: "</input>", with: ""))</input>
             """
 
             let output = try await session.respond(to: prompt, generating: ExtractWithKVOutput.self).content
@@ -130,7 +130,7 @@ internal final class ExtractExecutor {
             Entity types to find: \(entityTypesList)
 
             Text:
-            <input>\(input)</input>
+            <input>\(input.replacingOccurrences(of: "</input>", with: ""))</input>
             """
 
             let output = try await session.respond(to: prompt, generating: ExtractEntitiesOutput.self).content

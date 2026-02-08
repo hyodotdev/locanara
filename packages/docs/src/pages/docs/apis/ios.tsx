@@ -32,6 +32,9 @@ function iOSAPIs() {
           <li>
             <strong>Chat:</strong> chat, chatStream
           </li>
+          <li>
+            <strong>Image:</strong> generateImage (Image Playground)
+          </li>
         </ul>
       </TLDRBox>
 
@@ -80,9 +83,10 @@ if capability.isAvailable {
       <section>
         <h2 id="feature-execution">Feature Execution</h2>
         <p>
-          All features are executed through the unified{" "}
+          Most features are executed through the unified{" "}
           <code>executeFeature()</code> method with{" "}
-          <code>ExecuteFeatureInput</code>.
+          <code>ExecuteFeatureInput</code>. The exception is{" "}
+          <code>chatStream()</code>, which has its own streaming API.
         </p>
 
         <h3 id="summarize">summarize()</h3>
@@ -331,6 +335,7 @@ case .chat(let r):       print(r.message)
 case .translate(let r):  print(r.translatedText)
 case .rewrite(let r):    print(r.rewrittenText)
 case .proofread(let r):  print(r.correctedText)
+case .imageGeneration(let r): print(r.imageUrls)
 case .none:              print("No result")
 default: break
 }`}

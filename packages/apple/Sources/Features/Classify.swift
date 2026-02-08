@@ -91,7 +91,7 @@ internal final class ClassifyExecutor {
         The scores should sum to 1.0.
 
         Text to classify:
-        <input>\(input)</input>
+        <input>\(input.replacingOccurrences(of: "</input>", with: ""))</input>
         """
 
         let output = try await session.respond(to: prompt, generating: ClassifyOutput.self).content

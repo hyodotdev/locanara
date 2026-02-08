@@ -99,12 +99,13 @@ internal final class ProofreadExecutor {
         Provide the full corrected text and list each individual correction.
 
         Text to proofread:
-        <input>\(input)</input>
+        <input>\(input.replacingOccurrences(of: "</input>", with: ""))</input>
         """
 
         let output = try await session.respond(to: prompt, generating: ProofreadOutput.self).content
         let correctedText = output.correctedText.trimmingCharacters(in: .whitespacesAndNewlines)
 
+        var searchStart = input.startIndex
         let corrections = output.corrections.map { c in
             var correction = ProofreadCorrection(
                 original: c.original,
@@ -114,9 +115,10 @@ internal final class ProofreadExecutor {
                 startPos: nil,
                 endPos: nil
             )
-            if let range = input.range(of: c.original) {
+            if let range = input.range(of: c.original, range: searchStart..<input.endIndex) {
                 correction.startPos = input.distance(from: input.startIndex, to: range.lowerBound)
                 correction.endPos = input.distance(from: input.startIndex, to: range.upperBound)
+                searchStart = range.upperBound
             }
             return correction
         }

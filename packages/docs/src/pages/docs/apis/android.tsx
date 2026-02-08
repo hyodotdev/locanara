@@ -446,6 +446,7 @@ when (val data = result.result) {
     is TranslateResult -> println(data.translatedText)
     is RewriteResult -> println(data.rewrittenText)
     is ProofreadResult -> println(data.correctedText)
+    is ImageDescriptionResult -> println(data.text)
     else -> println("No result")
 }`}
         />

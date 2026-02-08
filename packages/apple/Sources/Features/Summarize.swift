@@ -98,11 +98,16 @@ internal final class SummarizeExecutor {
         Summarize the following text into exactly \(bulletCount) concise bullet point(s), each capturing a key point.
 
         Text to summarize:
-        <input>\(input)</input>
+        <input>\(input.replacingOccurrences(of: "</input>", with: ""))</input>
         """
 
         let output = try await session.respond(to: prompt, generating: SummarizeOutput.self).content
         let points = Array(output.bulletPoints.prefix(bulletCount))
+
+        guard !points.isEmpty else {
+            throw LocanaraError.executionFailed("No summary generated")
+        }
+
         let summary = points.map { "• \($0)" }.joined(separator: "\n")
 
         return SummarizeResult(

@@ -325,7 +325,7 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         // Sort by score descending and limit results
         val sortedClassifications = classifications
             .sortedByDescending { it.score }
-            .take(maxResults)
+            .take(maxResults.coerceAtLeast(1))
 
         ClassifyResult(
             classifications = sortedClassifications,
@@ -378,7 +378,7 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         }
 
         if (classifications.isEmpty()) {
-            throw IllegalStateException("Failed to parse classification response from model: $responseText")
+            throw IllegalStateException("Failed to parse classification response from model (length=${responseText.length}): ${responseText.take(200)}")
         }
 
         return classifications
