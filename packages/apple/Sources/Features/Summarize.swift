@@ -71,14 +71,17 @@ internal final class SummarizeExecutor {
 
     #if canImport(FoundationModels)
     @available(iOS 26.0, macOS 26.0, *)
+    @Generable
+    struct SummarizeOutput {
+        @Guide(description: "Bullet point summaries capturing key points from the text")
+        var bulletPoints: [String]
+    }
+
+    @available(iOS 26.0, macOS 26.0, *)
     private func processWithAppleIntelligence(
         input: String,
         outputType: SummarizeOutputType
     ) async throws -> SummarizeResult {
-        guard case .available = SystemLanguageModel.default.availability else {
-            throw LocanaraError.modelAssetsUnavailable(availability: String(describing: SystemLanguageModel.default.availability))
-        }
-
         let session = LanguageModelSession()
 
         let bulletCount: Int
@@ -92,31 +95,22 @@ internal final class SummarizeExecutor {
         }
 
         let prompt = """
-        Summarize the following text into exactly \(bulletCount) bullet point(s).
-        Each bullet point should be concise and capture a key point.
-        Format: Start each point with "• "
+        Summarize the following text into exactly \(bulletCount) concise bullet point(s), each capturing a key point.
 
         Text to summarize:
-        \(input)
+        <input>\(input)</input>
         """
 
-        do {
-            let response = try await session.respond(to: prompt)
-            let summary = response.content
+        let output = try await session.respond(to: prompt, generating: SummarizeOutput.self).content
+        let points = Array(output.bulletPoints.prefix(bulletCount))
+        let summary = points.map { "• \($0)" }.joined(separator: "\n")
 
-            return SummarizeResult(
-                summary: summary,
-                originalLength: input.count,
-                summaryLength: summary.count,
-                confidence: 0.95
-            )
-        } catch {
-            let errorDescription = error.localizedDescription.lowercased()
-            if errorDescription.contains("asset") || errorDescription.contains("unavailable") {
-                throw LocanaraError.modelAssetsUnavailable(availability: String(describing: SystemLanguageModel.default.availability))
-            }
-            throw LocanaraError.executionFailed(error.localizedDescription)
-        }
+        return SummarizeResult(
+            summary: summary,
+            originalLength: input.count,
+            summaryLength: summary.count,
+            confidence: 0.95
+        )
     }
     #endif
 }

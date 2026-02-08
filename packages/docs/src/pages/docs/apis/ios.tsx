@@ -22,7 +22,8 @@ function iOSAPIs() {
       <TLDRBox>
         <ul>
           <li>
-            <strong>Core:</strong> getDeviceCapability, getFoundationModelStatus
+            <strong>Core:</strong> getDeviceCapability,
+            isAppleIntelligenceAvailable, getDeviceInfoIOS
           </li>
           <li>
             <strong>Text:</strong> summarize, classify, extract, translate,
@@ -31,11 +32,19 @@ function iOSAPIs() {
           <li>
             <strong>Chat:</strong> chat, chatStream
           </li>
-          <li>
-            <strong>Image:</strong> describeImage
-          </li>
         </ul>
       </TLDRBox>
+
+      <section>
+        <h2 id="initialization">Initialization</h2>
+        <CodeBlock
+          language="swift"
+          code={`import Locanara
+
+// Initialize SDK (required before use)
+try await LocanaraClient.shared.initialize()`}
+        />
+      </section>
 
       <section>
         <h2 id="core-apis">Core APIs</h2>
@@ -44,73 +53,93 @@ function iOSAPIs() {
         <p>Get device AI capabilities and available features.</p>
         <CodeBlock
           language="swift"
-          code={`let capability = await Locanara.getDeviceCapability()
+          code={`let capability = try LocanaraClient.shared.getDeviceCapability()
 
-// Check availability
 if capability.isAvailable {
     print("Available features: \\(capability.availableFeatures)")
 }
 
-// Returns: DeviceCapability
+// DeviceCapability
 // - isAvailable: Bool
 // - platform: .ios
-// - availableFeatures: [FeatureType]
-// - modelStatus: ModelStatus?`}
+// - availableFeatures: [FeatureType]`}
         />
 
-        <h3 id="get-foundation-model-status">getFoundationModelStatus()</h3>
-        <p>Get Apple Intelligence Foundation Models availability status.</p>
+        <h3 id="is-apple-intelligence-available">
+          isAppleIntelligenceAvailable()
+        </h3>
+        <p>Check if Apple Intelligence Foundation Models are available.</p>
         <CodeBlock
           language="swift"
-          code={`let status = await Locanara.getFoundationModelStatus()
-
-switch status {
-case .available:
-    print("Foundation Models ready")
-case .unavailable(let reason):
-    print("Unavailable: \\(reason)")
-case .notSupported:
-    print("Device doesn't support Apple Intelligence")
+          code={`if LocanaraClient.shared.isAppleIntelligenceAvailable() {
+    print("Apple Intelligence is ready")
 }`}
         />
       </section>
 
       <section>
-        <h2 id="text-apis">Text Processing APIs</h2>
+        <h2 id="feature-execution">Feature Execution</h2>
+        <p>
+          All features are executed through the unified{" "}
+          <code>executeFeature()</code> method with{" "}
+          <code>ExecuteFeatureInput</code>.
+        </p>
 
         <h3 id="summarize">summarize()</h3>
-        <p>Summarize text into key points.</p>
+        <p>Summarize text into structured bullet points.</p>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.summarize(
-    text: "Long article text...",
-    style: .paragraph  // or .bullets, .keyPoints
+          code={`let input = ExecuteFeatureInput(
+    feature: .summarize,
+    input: "Long article text...",
+    parameters: FeatureParametersInput(
+        summarize: SummarizeParametersInput(
+            inputType: .article,       // or .conversation
+            outputType: .threeBullets, // or .oneBullet, .twoBullets
+            language: .english,
+            autoTruncate: true
+        )
+    )
 )
 
-switch result {
-case .success(let summary):
-    print(summary.text)
-case .failure(let error):
-    print(error.message)
+do {
+    let result = try await LocanaraClient.shared.executeFeature(input)
+    if case .summarize(let summary) = result.result {
+        print(summary.summary)           // Bullet point summary
+        print(summary.originalLength)    // Original text length
+        print(summary.summaryLength)     // Summary length
+    }
+} catch {
+    print(error.localizedDescription)
 }`}
         />
 
         <h3 id="classify">classify()</h3>
-        <p>Classify text into categories.</p>
+        <p>Classify text into categories with confidence scores.</p>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.classify(
-    text: "This product is amazing!",
-    labels: ["positive", "negative", "neutral"]
+          code={`let input = ExecuteFeatureInput(
+    feature: .classify,
+    input: "This product is amazing!",
+    parameters: FeatureParametersInput(
+        classify: ClassifyParametersInput(
+            categories: ["positive", "negative", "neutral"],
+            maxResults: 3
+        )
+    )
 )
 
-switch result {
-case .success(let classification):
-    for label in classification.labels {
-        print("\\(label.label): \\(label.confidence)")
+do {
+    let result = try await LocanaraClient.shared.executeFeature(input)
+    if case .classify(let classification) = result.result {
+        // Sorted by score, highest first
+        for item in classification.classifications {
+            print("\\(item.label): \\(item.score)")
+        }
+        print("Top: \\(classification.topClassification.label)")
     }
-case .failure(let error):
-    print(error.message)
+} catch {
+    print(error.localizedDescription)
 }`}
         />
 
@@ -118,18 +147,31 @@ case .failure(let error):
         <p>Extract entities and key-value pairs from text.</p>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.extract(
-    text: "Contact John at john@example.com or 555-1234",
-    entityTypes: [.email, .phone, .person]
+          code={`let input = ExecuteFeatureInput(
+    feature: .extract,
+    input: "Contact John at john@example.com on March 15th",
+    parameters: FeatureParametersInput(
+        extract: ExtractParametersInput(
+            entityTypes: ["person", "email", "date"],
+            extractKeyValues: true
+        )
+    )
 )
 
-switch result {
-case .success(let extraction):
-    for entity in extraction.entities {
-        print("\\(entity.type): \\(entity.value)")
+do {
+    let result = try await LocanaraClient.shared.executeFeature(input)
+    if case .extract(let extraction) = result.result {
+        for entity in extraction.entities {
+            print("\\(entity.type): \\(entity.value) (\\(entity.confidence))")
+        }
+        if let kvPairs = extraction.keyValuePairs {
+            for kv in kvPairs {
+                print("\\(kv.key) = \\(kv.value)")
+            }
+        }
     }
-case .failure(let error):
-    print(error.message)
+} catch {
+    print(error.localizedDescription)
 }`}
         />
 
@@ -137,16 +179,25 @@ case .failure(let error):
         <p>Translate text between languages.</p>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.translate(
-    text: "Hello, world!",
-    targetLanguage: .korean
+          code={`let input = ExecuteFeatureInput(
+    feature: .translate,
+    input: "Hello, world!",
+    parameters: FeatureParametersInput(
+        translate: TranslateParametersInput(
+            targetLanguage: "ko"  // Target language code
+        )
+    )
 )
 
-switch result {
-case .success(let translation):
-    print(translation.translatedText)
-case .failure(let error):
-    print(error.message)
+do {
+    let result = try await LocanaraClient.shared.executeFeature(input)
+    if case .translate(let translation) = result.result {
+        print(translation.translatedText)
+        print(translation.sourceLanguage)
+        print(translation.targetLanguage)
+    }
+} catch {
+    print(error.localizedDescription)
 }`}
         />
 
@@ -154,35 +205,50 @@ case .failure(let error):
         <p>Rewrite text with different styles.</p>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.rewrite(
-    text: "We gotta fix this bug ASAP",
-    style: .formal  // or .casual, .professional, .friendly
+          code={`let input = ExecuteFeatureInput(
+    feature: .rewrite,
+    input: "We gotta fix this bug ASAP",
+    parameters: FeatureParametersInput(
+        rewrite: RewriteParametersInput(
+            outputType: .professional  // .friendly, .shorten, .elaborate, etc.
+        )
+    )
 )
 
-switch result {
-case .success(let rewritten):
-    print(rewritten.text)  // "We need to address this issue promptly"
-case .failure(let error):
-    print(error.message)
+do {
+    let result = try await LocanaraClient.shared.executeFeature(input)
+    if case .rewrite(let rewritten) = result.result {
+        print(rewritten.rewrittenText)
+    }
+} catch {
+    print(error.localizedDescription)
 }`}
         />
 
         <h3 id="proofread">proofread()</h3>
-        <p>Check grammar and spelling.</p>
+        <p>Check grammar and spelling with detailed corrections.</p>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.proofread(
-    text: "Thier going too the store"
+          code={`let input = ExecuteFeatureInput(
+    feature: .proofread,
+    input: "Thier going too the store",
+    parameters: FeatureParametersInput(
+        proofread: ProofreadParametersInput(
+            inputType: .keyboard  // or .voice
+        )
+    )
 )
 
-switch result {
-case .success(let proofread):
-    print(proofread.correctedText)  // "They're going to the store"
-    for correction in proofread.corrections {
-        print("\\(correction.original) -> \\(correction.corrected)")
+do {
+    let result = try await LocanaraClient.shared.executeFeature(input)
+    if case .proofread(let proofread) = result.result {
+        print(proofread.correctedText)
+        for correction in proofread.corrections {
+            print("\\(correction.original) -> \\(correction.corrected) [\\(correction.type)]")
+        }
     }
-case .failure(let error):
-    print(error.message)
+} catch {
+    print(error.localizedDescription)
 }`}
         />
       </section>
@@ -194,18 +260,28 @@ case .failure(let error):
         <p>Conversational AI with message history.</p>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.chat(
-    messages: [
-        ChatMessage(role: .system, content: "You are a helpful assistant."),
-        ChatMessage(role: .user, content: "What is the capital of France?")
-    ]
+          code={`let input = ExecuteFeatureInput(
+    feature: .chat,
+    input: "What is the capital of France?",
+    parameters: FeatureParametersInput(
+        chat: ChatParametersInput(
+            systemPrompt: "You are a helpful assistant.",
+            history: [
+                ChatMessageInput(role: .user, content: "Hi!"),
+                ChatMessageInput(role: .assistant, content: "Hello!")
+            ]
+        )
+    )
 )
 
-switch result {
-case .success(let response):
-    print(response.message)  // "The capital of France is Paris."
-case .failure(let error):
-    print(error.message)
+do {
+    let result = try await LocanaraClient.shared.executeFeature(input)
+    if case .chat(let response) = result.result {
+        print(response.message)
+        print(response.suggestedPrompts ?? [])
+    }
+} catch {
+    print(error.localizedDescription)
 }`}
         />
 
@@ -213,35 +289,50 @@ case .failure(let error):
         <p>Streaming chat for real-time responses.</p>
         <CodeBlock
           language="swift"
-          code={`let stream = Locanara.chatStream(
-    messages: [
-        ChatMessage(role: .user, content: "Tell me a story")
-    ]
+          code={`let stream = try await LocanaraClient.shared.chatStream(
+    input: "Tell me a story",
+    parameters: ChatParametersInput(
+        systemPrompt: "You are a storyteller."
+    )
 )
 
-for await chunk in stream {
-    print(chunk, terminator: "")  // Print each chunk as it arrives
+for try await chunk in stream {
+    print(chunk.delta, terminator: "")  // Print each chunk as it arrives
+    if chunk.isFinal {
+        print("\\nDone! Full response: \\(chunk.accumulated)")
+    }
 }`}
         />
       </section>
 
       <section>
-        <h2 id="image-apis">Image APIs</h2>
-
-        <h3 id="describe-image">describeImage()</h3>
-        <p>Generate descriptions for images.</p>
+        <h2 id="execution-result">ExecutionResult</h2>
+        <p>
+          All feature executions return an <code>ExecutionResult</code> with
+          metadata.
+        </p>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.describeImage(
-    image: uiImage,
-    style: .detailed  // or .brief, .accessibility
-)
+          code={`let result = try await LocanaraClient.shared.executeFeature(input)
 
-switch result {
-case .success(let description):
-    print(description.text)
-case .failure(let error):
-    print(error.message)
+// Metadata
+print(result.id)                // Unique execution ID
+print(result.feature)           // FeatureType
+print(result.state)             // .completed, .failed, etc.
+print(result.processedOn)       // .onDevice
+print(result.processingTimeMs)  // Processing duration
+
+// Feature result (union type)
+switch result.result {
+case .summarize(let r):  print(r.summary)
+case .classify(let r):   print(r.topClassification.label)
+case .extract(let r):    print(r.entities)
+case .chat(let r):       print(r.message)
+case .translate(let r):  print(r.translatedText)
+case .rewrite(let r):    print(r.rewrittenText)
+case .proofread(let r):  print(r.correctedText)
+case .none:              print("No result")
+default: break
 }`}
         />
       </section>

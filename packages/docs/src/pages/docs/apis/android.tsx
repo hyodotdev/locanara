@@ -23,19 +23,37 @@ function AndroidAPIs() {
         <ul>
           <li>
             <strong>Core:</strong> getDeviceCapability, getGeminiNanoStatus,
-            downloadGeminiNano
+            getDeviceInfoAndroid
           </li>
           <li>
-            <strong>Text:</strong> summarize, rewrite, proofread
+            <strong>Text (ML Kit):</strong> summarize, rewrite, proofread
+          </li>
+          <li>
+            <strong>Text (Prompt API):</strong> classify, extract, translate
+          </li>
+          <li>
+            <strong>Chat:</strong> chat, chatStream
           </li>
           <li>
             <strong>Image:</strong> describeImage
           </li>
-          <li>
-            <strong>Experimental:</strong> chat (AICore Inference)
-          </li>
         </ul>
       </TLDRBox>
+
+      <section>
+        <h2 id="initialization">Initialization</h2>
+        <CodeBlock
+          language="kotlin"
+          code={`import com.locanara.Locanara
+import com.locanara.Platform
+
+val locanara = Locanara.getInstance(context)
+
+// Initialize SDK and Gemini Nano
+locanara.initializeSDK(Platform.ANDROID)
+locanara.initializeGeminiNano()`}
+        />
+      </section>
 
       <section>
         <h2 id="core-apis">Core APIs</h2>
@@ -44,122 +62,257 @@ function AndroidAPIs() {
         <p>Get device AI capabilities and available features.</p>
         <CodeBlock
           language="kotlin"
-          code={`val capability = Locanara.getDeviceCapability()
+          code={`val capability = locanara.getDeviceCapability()
 
-// Check availability
 if (capability.isAvailable) {
     println("Available features: \${capability.availableFeatures}")
 }
 
-// Returns: DeviceCapability
+// DeviceCapability
 // - isAvailable: Boolean
 // - platform: Platform.ANDROID
-// - availableFeatures: List<FeatureType>
-// - modelStatus: ModelStatus?`}
+// - availableFeatures: List<FeatureType>`}
+        />
+
+        <h3 id="get-device-info">getDeviceInfoAndroid()</h3>
+        <p>Get Android-specific device information.</p>
+        <CodeBlock
+          language="kotlin"
+          code={`val info = locanara.getDeviceInfoAndroid()
+
+println("API Level: \${info.apiLevel}")
+println("Supports Gemini Nano: \${info.supportsGeminiNano}")
+println("Total RAM: \${info.totalRAMMB} MB")`}
         />
 
         <h3 id="get-gemini-nano-status">getGeminiNanoStatus()</h3>
         <p>Get Gemini Nano model availability and download status.</p>
         <CodeBlock
           language="kotlin"
-          code={`val status = Locanara.getGeminiNanoStatus()
+          code={`val status = locanara.getGeminiNanoStatus()
 
-when (status.downloadStatus) {
-    DownloadStatus.NOT_DOWNLOADED -> {
-        println("Model not downloaded")
-    }
-    DownloadStatus.DOWNLOADING -> {
-        println("Download progress: \${status.downloadProgress}%")
-    }
-    DownloadStatus.DOWNLOADED -> {
-        println("Model ready to use")
-    }
-    DownloadStatus.FAILED -> {
-        println("Download failed: \${status.error}")
-    }
-}`}
+println("Ready: \${status.isReady}")
+println("Downloaded: \${status.isDownloaded}")`}
         />
 
-        <h3 id="download-gemini-nano">downloadGeminiNano()</h3>
-        <p>Download Gemini Nano model.</p>
+        <h3 id="prompt-api-status">Prompt API Status</h3>
+        <p>
+          Check and download the Prompt API model (required for classify,
+          extract, translate, chat).
+        </p>
         <CodeBlock
           language="kotlin"
-          code={`// Start download
-val result = Locanara.downloadGeminiNano()
+          code={`// Check status
+val status = locanara.getPromptApiStatus()
 
-result.fold(
-    onSuccess = {
-        println("Download started")
-    },
-    onFailure = { error ->
-        println("Failed to start download: \${error.message}")
-    }
-)
-
-// Monitor progress with getGeminiNanoStatus()`}
+// Download if needed
+locanara.downloadPromptApiModel { progress ->
+    println("Download: \${progress.bytesDownloaded}/\${progress.bytesToDownload}")
+}`}
         />
       </section>
 
       <section>
-        <h2 id="text-apis">Text Processing APIs</h2>
+        <h2 id="feature-execution">Feature Execution</h2>
+        <p>
+          All features are executed through the unified{" "}
+          <code>executeFeatureAndroid()</code> method with{" "}
+          <code>ExecuteFeatureInput</code>.
+        </p>
 
         <h3 id="summarize">summarize()</h3>
         <p>Summarize text using ML Kit Summarization API.</p>
         <CodeBlock
           language="kotlin"
-          code={`val result = Locanara.summarize(
-    text = "Long article text...",
-    style = SummarizeStyle.PARAGRAPH  // or BULLETS, KEY_POINTS
+          code={`val input = ExecuteFeatureInput(
+    feature = FeatureType.SUMMARIZE,
+    input = "Long article text...",
+    parameters = FeatureParametersInput(
+        summarize = SummarizeParametersInput(
+            inputType = SummarizeInputType.ARTICLE,       // or CONVERSATION
+            outputType = SummarizeOutputType.THREE_BULLETS // or ONE_BULLET, TWO_BULLETS
+        )
+    )
 )
 
-result.fold(
-    onSuccess = { summary ->
-        println(summary.text)
-    },
-    onFailure = { error ->
-        println(error.message)
+try {
+    val result = locanara.executeFeatureAndroid(input)
+    val summary = result.result as? SummarizeResult
+    println(summary?.summary)
+    println("Original: \${summary?.originalLength} chars")
+    println("Summary: \${summary?.summaryLength} chars")
+} catch (e: Exception) {
+    println(e.message)
+}`}
+        />
+
+        <h3 id="classify">classify()</h3>
+        <p>
+          Classify text into categories with confidence scores (via Prompt API).
+        </p>
+        <CodeBlock
+          language="kotlin"
+          code={`val input = ExecuteFeatureInput(
+    feature = FeatureType.CLASSIFY,
+    input = "This product is amazing!",
+    parameters = FeatureParametersInput(
+        classify = ClassifyParametersInput(
+            categories = listOf("positive", "negative", "neutral"),
+            maxResults = 3
+        )
+    )
+)
+
+try {
+    val result = locanara.executeFeatureAndroid(input)
+    val classification = result.result as? ClassifyResult
+    classification?.classifications?.forEach {
+        println("\${it.label}: \${it.score}")
     }
-)`}
+    println("Top: \${classification?.topClassification?.label}")
+} catch (e: Exception) {
+    println(e.message)
+}`}
+        />
+
+        <h3 id="extract">extract()</h3>
+        <p>Extract entities and key-value pairs from text (via Prompt API).</p>
+        <CodeBlock
+          language="kotlin"
+          code={`val input = ExecuteFeatureInput(
+    feature = FeatureType.EXTRACT,
+    input = "Contact John at john@example.com on March 15th",
+    parameters = FeatureParametersInput(
+        extract = ExtractParametersInput(
+            entityTypes = listOf("person", "email", "date"),
+            extractKeyValues = true
+        )
+    )
+)
+
+try {
+    val result = locanara.executeFeatureAndroid(input)
+    val extraction = result.result as? ExtractResult
+    extraction?.entities?.forEach {
+        println("\${it.type}: \${it.value} (\${it.confidence})")
+    }
+} catch (e: Exception) {
+    println(e.message)
+}`}
+        />
+
+        <h3 id="translate">translate()</h3>
+        <p>Translate text between languages (via Prompt API).</p>
+        <CodeBlock
+          language="kotlin"
+          code={`val input = ExecuteFeatureInput(
+    feature = FeatureType.TRANSLATE,
+    input = "Hello, world!",
+    parameters = FeatureParametersInput(
+        translate = TranslateParametersInput(
+            targetLanguage = "ko"
+        )
+    )
+)
+
+try {
+    val result = locanara.executeFeatureAndroid(input)
+    val translation = result.result as? TranslateResult
+    println(translation?.translatedText)
+} catch (e: Exception) {
+    println(e.message)
+}`}
         />
 
         <h3 id="rewrite">rewrite()</h3>
-        <p>Rewrite text using ML Kit Rewriting API.</p>
+        <p>Rewrite text with different styles using ML Kit Rewriting API.</p>
         <CodeBlock
           language="kotlin"
-          code={`val result = Locanara.rewrite(
-    text = "We gotta fix this bug ASAP",
-    style = RewriteStyle.FORMAL  // or CASUAL, PROFESSIONAL, FRIENDLY
+          code={`val input = ExecuteFeatureInput(
+    feature = FeatureType.REWRITE,
+    input = "We gotta fix this bug ASAP",
+    parameters = FeatureParametersInput(
+        rewrite = RewriteParametersInput(
+            outputType = RewriteOutputType.PROFESSIONAL // FRIENDLY, SHORTEN, ELABORATE, etc.
+        )
+    )
 )
 
-result.fold(
-    onSuccess = { rewritten ->
-        println(rewritten.text)  // "We need to address this issue promptly"
-    },
-    onFailure = { error ->
-        println(error.message)
-    }
-)`}
+try {
+    val result = locanara.executeFeatureAndroid(input)
+    val rewritten = result.result as? RewriteResult
+    println(rewritten?.rewrittenText)
+} catch (e: Exception) {
+    println(e.message)
+}`}
         />
 
         <h3 id="proofread">proofread()</h3>
         <p>Check grammar and spelling using ML Kit Proofreading API.</p>
         <CodeBlock
           language="kotlin"
-          code={`val result = Locanara.proofread(
-    text = "Thier going too the store"
+          code={`val input = ExecuteFeatureInput(
+    feature = FeatureType.PROOFREAD,
+    input = "Thier going too the store",
+    parameters = FeatureParametersInput(
+        proofread = ProofreadParametersInput(
+            inputType = ProofreadInputType.KEYBOARD // or VOICE
+        )
+    )
 )
 
-result.fold(
-    onSuccess = { proofread ->
-        println(proofread.correctedText)  // "They're going to the store"
-        proofread.corrections.forEach { correction ->
-            println("\${correction.original} -> \${correction.corrected}")
-        }
-    },
-    onFailure = { error ->
-        println(error.message)
+try {
+    val result = locanara.executeFeatureAndroid(input)
+    val proofread = result.result as? ProofreadResult
+    println(proofread?.correctedText)
+    proofread?.corrections?.forEach {
+        println("\${it.original} -> \${it.corrected} [\${it.type}]")
     }
-)`}
+} catch (e: Exception) {
+    println(e.message)
+}`}
+        />
+      </section>
+
+      <section>
+        <h2 id="chat-apis">Chat APIs</h2>
+
+        <h3 id="chat">chat()</h3>
+        <p>Conversational AI via Prompt API.</p>
+        <CodeBlock
+          language="kotlin"
+          code={`val input = ExecuteFeatureInput(
+    feature = FeatureType.CHAT,
+    input = "What is the capital of France?",
+    parameters = FeatureParametersInput(
+        chat = ChatParametersInput(
+            systemPrompt = "You are a helpful assistant."
+        )
+    )
+)
+
+try {
+    val result = locanara.executeFeatureAndroid(input)
+    val response = result.result as? ChatResult
+    println(response?.message)
+} catch (e: Exception) {
+    println(e.message)
+}`}
+        />
+
+        <h3 id="chat-stream">chatStream()</h3>
+        <p>Streaming chat for real-time responses.</p>
+        <CodeBlock
+          language="kotlin"
+          code={`locanara.chatStream(
+    message = "Tell me a story",
+    systemPrompt = "You are a storyteller."
+).collect { chunk ->
+    print(chunk.delta)  // Print each chunk as it arrives
+    if (chunk.isFinal) {
+        println("\\nDone! Full response: \${chunk.accumulated}")
+    }
+}`}
         />
       </section>
 
@@ -167,62 +320,27 @@ result.fold(
         <h2 id="image-apis">Image APIs</h2>
 
         <h3 id="describe-image">describeImage()</h3>
-        <p>Generate image descriptions using ML Kit Image Description API.</p>
+        <p>Generate image descriptions using ML Kit.</p>
         <CodeBlock
           language="kotlin"
-          code={`val result = Locanara.describeImage(
-    bitmap = bitmap,
-    style = ImageDescriptionStyle.DETAILED  // or BRIEF, ACCESSIBILITY
-)
-
-result.fold(
-    onSuccess = { description ->
-        println(description.text)
-    },
-    onFailure = { error ->
-        println(error.message)
-    }
-)`}
-        />
-      </section>
-
-      <section>
-        <h2 id="experimental-apis">Experimental APIs</h2>
-
-        <h3 id="chat">chat() (Experimental)</h3>
-        <p>
-          Conversational AI using AICore Inference. This API is experimental and
-          may have limited availability.
-        </p>
-        <CodeBlock
-          language="kotlin"
-          code={`val result = Locanara.chat(
-    messages = listOf(
-        ChatMessage(role = Role.USER, content = "What is the capital of France?")
+          code={`val input = ExecuteFeatureInput(
+    feature = FeatureType.DESCRIBE_IMAGE_ANDROID,
+    input = "",
+    parameters = FeatureParametersInput(
+        imageDescription = ImageDescriptionParametersInput(
+            imagePath = "/path/to/image.jpg"  // or imageBase64
+        )
     )
 )
 
-result.fold(
-    onSuccess = { response ->
-        println(response.message)
-    },
-    onFailure = { error ->
-        println(error.message)
-    }
-)`}
+try {
+    val result = locanara.executeFeatureAndroid(input)
+    val description = result.result as? ImageDescriptionResult
+    println(description?.text)
+} catch (e: Exception) {
+    println(e.message)
+}`}
         />
-        <div
-          style={{
-            padding: "1rem",
-            background: "rgba(255, 180, 0, 0.1)",
-            borderLeft: "4px solid #ffb400",
-            borderRadius: "0.5rem",
-            margin: "1rem 0",
-          }}
-        >
-          <strong>Note:</strong> Chat functionality via AICore is still
-          experimental and may not be available on all devices.
-        </div>
       </section>
 
       <section>
@@ -246,7 +364,7 @@ result.fold(
                   borderBottom: "2px solid var(--border-color)",
                 }}
               >
-                ML Kit API
+                Backend
               </th>
               <th
                 style={{
@@ -260,143 +378,77 @@ result.fold(
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Summarize
-              </td>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Summarization
-              </td>
-              <td
-                style={{
-                  textAlign: "center",
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Available
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Rewrite
-              </td>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Rewriting
-              </td>
-              <td
-                style={{
-                  textAlign: "center",
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Available
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Proofread
-              </td>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Proofreading
-              </td>
-              <td
-                style={{
-                  textAlign: "center",
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Available
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Describe Image
-              </td>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                ImageDescription
-              </td>
-              <td
-                style={{
-                  textAlign: "center",
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Available
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Chat
-              </td>
-              <td
-                style={{
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                AICore Inference
-              </td>
-              <td
-                style={{
-                  textAlign: "center",
-                  padding: "0.75rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Experimental
-              </td>
-            </tr>
+            {[
+              ["Summarize", "ML Kit Summarization", "Available"],
+              ["Rewrite", "ML Kit Rewriting", "Available"],
+              ["Proofread", "ML Kit Proofreading", "Available"],
+              ["Classify", "Prompt API (Gemini Nano)", "Available"],
+              ["Extract", "Prompt API (Gemini Nano)", "Available"],
+              ["Translate", "Prompt API (Gemini Nano)", "Available"],
+              ["Chat", "Prompt API (Gemini Nano)", "Available"],
+              ["Describe Image", "ML Kit ImageDescription", "Available"],
+            ].map(([feature, backend, status], i) => (
+              <tr key={i}>
+                <td
+                  style={{
+                    padding: "0.75rem",
+                    borderBottom: "1px solid var(--border-color)",
+                  }}
+                >
+                  {feature}
+                </td>
+                <td
+                  style={{
+                    padding: "0.75rem",
+                    borderBottom: "1px solid var(--border-color)",
+                  }}
+                >
+                  {backend}
+                </td>
+                <td
+                  style={{
+                    textAlign: "center",
+                    padding: "0.75rem",
+                    borderBottom: "1px solid var(--border-color)",
+                  }}
+                >
+                  {status}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
+      </section>
+
+      <section>
+        <h2 id="execution-result">ExecutionResult</h2>
+        <p>
+          All feature executions return an <code>ExecutionResult</code> with
+          metadata.
+        </p>
+        <CodeBlock
+          language="kotlin"
+          code={`val result = locanara.executeFeatureAndroid(input)
+
+// Metadata
+println(result.id)               // Unique execution ID
+println(result.feature)          // FeatureType
+println(result.state)            // COMPLETED, FAILED, etc.
+println(result.processedOn)      // ON_DEVICE
+println(result.processingTimeMs) // Processing duration
+
+// Feature result (cast to specific type)
+when (val data = result.result) {
+    is SummarizeResult -> println(data.summary)
+    is ClassifyResult -> println(data.topClassification.label)
+    is ExtractResult -> println(data.entities)
+    is ChatResult -> println(data.message)
+    is TranslateResult -> println(data.translatedText)
+    is RewriteResult -> println(data.rewrittenText)
+    is ProofreadResult -> println(data.correctedText)
+    else -> println("No result")
+}`}
+        />
       </section>
 
       <section>

@@ -61,6 +61,22 @@ internal final class ClassifyExecutor {
 
     #if canImport(FoundationModels)
     @available(iOS 26.0, macOS 26.0, *)
+    @Generable
+    struct ClassifyItemOutput {
+        @Guide(description: "Category label from the provided list")
+        var label: String
+        @Guide(description: "Confidence score between 0.0 and 1.0")
+        var score: Double
+    }
+
+    @available(iOS 26.0, macOS 26.0, *)
+    @Generable
+    struct ClassifyOutput {
+        @Guide(description: "Classification results for each category")
+        var items: [ClassifyItemOutput]
+    }
+
+    @available(iOS 26.0, macOS 26.0, *)
     private func processWithAppleIntelligence(
         input: String,
         categories: [String],
@@ -71,66 +87,24 @@ internal final class ClassifyExecutor {
         let categoriesList = categories.joined(separator: ", ")
         let prompt = """
         Classify the following text into these categories: \(categoriesList)
-
-        For each applicable category, provide a confidence score between 0.0 and 1.0.
+        Assign a confidence score between 0.0 and 1.0 to each applicable category.
         The scores should sum to 1.0.
 
-        Respond ONLY in this exact format (one per line):
-        category_name: score
-
         Text to classify:
-        \(input)
+        <input>\(input)</input>
         """
 
-        let response = try await session.respond(to: prompt)
-        let responseText = response.content
+        let output = try await session.respond(to: prompt, generating: ClassifyOutput.self).content
 
-        // Parse classification results
-        var classifications: [Classification] = []
-        let lines = responseText.components(separatedBy: .newlines)
-
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { continue }
-
-            let parts = trimmed.split(separator: ":", maxSplits: 1)
-            guard parts.count == 2 else { continue }
-
-            let label = String(parts[0]).trimmingCharacters(in: .whitespaces)
-            let scoreString = String(parts[1]).trimmingCharacters(in: .whitespaces)
-
-            guard categories.contains(where: { $0.lowercased() == label.lowercased() }) else {
-                continue
-            }
-
-            if let score = Double(scoreString) {
-                classifications.append(Classification(
-                    label: label,
-                    score: min(max(score, 0.0), 1.0),
-                    metadata: nil
-                ))
-            }
-        }
-
-        // If parsing failed, create default classification
-        if classifications.isEmpty {
-            let count = min(maxResults, categories.count)
-            classifications = categories.prefix(count).enumerated().map { index, category in
-                let score: Double
-                if count == 1 {
-                    score = 1.0
-                } else if index == 0 {
-                    score = 0.8
-                } else {
-                    score = 0.2 / Double(count - 1)
-                }
-                return Classification(
-                    label: category,
-                    score: score,
+        var classifications = output.items
+            .filter { item in categories.contains(where: { $0.lowercased() == item.label.lowercased() }) }
+            .map { item in
+                Classification(
+                    label: item.label,
+                    score: min(max(item.score, 0.0), 1.0),
                     metadata: nil
                 )
             }
-        }
 
         classifications.sort { $0.score > $1.score }
         classifications = Array(classifications.prefix(maxResults))
