@@ -89,14 +89,17 @@ function AndroidTutorial() {
         </p>
 
         <CodeBlock language="kotlin">{`import com.locanara.Locanara
+import com.locanara.core.LocanaraDefaults
+import com.locanara.platform.PromptApiModel
 
-// Get Locanara instance
-val locanara = Locanara.getInstance()
+// Set up default model once at app startup
+LocanaraDefaults.model = PromptApiModel(context)
 
 // Check device capability
+val locanara = Locanara.getInstance()
 val capability = locanara.getDeviceCapability()
 
-if (capability.isAvailable) {
+if (capability.supportsOnDeviceAI) {
     println("Gemini Nano is available")
     println("Features: \${capability.availableFeatures}")
 } else {
@@ -108,77 +111,40 @@ if (capability.isAvailable) {
         <AnchorLink id="summarize" level="h2">
           3. Summarize Text
         </AnchorLink>
-        <p>Condense long text into bullet points.</p>
+        <p>Condense long text into bullet points using SummarizeChain.</p>
 
-        <CodeBlock language="kotlin">{`import com.locanara.*
+        <CodeBlock language="kotlin">{`import com.locanara.builtin.SummarizeChain
 
-suspend fun summarize(
-    text: String,
-    inputType: SummarizeInputType = SummarizeInputType.ARTICLE,
-    outputType: SummarizeOutputType = SummarizeOutputType.ONE_BULLET
-): SummarizeResult {
-    val locanara = Locanara.getInstance()
+// Basic — single bullet summary
+val result = SummarizeChain().run(longArticle)
+println(result.summary)
 
-    val input = ExecuteFeatureInput(
-        feature = FeatureType.SUMMARIZE,
-        input = text,
-        parameters = FeatureParametersInput(
-            summarize = SummarizeParametersInput(
-                inputType = inputType,
-                outputType = outputType,
-                autoTruncate = true
-            )
-        )
-    )
-
-    val result = locanara.executeFeature(input)
-    return result.result?.summarize
-        ?: throw LocanaraException("Summarization failed")
-}
-
-// Usage
-val summary = summarize(
-    text = longArticle,
-    outputType = SummarizeOutputType.THREE_BULLETS
-)
-println(summary.summary)`}</CodeBlock>
+// With options — 3 bullet points
+val result = SummarizeChain(bulletCount = 3).run(longArticle)
+println(result.summary)
+println("Original: \${result.originalLength} chars → Summary: \${result.summaryLength} chars")`}</CodeBlock>
       </section>
 
       <section>
         <AnchorLink id="classify" level="h2">
           4. Classify Text
         </AnchorLink>
-        <p>Categorize text into predefined labels.</p>
+        <p>Categorize text into predefined labels using ClassifyChain.</p>
 
-        <CodeBlock language="kotlin">{`suspend fun classify(
-    text: String,
-    categories: List<String>
-): ClassifyResult {
-    val locanara = Locanara.getInstance()
+        <CodeBlock language="kotlin">{`import com.locanara.builtin.ClassifyChain
 
-    val input = ExecuteFeatureInput(
-        feature = FeatureType.CLASSIFY,
-        input = text,
-        parameters = FeatureParametersInput(
-            classify = ClassifyParametersInput(
-                categories = categories,
-                maxResults = 3
-            )
-        )
-    )
-
-    val result = locanara.executeFeature(input)
-    return result.result?.classify
-        ?: throw LocanaraException("Classification failed")
-}
-
-// Usage
-val result = classify(
-    text = "I love this product!",
+// Classify with custom categories
+val result = ClassifyChain(
     categories = listOf("positive", "negative", "neutral")
-)
+).run("I love this product!")
+
 println("Category: \${result.topClassification.label}")
-println("Confidence: \${result.topClassification.score}")`}</CodeBlock>
+println("Confidence: \${result.topClassification.score}")
+
+// All classifications with scores
+result.classifications.forEach { c ->
+    println("\${c.label}: \${c.score}")
+}`}</CodeBlock>
       </section>
 
       <section>
@@ -187,33 +153,14 @@ println("Confidence: \${result.topClassification.score}")`}</CodeBlock>
         </AnchorLink>
         <p>Rewrite text with different tones like professional or friendly.</p>
 
-        <CodeBlock language="kotlin">{`suspend fun rewrite(
-    text: String,
-    style: RewriteOutputType
-): RewriteResult {
-    val locanara = Locanara.getInstance()
+        <CodeBlock language="kotlin">{`import com.locanara.builtin.RewriteChain
 
-    val input = ExecuteFeatureInput(
-        feature = FeatureType.REWRITE,
-        input = text,
-        parameters = FeatureParametersInput(
-            rewrite = RewriteParametersInput(
-                outputType = style
-            )
-        )
-    )
-
-    val result = locanara.executeFeature(input)
-    return result.result?.rewrite
-        ?: throw LocanaraException("Rewrite failed")
-}
-
-// Usage - Available styles: PROFESSIONAL, FRIENDLY, ELABORATE, SHORTEN
-val result = rewrite(
-    text = "Hey! Can we meet up tomorrow?",
-    style = RewriteOutputType.PROFESSIONAL
+// Available styles: PROFESSIONAL, FRIENDLY, ELABORATE, SHORTEN
+val result = RewriteChain(style = RewriteOutputType.PROFESSIONAL).run(
+    "Hey! Can we meet up tomorrow?"
 )
-println(result.rewrittenText)`}</CodeBlock>
+println(result.rewrittenText)
+// "I would appreciate the opportunity to meet with you tomorrow."`}</CodeBlock>
       </section>
 
       <section>
@@ -222,24 +169,9 @@ println(result.rewrittenText)`}</CodeBlock>
         </AnchorLink>
         <p>Check and correct grammar and spelling errors.</p>
 
-        <CodeBlock language="kotlin">{`suspend fun proofread(text: String): ProofreadResult {
-    val locanara = Locanara.getInstance()
+        <CodeBlock language="kotlin">{`import com.locanara.builtin.ProofreadChain
 
-    val input = ExecuteFeatureInput(
-        feature = FeatureType.PROOFREAD,
-        input = text,
-        parameters = FeatureParametersInput(
-            proofread = ProofreadParametersInput()
-        )
-    )
-
-    val result = locanara.executeFeature(input)
-    return result.result?.proofread
-        ?: throw LocanaraException("Proofreading failed")
-}
-
-// Usage
-val result = proofread("Their going to the store tommorow.")
+val result = ProofreadChain().run("Their going to the store tommorow.")
 println(result.correctedText)
 // "They're going to the store tomorrow."
 result.corrections.forEach { correction ->
@@ -251,34 +183,29 @@ result.corrections.forEach { correction ->
         <AnchorLink id="chat" level="h2">
           7. Chat
         </AnchorLink>
-        <p>Build a conversational AI with customizable system prompts.</p>
+        <p>Build conversational AI with memory and streaming support.</p>
 
-        <CodeBlock language="kotlin">{`suspend fun chat(
-    prompt: String,
-    systemPrompt: String = "You are a helpful assistant."
-): ChatResult {
-    val locanara = Locanara.getInstance()
+        <CodeBlock language="kotlin">{`import com.locanara.builtin.ChatChain
+import com.locanara.composable.BufferMemory
 
-    val input = ExecuteFeatureInput(
-        feature = FeatureType.CHAT,
-        input = prompt,
-        parameters = FeatureParametersInput(
-            chat = ChatParametersInput(
-                systemPrompt = systemPrompt,
-                temperature = 0.7,
-                maxTokens = 1024
-            )
-        )
-    )
+// Simple chat
+val result = ChatChain().run("What is Kotlin?")
+println(result.message)
 
-    val result = locanara.executeFeature(input)
-    return result.result?.chat
-        ?: throw LocanaraException("Chat failed")
-}
+// Chat with memory (multi-turn conversation)
+val memory = BufferMemory()
+val chain = ChatChain(memory = memory, systemPrompt = "You are a helpful coding assistant.")
 
-// Usage
-val response = chat(prompt = "What is Kotlin?")
-println(response.response)`}</CodeBlock>
+val r1 = chain.run("What is Kotlin?")
+println(r1.message)
+
+val r2 = chain.run("How does it compare to Swift?")
+println(r2.message)  // Remembers previous context
+
+// Streaming chat
+ChatChain(memory = memory).streamRun("Explain Jetpack Compose").collect { chunk ->
+    print(chunk)  // Print tokens as they arrive
+}`}</CodeBlock>
       </section>
 
       <section>
@@ -287,15 +214,15 @@ println(response.response)`}</CodeBlock>
         </AnchorLink>
         <ul>
           <li>
-            <Link to="/docs/apis/describe-image">Add image description</Link>{" "}
-            for accessibility
+            <Link to="/docs/utils/classify">Add classification</Link> for
+            content categorization
           </li>
           <li>
-            <Link to="/docs/apis/translate">Add translation</Link> for
+            <Link to="/docs/utils/translate">Add translation</Link> for
             multi-language support
           </li>
           <li>
-            <Link to="/docs/apis/extract">Add entity extraction</Link> for
+            <Link to="/docs/utils/extract">Add entity extraction</Link> for
             structured data
           </li>
           <li>

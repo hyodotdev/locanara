@@ -98,52 +98,46 @@ function Locanara100() {
           - Check device AI support
         </li>
         <li>
-          <Link to="/docs/apis/summarize">
+          <Link to="/docs/utils/summarize">
             <code>summarize()</code>
           </Link>{" "}
           - Text summarization
         </li>
         <li>
-          <Link to="/docs/apis/classify">
+          <Link to="/docs/utils/classify">
             <code>classify()</code>
           </Link>{" "}
           - Text classification
         </li>
         <li>
-          <Link to="/docs/apis/extract">
+          <Link to="/docs/utils/extract">
             <code>extract()</code>
           </Link>{" "}
           - Entity extraction
         </li>
         <li>
-          <Link to="/docs/apis/chat">
+          <Link to="/docs/utils/chat">
             <code>chat()</code>
           </Link>{" "}
           - Conversational AI
         </li>
         <li>
-          <Link to="/docs/apis/translate">
+          <Link to="/docs/utils/translate">
             <code>translate()</code>
           </Link>{" "}
           - Language translation
         </li>
         <li>
-          <Link to="/docs/apis/rewrite">
+          <Link to="/docs/utils/rewrite">
             <code>rewrite()</code>
           </Link>{" "}
           - Text rewriting with different tones
         </li>
         <li>
-          <Link to="/docs/apis/proofread">
+          <Link to="/docs/utils/proofread">
             <code>proofread()</code>
           </Link>{" "}
           - Grammar and spelling correction
-        </li>
-        <li>
-          <Link to="/docs/apis/describe-image">
-            <code>describeImage()</code>
-          </Link>{" "}
-          - Image description generation
         </li>
       </ul>
 

@@ -47,13 +47,13 @@ To see all available skills:
 /skills-index
 ```
 
-For detailed skill information, refer to each skill's SKILL.md file:
+For detailed command information, refer to each command file:
 
-- `skills/1-graphql-architect/SKILL.md`
-- `skills/2-apple-intelligence/SKILL.md`
-- `skills/3-android-sdk/SKILL.md`
-- `skills/4-test-engineer/SKILL.md`
-- `skills/5-docs-manager/SKILL.md`
+- `.claude/commands/gql.md`
+- `.claude/commands/apple.md`
+- `.claude/commands/android.md`
+- `.claude/commands/test.md`
+- `.claude/commands/docs.md`
 
 ## Project Structure
 
@@ -62,9 +62,12 @@ locanara/
 ├── packages/
 │   ├── gql/          # GraphQL schema and type generation
 │   ├── apple/        # iOS SDK (Swift) - Apple Intelligence
-│   └── android/      # Android SDK (Kotlin) - Gemini Nano
-├── skills/           # Claude skill definitions
-└── .claude/          # Claude settings and commands
+│   ├── android/      # Android SDK (Kotlin) - Gemini Nano
+│   └── docs/         # Documentation website
+├── libraries/        # Third-party framework integrations
+└── .claude/
+    ├── commands/     # Slash commands
+    └── guides/       # Project guides
 ```
 
 ## Workflow Example

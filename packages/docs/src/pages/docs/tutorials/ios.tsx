@@ -78,7 +78,7 @@ import Locanara`}</CodeBlock>
         <CodeBlock language="swift">{`// Check device capability
 let capability = try await LocanaraClient.shared.getDeviceCapability()
 
-if capability.isAvailable {
+if capability.supportsOnDeviceAI {
     print("Apple Intelligence is available")
     print("Features: \\(capability.availableFeatures)")
 } else {
@@ -90,100 +90,64 @@ if capability.isAvailable {
         <AnchorLink id="summarize" level="h2">
           3. Summarize Text
         </AnchorLink>
-        <p>Condense long text into bullet points.</p>
+        <p>Condense long text into bullet points using SummarizeChain.</p>
 
-        <CodeBlock language="swift">{`func summarize(text: String, outputType: SummarizeOutputType = .oneBullet) async throws -> SummarizeResult {
-    let input = ExecuteFeatureInput(
-        feature: .summarize,
-        input: text,
-        parameters: FeatureParametersInput(
-            summarize: SummarizeParametersInput(
-                inputType: .article,
-                outputType: outputType,
-                language: .english,
-                autoTruncate: true
-            )
-        )
-    )
+        <CodeBlock language="swift">{`import Locanara
 
-    let result = try await LocanaraClient.shared.executeFeature(input)
+// Basic — single bullet summary
+let result = try await SummarizeChain().run(longText)
+print(result.summary)
 
-    if case .summarize(let summarizeResult) = result.result {
-        return summarizeResult
-    }
-    throw LocanaraError.featureNotAvailable
-}
-
-// Usage
-let summary = try await summarize(text: longText, outputType: .threeBullets)
-print(summary.summary)`}</CodeBlock>
+// With options — 3 bullet points
+let result = try await SummarizeChain(bulletCount: 3).run(longText)
+print(result.summary)
+print("Original: \\(result.originalLength) chars → Summary: \\(result.summaryLength) chars")`}</CodeBlock>
       </section>
 
       <section>
         <AnchorLink id="classify" level="h2">
           4. Classify Text
         </AnchorLink>
-        <p>Categorize text into predefined labels.</p>
+        <p>Categorize text into predefined labels using ClassifyChain.</p>
 
-        <CodeBlock language="swift">{`func classify(text: String, categories: [String]) async throws -> ClassifyResult {
-    let input = ExecuteFeatureInput(
-        feature: .classify,
-        input: text,
-        parameters: FeatureParametersInput(
-            classify: ClassifyParametersInput(
-                categories: categories,
-                maxResults: 3
-            )
-        )
-    )
-
-    let result = try await LocanaraClient.shared.executeFeature(input)
-
-    if case .classify(let classifyResult) = result.result {
-        return classifyResult
-    }
-    throw LocanaraError.featureNotAvailable
-}
-
-// Usage
-let result = try await classify(
-    text: "I love this product!",
+        <CodeBlock language="swift">{`// Classify with custom categories
+let result = try await ClassifyChain(
     categories: ["positive", "negative", "neutral"]
-)
+).run("I love this product!")
+
 print("Category: \\(result.topClassification.label)")
-print("Confidence: \\(result.topClassification.score)")`}</CodeBlock>
+print("Confidence: \\(result.topClassification.score)")
+
+// All classifications with scores
+for classification in result.classifications {
+    print("\\(classification.label): \\(classification.score)")
+}`}</CodeBlock>
       </section>
 
       <section>
         <AnchorLink id="chat" level="h2">
           5. Chat
         </AnchorLink>
-        <p>Build a conversational AI with customizable system prompts.</p>
+        <p>Build conversational AI with memory and streaming support.</p>
 
-        <CodeBlock language="swift">{`func chat(prompt: String, systemPrompt: String = "You are a helpful assistant.") async throws -> ChatResult {
-    let input = ExecuteFeatureInput(
-        feature: .chat,
-        input: prompt,
-        parameters: FeatureParametersInput(
-            chat: ChatParametersInput(
-                systemPrompt: systemPrompt,
-                temperature: 0.7,
-                maxTokens: 1024
-            )
-        )
-    )
+        <CodeBlock language="swift">{`// Simple chat
+let result = try await ChatChain().run("What is Swift?")
+print(result.message)
 
-    let result = try await LocanaraClient.shared.executeFeature(input)
+// Chat with memory (multi-turn conversation)
+let memory = BufferMemory()
+let chain = ChatChain(memory: memory, systemPrompt: "You are a helpful coding assistant.")
 
-    if case .chat(let chatResult) = result.result {
-        return chatResult
-    }
-    throw LocanaraError.featureNotAvailable
-}
+let r1 = try await chain.run("What is Swift?")
+print(r1.message)
 
-// Usage
-let response = try await chat(prompt: "What is Swift?")
-print(response.response)`}</CodeBlock>
+let r2 = try await chain.run("How does it compare to Kotlin?")
+print(r2.message)  // Remembers previous context
+
+// Streaming chat
+for try await chunk in ChatChain(memory: memory).streamRun("Explain SwiftUI") {
+    print(chunk, terminator: "")  // Print tokens as they arrive
+}`}</CodeBlock>
       </section>
 
       <section>
@@ -192,31 +156,12 @@ print(response.response)`}</CodeBlock>
         </AnchorLink>
         <p>Rewrite text with different tones like professional or friendly.</p>
 
-        <CodeBlock language="swift">{`func rewrite(text: String, style: RewriteOutputType) async throws -> RewriteResult {
-    let input = ExecuteFeatureInput(
-        feature: .rewrite,
-        input: text,
-        parameters: FeatureParametersInput(
-            rewrite: RewriteParametersInput(
-                outputType: style
-            )
-        )
-    )
-
-    let result = try await LocanaraClient.shared.executeFeature(input)
-
-    if case .rewrite(let rewriteResult) = result.result {
-        return rewriteResult
-    }
-    throw LocanaraError.featureNotAvailable
-}
-
-// Usage - Available styles: .professional, .friendly, .elaborate, .shorten
-let result = try await rewrite(
-    text: "Hey! Can we meet up tomorrow?",
-    style: .professional
+        <CodeBlock language="swift">{`// Available styles: .professional, .friendly, .elaborate, .shorten
+let result = try await RewriteChain(style: .professional).run(
+    "Hey! Can we meet up tomorrow?"
 )
-print(result.rewrittenText)`}</CodeBlock>
+print(result.rewrittenText)
+// "I would appreciate the opportunity to meet with you tomorrow."`}</CodeBlock>
       </section>
 
       <section>
@@ -225,27 +170,12 @@ print(result.rewrittenText)`}</CodeBlock>
         </AnchorLink>
         <p>Check and correct grammar and spelling errors.</p>
 
-        <CodeBlock language="swift">{`func proofread(text: String) async throws -> ProofreadResult {
-    let input = ExecuteFeatureInput(
-        feature: .proofread,
-        input: text,
-        parameters: FeatureParametersInput(
-            proofread: ProofreadParametersInput()
-        )
-    )
-
-    let result = try await LocanaraClient.shared.executeFeature(input)
-
-    if case .proofread(let proofreadResult) = result.result {
-        return proofreadResult
-    }
-    throw LocanaraError.featureNotAvailable
-}
-
-// Usage
-let result = try await proofread(text: "Their going to the store tommorow.")
+        <CodeBlock language="swift">{`let result = try await ProofreadChain().run(
+    "Their going to the store tommorow."
+)
 print(result.correctedText)
 // "They're going to the store tomorrow."
+
 for correction in result.corrections {
     print("\\(correction.original) → \\(correction.corrected)")
 }`}</CodeBlock>
@@ -257,15 +187,15 @@ for correction in result.corrections {
         </AnchorLink>
         <ul>
           <li>
-            <Link to="/docs/apis/describe-image">Add image description</Link>{" "}
-            for accessibility
+            <Link to="/docs/utils/classify">Add classification</Link> for
+            content categorization
           </li>
           <li>
-            <Link to="/docs/apis/translate">Add translation</Link> for
+            <Link to="/docs/utils/translate">Add translation</Link> for
             multi-language support
           </li>
           <li>
-            <Link to="/docs/apis/extract">Add entity extraction</Link> for
+            <Link to="/docs/utils/extract">Add entity extraction</Link> for
             structured data
           </li>
           <li>

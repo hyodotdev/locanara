@@ -5,7 +5,7 @@ function Introduction() {
     <div className="page-container">
       <SEO
         title="Why Locanara?"
-        description="Learn about Locanara - a unified SDK for on-device AI capabilities across iOS (Apple Intelligence), Android (Gemini Nano), and Web (Chrome Built-in AI)."
+        description="Locanara is an on-device AI framework inspired by LangChain. Build custom AI features with composable chains, memory, guardrails, and pipeline DSL."
         path="/introduction"
       />
       <div className="content-wrapper">
@@ -17,8 +17,8 @@ function Introduction() {
             marginBottom: "3rem",
           }}
         >
-          A unified on-device AI SDK for iOS, Android, and Web. One API, all
-          platforms, complete privacy.
+          An on-device AI framework for iOS and Android. Composable chains,
+          memory, guardrails, pipeline DSL — all on-device, complete privacy.
         </p>
 
         <section className="intro-section">
@@ -49,20 +49,20 @@ function Introduction() {
             dependencies, no data transmission, no privacy concerns.
           </p>
 
-          <h3>Unified API</h3>
+          <h3>Framework, Not Just API</h3>
           <p>
-            Locanara defines standard methods like <code>summarize()</code>,{" "}
-            <code>classify()</code>, <code>translate()</code>, and{" "}
-            <code>chat()</code> that work consistently across all platforms.
-            Write your AI features once, deploy everywhere.
+            Locanara is a composable framework inspired by LangChain.{" "}
+            <code>Chain</code>, <code>Memory</code>, <code>Guardrail</code>, and{" "}
+            <code>Pipeline</code> let you build, compose, and extend AI features
+            — not just call a model. 7 built-in chains are included as both
+            ready-to-use utilities and reference implementations.
           </p>
 
           <h3>Type Safety</h3>
           <p>
-            All types like <code>DeviceCapability</code>,{" "}
-            <code>ExecutionResult</code>, and <code>FeatureType</code> are
-            consistent across iOS, Android, and Web, ensuring type safety and
-            reducing cognitive load.
+            All chains return compile-time typed results — your custom types,
+            not raw text. The Pipeline DSL tracks types through each step at
+            compile time.
           </p>
 
           <h3>Zero Cost</h3>
@@ -76,33 +76,25 @@ function Introduction() {
         </section>
 
         <section className="intro-section">
-          <h2>Supported Features</h2>
+          <h2>Built-in Chains (Samples)</h2>
+          <p>
+            7 built-in chains ship as both ready-to-use utilities and reference
+            implementations for building your own:
+          </p>
           <ul>
             <li>
-              <strong>Summarize:</strong> Condense long text into key points
+              <strong>SummarizeChain</strong> / <strong>ClassifyChain</strong> /{" "}
+              <strong>ExtractChain</strong>
             </li>
             <li>
-              <strong>Classify:</strong> Categorize text into predefined labels
-            </li>
-            <li>
-              <strong>Extract:</strong> Extract entities and key-value pairs
-            </li>
-            <li>
-              <strong>Chat:</strong> Conversational AI interactions
-            </li>
-            <li>
-              <strong>Translate:</strong> Multi-language translation
-            </li>
-            <li>
-              <strong>Rewrite:</strong> Rephrase with different styles
-            </li>
-            <li>
-              <strong>Proofread:</strong> Grammar and spelling correction
-            </li>
-            <li>
-              <strong>Describe Image:</strong> Generate image descriptions
+              <strong>ChatChain</strong> / <strong>TranslateChain</strong> /{" "}
+              <strong>RewriteChain</strong> / <strong>ProofreadChain</strong>
             </li>
           </ul>
+          <p>
+            The real power is implementing the <code>Chain</code> protocol to
+            create AI features specific to your app.
+          </p>
         </section>
 
         <section className="intro-section">
@@ -137,7 +129,8 @@ function Introduction() {
               <strong>Fast:</strong> No network latency, instant responses
             </li>
             <li>
-              <strong>Unified:</strong> One API for iOS, Android, and Web
+              <strong>Composable:</strong> Chain, Memory, Guardrail, Pipeline
+              primitives
             </li>
             <li>
               <strong>Type Safe:</strong> Consistent types across all platforms

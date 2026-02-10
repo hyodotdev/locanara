@@ -2,24 +2,15 @@ import SwiftUI
 import Locanara
 
 struct RewriteDemo: View {
-    @EnvironmentObject var appState: AppState
     @State private var inputText = "i think this product is really good and everyone should buy it"
-    @State private var selectedOutputType: RewriteOutputType = .professional
+    @State private var selectedStyle: RewriteOutputType = .professional
     @State private var result: RewriteResult?
     @State private var isLoading = false
     @State private var errorMessage: String?
 
-    private var isAIAvailable: Bool {
-        appState.currentEngine != .none && appState.isModelReady
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if !isAIAvailable {
-                    AIModelRequiredBanner()
-                }
-
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Text to Rewrite")
                         .font(.headline)
@@ -32,17 +23,17 @@ struct RewriteDemo: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Output Type")
+                    Text("Style")
                         .font(.headline)
 
-                    Picker("Output Type", selection: $selectedOutputType) {
+                    Picker("Style", selection: $selectedStyle) {
                         Text("Elaborate").tag(RewriteOutputType.elaborate)
                         Text("Emojify").tag(RewriteOutputType.emojify)
                         Text("Shorten").tag(RewriteOutputType.shorten)
                     }
                     .pickerStyle(.segmented)
 
-                    Picker("", selection: $selectedOutputType) {
+                    Picker("", selection: $selectedStyle) {
                         Text("Friendly").tag(RewriteOutputType.friendly)
                         Text("Professional").tag(RewriteOutputType.professional)
                         Text("Rephrase").tag(RewriteOutputType.rephrase)
@@ -63,7 +54,7 @@ struct RewriteDemo: View {
                     .frame(height: 20)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(isLoading || inputText.isEmpty || !isAIAvailable)
+                .disabled(isLoading || inputText.isEmpty)
 
                 if let error = errorMessage {
                     Text(error)
@@ -119,29 +110,14 @@ struct RewriteDemo: View {
 
         Task {
             do {
-                let params = RewriteParametersInput(
-                    outputType: selectedOutputType,
-                    language: .english
+                let chain = RewriteChain(
+                    style: selectedStyle
                 )
-
-                DemoLogger.logInput(feature: "REWRITE", input: inputText, parameters: params)
-
-                let input = ExecuteFeatureInput(
-                    feature: .rewrite,
-                    input: inputText,
-                    parameters: FeatureParametersInput(rewrite: params)
-                )
-
-                let executionResult = try await LocanaraClient.shared.executeFeature(input)
-
-                if case .rewrite(let rewriteResult) = executionResult.result {
-                    DemoLogger.logResult(feature: "REWRITE", result: rewriteResult)
-                    await MainActor.run {
-                        self.result = rewriteResult
-                    }
+                let rewriteResult = try await chain.run(inputText)
+                await MainActor.run {
+                    self.result = rewriteResult
                 }
             } catch {
-                DemoLogger.logError(feature: "REWRITE", error: error)
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                 }

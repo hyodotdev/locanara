@@ -31,120 +31,73 @@ function IOSSummarizeTutorial() {
 
       <section>
         <h2>1. Basic Summarization</h2>
-        <p>The simplest way to summarize text with default settings.</p>
+        <p>The simplest way to summarize text using SummarizeChain.</p>
 
         <CodeBlock language="swift">{`import Locanara
 
-func summarize(text: String) async throws -> String {
-    let input = ExecuteFeatureInput(
-        feature: .summarize,
-        input: text,
-        parameters: FeatureParametersInput(
-            summarize: SummarizeParametersInput(
-                inputType: .article,
-                outputType: .oneBullet
-            )
-        )
-    )
-
-    let result = try await LocanaraClient.shared.executeFeature(input)
-
-    if case .summarize(let summarizeResult) = result.result {
-        return summarizeResult.summary
-    }
-    throw LocanaraError.featureNotAvailable
-}
-
-// Usage
-let summary = try await summarize(text: longArticle)
-print(summary)`}</CodeBlock>
+// Default: single bullet summary
+let result = try await SummarizeChain().run(longArticle)
+print(result.summary)
+print("Original: \\(result.originalLength) chars -> Summary: \\(result.summaryLength) chars")`}</CodeBlock>
       </section>
 
       <section>
-        <h2>2. Output Type Options</h2>
+        <h2>2. Bullet Count Options</h2>
         <p>Control the number of bullet points in the summary.</p>
 
-        <CodeBlock language="swift">{`// Available output types
-enum SummarizeOutputType {
-    case oneBullet      // Single concise summary
-    case twoBullets     // Two key points
-    case threeBullets   // Three key points
-}
+        <CodeBlock language="swift">{`// Single bullet (default)
+let one = try await SummarizeChain(bulletCount: 1).run(text)
 
-// Example with 3 bullets
-let input = ExecuteFeatureInput(
-    feature: .summarize,
-    input: text,
-    parameters: FeatureParametersInput(
-        summarize: SummarizeParametersInput(
-            inputType: .article,
-            outputType: .threeBullets  // Change output type here
-        )
-    )
-)`}</CodeBlock>
+// Two key points
+let two = try await SummarizeChain(bulletCount: 2).run(text)
+
+// Three key points
+let three = try await SummarizeChain(bulletCount: 3).run(text)
+print(three.summary)`}</CodeBlock>
       </section>
 
       <section>
-        <h2>3. Input Type Options</h2>
-        <p>Specify the content type for better summarization results.</p>
+        <h2>3. Pipeline Composition</h2>
+        <p>Combine SummarizeChain with other chains using the Pipeline DSL.</p>
 
-        <CodeBlock language="swift">{`// Available input types
-enum SummarizeInputType {
-    case article      // News articles, blog posts
-    case email        // Email content
-    case document     // General documents
-    case conversation // Chat or dialogue
-}
+        <CodeBlock language="swift">{`// Summarize then translate to Korean
+let result = try await model.pipeline {
+    Summarize(bulletCount: 3)
+    Translate(to: "ko")
+}.run(longArticle)
 
-// Example for email summarization
-let input = ExecuteFeatureInput(
-    feature: .summarize,
-    input: emailContent,
-    parameters: FeatureParametersInput(
-        summarize: SummarizeParametersInput(
-            inputType: .email,
-            outputType: .oneBullet
-        )
-    )
-)`}</CodeBlock>
+print(result.translatedText)  // Korean summary`}</CodeBlock>
       </section>
 
       <section>
-        <h2>4. Handle Long Text</h2>
-        <p>
-          Use <code>autoTruncate</code> to automatically handle text that
-          exceeds the model's input limit.
-        </p>
+        <h2>4. Model Extension (One-Liner)</h2>
+        <p>Use the convenience method for the simplest possible API.</p>
 
-        <CodeBlock language="swift">{`let input = ExecuteFeatureInput(
-    feature: .summarize,
-    input: veryLongText,
-    parameters: FeatureParametersInput(
-        summarize: SummarizeParametersInput(
-            inputType: .article,
-            outputType: .threeBullets,
-            autoTruncate: true  // Automatically truncate if too long
-        )
-    )
-)`}</CodeBlock>
+        <CodeBlock language="swift">{`let model = FoundationLanguageModel()
+
+// One-liner convenience
+let result = try await model.summarize(longArticle)
+print(result.summary)`}</CodeBlock>
       </section>
 
       <section>
         <h2>Key Points</h2>
         <ul>
           <li>
-            <strong>SummarizeOutputType</strong>: Choose between{" "}
-            <code>.oneBullet</code>, <code>.twoBullets</code>, or{" "}
-            <code>.threeBullets</code>
+            <strong>SummarizeChain</strong>: Configure with{" "}
+            <code>bulletCount</code> (1, 2, or 3)
           </li>
           <li>
-            <strong>SummarizeInputType</strong>: Specify the content type like{" "}
-            <code>.article</code>, <code>.email</code>, or{" "}
-            <code>.document</code>
+            <strong>SummarizeResult</strong>: Contains <code>summary</code>,{" "}
+            <code>originalLength</code>, and <code>summaryLength</code>
           </li>
           <li>
-            <strong>autoTruncate</strong>: Automatically truncates input if it
-            exceeds the model&apos;s limit
+            <strong>Pipeline DSL</strong>: Compose with other chains like
+            TranslateChain for multi-step workflows
+          </li>
+          <li>
+            <strong>model.summarize()</strong>: One-liner convenience for quick
+            usage
           </li>
         </ul>
       </section>

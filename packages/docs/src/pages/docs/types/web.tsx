@@ -283,7 +283,7 @@ interface WriteResultWeb {
             <Link to="/docs/types/android">Android Types</Link>
           </li>
           <li>
-            <Link to="/docs/apis/web">Web APIs</Link>
+            <Link to="/docs/utils/web">Web APIs</Link>
           </li>
           <li>
             <Link to="/docs/web-setup">Web Setup Guide</Link>

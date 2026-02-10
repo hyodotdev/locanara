@@ -2,7 +2,6 @@ import SwiftUI
 import Locanara
 
 struct TranslateDemo: View {
-    @EnvironmentObject var appState: AppState
     @State private var inputText = "Hello, how are you today?"
     @State private var targetLanguage = "ko"
     @State private var result: TranslateResult?
@@ -19,17 +18,9 @@ struct TranslateDemo: View {
         ("de", "German")
     ]
 
-    private var isAIAvailable: Bool {
-        appState.currentEngine != .none && appState.isModelReady
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if !isAIAvailable {
-                    AIModelRequiredBanner()
-                }
-
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Text to Translate")
                         .font(.headline)
@@ -66,7 +57,7 @@ struct TranslateDemo: View {
                     .frame(height: 20)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(isLoading || inputText.isEmpty || !isAIAvailable)
+                .disabled(isLoading || inputText.isEmpty)
 
                 if let error = errorMessage {
                     Text(error)
@@ -114,29 +105,14 @@ struct TranslateDemo: View {
 
         Task {
             do {
-                let params = TranslateParametersInput(
-                    sourceLanguage: nil,
+                let chain = TranslateChain(
                     targetLanguage: targetLanguage
                 )
-
-                DemoLogger.logInput(feature: "TRANSLATE", input: inputText, parameters: params)
-
-                let input = ExecuteFeatureInput(
-                    feature: .translate,
-                    input: inputText,
-                    parameters: FeatureParametersInput(translate: params)
-                )
-
-                let executionResult = try await LocanaraClient.shared.executeFeature(input)
-
-                if case .translate(let translateResult) = executionResult.result {
-                    DemoLogger.logResult(feature: "TRANSLATE", result: translateResult)
-                    await MainActor.run {
-                        self.result = translateResult
-                    }
+                let translateResult = try await chain.run(inputText)
+                await MainActor.run {
+                    self.result = translateResult
                 }
             } catch {
-                DemoLogger.logError(feature: "TRANSLATE", error: error)
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                 }

@@ -57,7 +57,7 @@ Run the following validation before commit based on changed files:
 | `packages/gql/`     | `cd packages/gql && bun run lint && bun run typecheck`  |
 | `packages/docs/`    | `cd packages/docs && bun run lint && bun run typecheck` |
 | `packages/apple/`   | `cd packages/apple && swift build`                      |
-| `packages/android/` | `cd packages/android && ./gradlew build`                |
+| `packages/android/` | `cd packages/android && ./gradlew :locanara:build`      |
 
 ### 4. Check Project Conventions
 
@@ -65,7 +65,7 @@ Check the following project-specific rules during review:
 
 - **iOS functions**: `IOS` suffix required (e.g., `executeFeatureIOS`, `DeviceInfoIOS`)
 - **Android functions**: `Android` suffix for platform-specific APIs (e.g., `executeFeatureAndroid`, `DeviceInfoAndroid`)
-- **Generated files**: Do not directly modify `packages/apple/Sources/Models/Types.swift`, `packages/android/locanara/src/main/Types.kt`
+- **Generated files**: Do not directly modify `packages/apple/Sources/Types.swift`, `packages/android/locanara/src/main/kotlin/com/locanara/Types.kt`
 
 See [CLAUDE.md](../../CLAUDE.md) for detailed conventions.
 
@@ -136,7 +136,7 @@ After replying, resolve the thread using GraphQL:
 # Get unresolved thread IDs
 gh api graphql -f query='
 query {
-  repository(owner: "locanara", name: "locanara") {
+  repository(owner: "hyodotdev", name: "locanara") {
     pullRequest(number: $PR_NUMBER) {
       reviewThreads(first: 50) {
         nodes {
@@ -201,6 +201,5 @@ When user runs `/review-pr 123`:
 
 Reference when working:
 
-- `skills/7-review-pr/SKILL.md` - Review PR skill guide
 - `CLAUDE.md` - Project conventions
-- Each package's SKILL.md - Package-specific guides
+- `.claude/guides/` - Package-specific guides

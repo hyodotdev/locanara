@@ -6,46 +6,38 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.locanara.SummarizeInputType
-import com.locanara.SummarizeOutputType
 import com.locanara.SummarizeResult
+import com.locanara.builtin.SummarizeChain
 import com.locanara.example.components.shared.FeatureScreenTemplate
 import com.locanara.example.components.shared.SampleTexts
-import com.locanara.example.viewmodel.LocanaraViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Summarize Feature Demo Screen.
  *
- * Demonstrates text summarization with ML Kit GenAI options:
- * - Input Type: ARTICLE or CONVERSATION
- * - Output Type: ONE_BULLET, TWO_BULLETS, THREE_BULLETS
+ * Demonstrates text summarization using SummarizeChain with configurable bullet count.
  */
 @Composable
-fun SummarizeScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: LocanaraViewModel = viewModel()
-) {
+fun SummarizeScreen(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf(SampleTexts.APPLE_INTELLIGENCE.trim()) }
-    var selectedInputType by remember { mutableStateOf(SummarizeInputType.ARTICLE) }
-    var selectedOutputType by remember { mutableStateOf(SummarizeOutputType.ONE_BULLET) }
-
-    val isExecuting by viewModel.isExecuting.collectAsState()
-    val executionResult by viewModel.executionResult.collectAsState()
+    var bulletCount by remember { mutableIntStateOf(1) }
+    var result by remember { mutableStateOf<SummarizeResult?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     FeatureScreenTemplate(
         title = "Summarize",
@@ -53,23 +45,33 @@ fun SummarizeScreen(
         inputValue = inputText,
         onInputChange = { inputText = it },
         inputPlaceholder = "Enter or paste text to summarize...",
-        isExecuting = isExecuting,
-        executionResult = executionResult,
+        isLoading = isLoading,
+        errorMessage = errorMessage,
         onExecute = {
-            viewModel.summarize(
-                text = inputText,
-                inputType = selectedInputType,
-                outputType = selectedOutputType
-            )
+            isLoading = true
+            errorMessage = null
+            result = null
+            scope.launch {
+                try {
+                    println("[SummarizeScreen] input: ${inputText.take(200)}, bulletCount: $bulletCount")
+                    val chain = SummarizeChain(bulletCount = bulletCount)
+                    result = chain.run(inputText)
+                    println("[SummarizeScreen] result: ${result?.summary?.take(200)}")
+                } catch (e: Exception) {
+                    println("[SummarizeScreen] error: ${e.message}")
+                    errorMessage = e.message ?: "Unknown error"
+                } finally {
+                    isLoading = false
+                }
+            }
         },
         onNavigateBack = onNavigateBack,
         executeButtonText = "Summarize",
         additionalInputs = {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Input Type Selection
             Text(
-                text = "Input Type",
+                text = "Bullet Count",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium
             )
@@ -78,51 +80,25 @@ fun SummarizeScreen(
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 FilterChip(
-                    selected = selectedInputType == SummarizeInputType.ARTICLE,
-                    onClick = { selectedInputType = SummarizeInputType.ARTICLE },
-                    label = { Text("Article") }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                FilterChip(
-                    selected = selectedInputType == SummarizeInputType.CONVERSATION,
-                    onClick = { selectedInputType = SummarizeInputType.CONVERSATION },
-                    label = { Text("Conversation") }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Output Type Selection
-            Text(
-                text = "Output Type",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                FilterChip(
-                    selected = selectedOutputType == SummarizeOutputType.ONE_BULLET,
-                    onClick = { selectedOutputType = SummarizeOutputType.ONE_BULLET },
+                    selected = bulletCount == 1,
+                    onClick = { bulletCount = 1 },
                     label = { Text("1 Bullet") }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 FilterChip(
-                    selected = selectedOutputType == SummarizeOutputType.TWO_BULLETS,
-                    onClick = { selectedOutputType = SummarizeOutputType.TWO_BULLETS },
+                    selected = bulletCount == 2,
+                    onClick = { bulletCount = 2 },
                     label = { Text("2 Bullets") }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 FilterChip(
-                    selected = selectedOutputType == SummarizeOutputType.THREE_BULLETS,
-                    onClick = { selectedOutputType = SummarizeOutputType.THREE_BULLETS },
+                    selected = bulletCount == 3,
+                    onClick = { bulletCount = 3 },
                     label = { Text("3 Bullets") }
                 )
             }
         },
-        resultContent = { result ->
-            val summarizeResult = result.result as? SummarizeResult
+        resultContent = result?.let { summarizeResult -> {
             Column {
                 Text(
                     text = "Summary",
@@ -131,16 +107,16 @@ fun SummarizeScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = summarizeResult?.summary ?: "No summary available",
+                    text = summarizeResult.summary,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Original: ${summarizeResult?.originalLength ?: 0} chars → Summary: ${summarizeResult?.summaryLength ?: 0} chars",
+                    text = "Original: ${summarizeResult.originalLength} chars → Summary: ${summarizeResult.summaryLength} chars",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
+        }}
     )
 }

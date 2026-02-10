@@ -345,16 +345,16 @@ console.log(result.correctedText);
         </AnchorLink>
         <ul>
           <li>
-            <Link to="/docs/apis/web">Explore all Web APIs</Link> available in
+            <Link to="/docs/utils/web">Explore all Web APIs</Link> available in
             Chrome Built-in AI
           </li>
           <li>
-            <Link to="/docs/apis/describe-image">Add image description</Link>{" "}
-            for accessibility
+            <Link to="/docs/utils/classify">Add classification</Link> for
+            content categorization
           </li>
           <li>
             Learn about{" "}
-            <Link to="/docs/apis/translate">language detection</Link> with{" "}
+            <Link to="/docs/utils/translate">language detection</Link> with{" "}
             <code>detectLanguage()</code>
           </li>
           <li>

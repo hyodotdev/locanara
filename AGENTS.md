@@ -6,12 +6,13 @@
 
 ## Project Overview
 
-Locanara Community is an on-device AI SDK for iOS and Android. It provides a common API layer for developers to integrate on-device AI features using platform-native capabilities.
+Locanara Community is an on-device AI **framework** for iOS and Android, inspired by LangChain. It provides composable chains, memory management, guardrails, and a pipeline DSL for building production AI features using platform-native models.
 
 ### Core Principles
 
 - **On-Device Only**: All AI processing happens locally. No cloud fallback.
 - **Privacy First**: User data never leaves the device.
+- **Framework, Not Just API**: Composable chains, memory, guardrails, and pipeline DSL.
 - **Unified API**: Same concepts and structure across all platforms.
 
 ### Supported Platforms
@@ -30,7 +31,7 @@ This is the Community (open-source) edition of Locanara SDK.
 ### Distribution
 
 | Platform | Installation                                                     |
-|----------|------------------------------------------------------------------|
+| -------- | ---------------------------------------------------------------- |
 | iOS      | `https://github.com/hyodotdev/locanara` (SPM) or CocoaPods       |
 | Android  | Maven Central: `implementation("com.locanara:locanara:VERSION")` |
 
@@ -40,11 +41,25 @@ This is the Community (open-source) edition of Locanara SDK.
 locanara-community/
 ├── packages/
 │   ├── apple/          # Swift SDK (SPM + CocoaPods)
-│   │   ├── Sources/    # SDK source
+│   │   ├── Sources/
+│   │   │   ├── Core/           # LocanaraModel, PromptTemplate, OutputParser, Schema
+│   │   │   ├── Composable/     # Chain, Tool, Memory, Guardrail
+│   │   │   ├── BuiltIn/        # SummarizeChain, ClassifyChain, etc.
+│   │   │   ├── DSL/            # Pipeline, PipelineStep, ModelExtensions
+│   │   │   ├── Runtime/        # Agent, Session, ChainExecutor
+│   │   │   ├── Platform/       # FoundationLanguageModel
+│   │   │   └── Features/       # Legacy feature executors
 │   │   ├── Tests/
 │   │   └── Example/    # Example app
 │   ├── android/        # Kotlin SDK (Maven Central)
-│   │   ├── locanara/   # SDK
+│   │   ├── locanara/
+│   │   │   └── src/main/kotlin/com/locanara/
+│   │   │       ├── core/       # LocanaraModel, PromptTemplate, OutputParser, Schema
+│   │   │       ├── composable/ # Chain, Tool, Memory, Guardrail
+│   │   │       ├── builtin/    # SummarizeChain, ClassifyChain, etc.
+│   │   │       ├── dsl/        # Pipeline, ModelExtensions
+│   │   │       ├── runtime/    # Agent, Session, ChainExecutor
+│   │   │       └── platform/   # PromptApiModel
 │   │   └── example/    # Example app
 │   ├── gql/            # GraphQL schema definitions
 │   └── docs/           # Documentation website
@@ -99,6 +114,54 @@ fix: resolve MLKit initialization error
 docs: update API documentation
 refactor: simplify Foundation Models client
 ```
+
+## Framework Architecture
+
+Locanara is structured as a layered framework (similar to LangChain for on-device AI):
+
+```text
+┌─────────────────────────────────────────────┐
+│  Runtime Layer                              │
+│  Agent · Session · ChainExecutor            │
+├─────────────────────────────────────────────┤
+│  Built-in Chains (reference implementations)│
+│  Summarize · Classify · Chat · Translate ·  │
+│  Extract · Rewrite · Proofread              │
+├─────────────────────────────────────────────┤
+│  Composable Layer                           │
+│  Chain · Tool · Memory · Guardrail          │
+├─────────────────────────────────────────────┤
+│  Core Layer                                 │
+│  LocanaraModel · PromptTemplate ·           │
+│  OutputParser · Schema                      │
+├─────────────────────────────────────────────┤
+│  Platform Layer                             │
+│  Apple Intelligence │ Gemini Nano           │
+└─────────────────────────────────────────────┘
+```
+
+### Key Concepts
+
+- **Chain**: Composable unit of AI logic. Implement the `Chain` protocol to create custom features.
+- **Built-in Chains**: 7 ready-to-use chains (`SummarizeChain`, `ClassifyChain`, etc.) that serve as both utilities and reference implementations.
+- **Pipeline DSL**: Compose chains with compile-time type safety (`model.pipeline { Proofread(); Translate(to: "ko") }.run("text")`).
+- **Memory**: `BufferMemory` (last N turns) and `SummaryMemory` (compressed history) for conversation context.
+- **Guardrail**: Input/output validation (`InputLengthGuardrail`, `ContentFilterGuardrail`).
+- **Model Extensions**: One-liner convenience methods (`model.summarize()`, `model.translate()`).
+
+### Three Levels of API
+
+1. **Simple**: `model.summarize("text")` - one-liner convenience methods
+2. **Chain**: `SummarizeChain(model: model, bulletCount: 3).run("text")` - configurable chains
+3. **Custom**: Implement `Chain` protocol for app-specific AI features
+
+### Custom Chain Pattern
+
+Developers build their own AI features by:
+
+1. Defining a result type (Swift `Sendable` / Kotlin `data class`)
+2. Implementing the `Chain` protocol with `invoke()` method
+3. Adding a typed `run()` convenience method
 
 ## Coding Conventions
 
@@ -205,12 +268,12 @@ cd packages/android
 
 ### When to Verify
 
-| Changed Files | Required Builds |
-| ------------- | --------------- |
-| `packages/apple/Sources/**` | iOS SDK + Example App |
-| `packages/apple/Example/**` | iOS Example App |
+| Changed Files                      | Required Builds           |
+| ---------------------------------- | ------------------------- |
+| `packages/apple/Sources/**`        | iOS SDK + Example App     |
+| `packages/apple/Example/**`        | iOS Example App           |
 | `packages/android/locanara/src/**` | Android SDK + Example App |
-| `packages/android/example/**` | Android Example App |
+| `packages/android/example/**`      | Android Example App       |
 
 ## Libraries
 
@@ -218,10 +281,10 @@ Third-party framework integrations that use Locanara SDK.
 
 ### Available Libraries
 
-| Library | Status | Description |
-|---------|--------|-------------|
-| `expo-ondevice-ai` | In Progress | Expo module for on-device AI |
-| `react-native-ondevice-ai` | Planned | React Native module for on-device AI |
+| Library                    | Status      | Description                          |
+| -------------------------- | ----------- | ------------------------------------ |
+| `expo-ondevice-ai`         | In Progress | Expo module for on-device AI         |
+| `react-native-ondevice-ai` | Planned     | React Native module for on-device AI |
 
 ### expo-ondevice-ai
 
@@ -236,6 +299,7 @@ bun run test      # Run tests
 ```
 
 **Structure follows expo-iap pattern:**
+
 - `src/` - TypeScript source
 - `android/` - Kotlin native module
 - `ios/` - Swift native module

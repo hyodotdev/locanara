@@ -2,7 +2,6 @@ import SwiftUI
 import Locanara
 
 struct ExtractDemo: View {
-    @EnvironmentObject var appState: AppState
     @State private var inputText = """
         Contact John Smith at john@example.com or call 555-123-4567. \
         Meeting scheduled for January 15, 2025 at Apple Park, Cupertino.
@@ -11,17 +10,9 @@ struct ExtractDemo: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
 
-    private var isAIAvailable: Bool {
-        appState.currentEngine != .none && appState.isModelReady
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if !isAIAvailable {
-                    AIModelRequiredBanner()
-                }
-
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Text to Extract From")
                         .font(.headline)
@@ -46,7 +37,7 @@ struct ExtractDemo: View {
                     .frame(height: 20)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(isLoading || inputText.isEmpty || !isAIAvailable)
+                .disabled(isLoading || inputText.isEmpty)
 
                 if let error = errorMessage {
                     Text(error)
@@ -107,29 +98,14 @@ struct ExtractDemo: View {
 
         Task {
             do {
-                let params = ExtractParametersInput(
-                    entityTypes: ["person", "email", "phone", "date", "location"],
-                    extractKeyValues: true
+                let chain = ExtractChain(
+                    entityTypes: ["person", "email", "phone", "date", "location"]
                 )
-
-                DemoLogger.logInput(feature: "EXTRACT", input: inputText, parameters: params)
-
-                let input = ExecuteFeatureInput(
-                    feature: .extract,
-                    input: inputText,
-                    parameters: FeatureParametersInput(extract: params)
-                )
-
-                let executionResult = try await LocanaraClient.shared.executeFeature(input)
-
-                if case .extract(let extractResult) = executionResult.result {
-                    DemoLogger.logResult(feature: "EXTRACT", result: extractResult)
-                    await MainActor.run {
-                        self.result = extractResult
-                    }
+                let extractResult = try await chain.run(inputText)
+                await MainActor.run {
+                    self.result = extractResult
                 }
             } catch {
-                DemoLogger.logError(feature: "EXTRACT", error: error)
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                 }

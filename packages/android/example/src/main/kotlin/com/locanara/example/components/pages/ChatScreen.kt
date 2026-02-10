@@ -35,19 +35,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.locanara.ChatResult
-import com.locanara.example.viewmodel.LocanaraViewModel
+import com.locanara.builtin.ChatChain
+import com.locanara.composable.BufferMemory
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
@@ -65,54 +65,24 @@ data class ChatMessage(
  *
  * Demonstrates conversational AI with:
  * - Message history
- * - Context-aware responses
- * - Suggested prompts
+ * - Context-aware responses via BufferMemory
+ * - Streaming toggle for real-time token display
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: LocanaraViewModel = viewModel()
-) {
+fun ChatScreen(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<ChatMessage>() }
-    var conversationId by remember { mutableStateOf<String?>(null) }
-
-    val isExecuting by viewModel.isExecuting.collectAsState()
-    val executionResult by viewModel.executionResult.collectAsState()
+    var isLoading by remember { mutableStateOf(false) }
+    var useStreaming by remember { mutableStateOf(true) }
+    val memory = remember { BufferMemory() }
+    val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    // Handle new responses
-    LaunchedEffect(executionResult) {
-        executionResult?.let { result ->
-            val chatResult = result.result as? ChatResult
-            if (chatResult != null) {
-                messages.add(
-                    ChatMessage(
-                        content = chatResult.message,
-                        isUser = false
-                    )
-                )
-                // Update conversation ID for context continuity
-                if (chatResult.conversationId != null) {
-                    conversationId = chatResult.conversationId
-                }
-            } else {
-                messages.add(
-                    ChatMessage(
-                        content = "Failed to get response",
-                        isUser = false
-                    )
-                )
-            }
-            viewModel.clearResult()
-        }
-    }
-
-    // Scroll to bottom when new message added
+    // Scroll to bottom when new message added (reverseLayout: index 0 = bottom)
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+            listState.animateScrollToItem(0)
         }
     }
 
@@ -140,23 +110,11 @@ fun ChatScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 state = listState,
+                reverseLayout = true,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Welcome message
-                    if (messages.isEmpty()) {
-                        WelcomeCard()
-                    }
-                }
-
-                items(messages) { message ->
-                    ChatBubble(message)
-                }
-
-                // Loading indicator
-                if (isExecuting) {
+                // Loading indicator (non-streaming only) - at bottom
+                if (isLoading && !useStreaming) {
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -176,8 +134,15 @@ fun ChatScreen(
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
+                items(messages, key = { it.id }) { message ->
+                    ChatBubble(message)
+                }
+
+                // Welcome message - at top
+                if (messages.isEmpty()) {
+                    item {
+                        WelcomeCard()
+                    }
                 }
             }
 
@@ -186,50 +151,156 @@ fun ChatScreen(
                 modifier = Modifier.fillMaxWidth(),
                 tonalElevation = 2.dp
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        placeholder = { Text("Type a message...") },
-                        modifier = Modifier.weight(1f),
-                        maxLines = 4,
-                        enabled = !isExecuting
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    IconButton(
-                        onClick = {
-                            if (inputText.isNotBlank()) {
-                                messages.add(
-                                    ChatMessage(
-                                        content = inputText,
-                                        isUser = true
-                                    )
-                                )
-                                viewModel.chat(
-                                    message = inputText,
-                                    conversationId = conversationId
-                                )
-                                inputText = ""
-                            }
-                        },
-                        enabled = !isExecuting && inputText.isNotBlank()
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
-                            tint = if (inputText.isNotBlank()) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Surface(
+                                onClick = { useStreaming = false },
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (!useStreaming) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.SmartToy,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = if (!useStreaming) MaterialTheme.colorScheme.onPrimary
+                                              else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        "Standard",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (!useStreaming) MaterialTheme.colorScheme.onPrimary
+                                               else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
+                            Surface(
+                                onClick = { useStreaming = true },
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (useStreaming) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.SmartToy,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = if (useStreaming) MaterialTheme.colorScheme.onPrimary
+                                              else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        "Stream",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (useStreaming) MaterialTheme.colorScheme.onPrimary
+                                               else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = inputText,
+                            onValueChange = { inputText = it },
+                            placeholder = { Text("Type a message...") },
+                            modifier = Modifier.weight(1f),
+                            maxLines = 4,
+                            enabled = !isLoading
                         )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        IconButton(
+                            onClick = {
+                                if (inputText.isNotBlank()) {
+                                    val userMessage = inputText
+                                    inputText = ""
+                                    messages.add(
+                                        ChatMessage(
+                                            content = userMessage,
+                                            isUser = true
+                                        )
+                                    )
+                                    isLoading = true
+                                    scope.launch {
+                                        val chain = ChatChain(memory = memory)
+
+                                        if (useStreaming) {
+                                            println("[ChatScreen] input (streaming): $userMessage")
+                                            // Add placeholder for streaming
+                                            val placeholderIndex = messages.size
+                                            messages.add(
+                                                ChatMessage(content = "", isUser = false)
+                                            )
+                                            try {
+                                                chain.streamRun(userMessage).collect { chunk ->
+                                                    val current = messages[placeholderIndex]
+                                                    messages[placeholderIndex] = current.copy(content = current.content + chunk)
+                                                }
+                                                println("[ChatScreen] result (streamed): ${messages[placeholderIndex].content.take(200)}")
+                                            } catch (e: Exception) {
+                                                println("[ChatScreen] error: ${e.message}")
+                                                messages[placeholderIndex] = messages[placeholderIndex].copy(
+                                                    content = "Error: ${e.message}"
+                                                )
+                                            }
+                                        } else {
+                                            try {
+                                                println("[ChatScreen] input: $userMessage")
+                                                val chatResult = chain.run(userMessage)
+                                                println("[ChatScreen] result: ${chatResult.message.take(200)}")
+                                                messages.add(
+                                                    ChatMessage(
+                                                        content = chatResult.message,
+                                                        isUser = false
+                                                    )
+                                                )
+                                            } catch (e: Exception) {
+                                                println("[ChatScreen] error: ${e.message}")
+                                                messages.add(
+                                                    ChatMessage(
+                                                        content = "Error: ${e.message}",
+                                                        isUser = false
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        isLoading = false
+                                    }
+                                }
+                            },
+                            enabled = !isLoading && inputText.isNotBlank()
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "Send",
+                                tint = if (inputText.isNotBlank()) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -308,7 +379,7 @@ private fun ChatBubble(message: ChatMessage) {
             }
         ) {
             Text(
-                text = message.content,
+                text = message.content.trim(),
                 modifier = Modifier.padding(12.dp),
                 color = if (message.isUser) {
                     MaterialTheme.colorScheme.onPrimary
@@ -338,4 +409,3 @@ private fun ChatBubble(message: ChatMessage) {
         }
     }
 }
-

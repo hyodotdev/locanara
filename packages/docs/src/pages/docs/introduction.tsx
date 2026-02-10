@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { FaApple, FaAndroid, FaChrome } from "react-icons/fa";
 import SEO from "../../components/SEO";
+import CodeBlock from "../../components/CodeBlock";
+import LanguageTabs from "../../components/LanguageTabs";
 import PageNavigation from "../../components/PageNavigation";
 
 function Introduction() {
@@ -8,15 +10,16 @@ function Introduction() {
     <div className="doc-page">
       <SEO
         title="Introduction"
-        description="Locanara - A unified on-device AI SDK for iOS, Android, and Web platforms."
+        description="Locanara - An on-device AI framework inspired by LangChain. Build custom AI features with composable chains, memory, guardrails, and pipeline DSL."
         path="/docs/introduction"
         keywords="Locanara, on-device AI, Apple Intelligence, Gemini Nano, Chrome Built-in AI"
       />
       <h1>Introduction</h1>
       <p>
-        Locanara is a unified on-device AI SDK that provides a common API layer
-        for iOS, Android, and Web platforms. All AI processing happens locally
-        on the device, ensuring user privacy and enabling offline functionality.
+        Locanara is an on-device AI framework inspired by LangChain, built for
+        iOS and Android. It provides composable chains, memory management,
+        guardrails, and a pipeline DSL for building production AI features using
+        platform-native models. All processing happens locally on-device.
       </p>
 
       <section>
@@ -30,10 +33,70 @@ function Introduction() {
             <strong>Privacy First</strong> - User data never leaves the device.
           </li>
           <li>
-            <strong>Unified API</strong> - Same concepts and structure across
-            all platforms.
+            <strong>Framework, Not Just API</strong> - Composable chains,
+            memory, guardrails, and pipeline DSL for building custom AI
+            features.
           </li>
         </ul>
+      </section>
+
+      <section>
+        <h2 id="quick-start">Quick Start</h2>
+        <p>
+          Copy-paste and run — no configuration needed on iOS, one line of setup
+          on Android:
+        </p>
+        <LanguageTabs>
+          {{
+            swift: (
+              <CodeBlock language="swift">{`import Locanara
+
+// Summarize — one line
+let result = try await SummarizeChain().run("Your long article text here...")
+print(result.summary)
+
+// Translate — one line
+let translated = try await TranslateChain(targetLanguage: "ko").run("Hello, world!")
+print(translated.translatedText)
+
+// Pipeline — chain multiple operations
+let result = try await FoundationLanguageModel().pipeline {
+    Proofread()
+    Translate(to: "ko")
+}.run("Ther are erors in this sentance.")`}</CodeBlock>
+            ),
+            kotlin: (
+              <CodeBlock language="kotlin">{`import com.locanara.*
+
+// One-time setup (in Application.onCreate or similar)
+LocanaraDefaults.model = PromptApiModel(context)
+
+// Summarize — one line
+val result = SummarizeChain().run("Your long article text here...")
+println(result.summary)
+
+// Translate — one line
+val translated = TranslateChain(targetLanguage = "ko").run("Hello, world!")
+println(translated.translatedText)
+
+// Pipeline — chain multiple operations
+val result = LocanaraDefaults.model.pipeline()
+    .proofread()
+    .translate(to = "ko")
+    .run("Ther are erors in this sentance.")`}</CodeBlock>
+            ),
+          }}
+        </LanguageTabs>
+        <p
+          style={{
+            marginTop: "1rem",
+            color: "var(--text-secondary)",
+            fontSize: "0.9rem",
+          }}
+        >
+          That's it. No API keys, no model downloads, no cloud calls. All
+          processing happens on-device.
+        </p>
       </section>
 
       <section>
@@ -90,30 +153,29 @@ function Introduction() {
       </section>
 
       <section>
-        <h2 id="features">Available Features</h2>
+        <h2 id="features">Built-in Chains (Samples)</h2>
 
         <p className="feature-subtitle">
-          Requires devices with Apple Intelligence or Gemini Nano
+          7 built-in chains ship as utilities and reference implementations.
+          Build your own by implementing the Chain protocol.
         </p>
         <table>
           <thead>
             <tr>
-              <th>Feature</th>
+              <th>Built-in Chain</th>
               <th className="text-center">iOS</th>
               <th className="text-center">Android</th>
             </tr>
           </thead>
           <tbody>
             {[
-              { name: "Summarize", ios: true, android: true },
-              { name: "Classify", ios: true, android: true },
-              { name: "Extract", ios: true, android: true },
-              { name: "Chat", ios: true, android: true },
-              { name: "Translate", ios: true, android: true },
-              { name: "Rewrite", ios: true, android: true },
-              { name: "Proofread", ios: true, android: true },
-              { name: "Describe Image", ios: false, android: true },
-              { name: "Generate Image", ios: true, android: false },
+              { name: "SummarizeChain", ios: true, android: true },
+              { name: "ClassifyChain", ios: true, android: true },
+              { name: "ExtractChain", ios: true, android: true },
+              { name: "ChatChain", ios: true, android: true },
+              { name: "TranslateChain", ios: true, android: true },
+              { name: "RewriteChain", ios: true, android: true },
+              { name: "ProofreadChain", ios: true, android: true },
             ].map((feature) => (
               <tr key={feature.name}>
                 <td>{feature.name}</td>

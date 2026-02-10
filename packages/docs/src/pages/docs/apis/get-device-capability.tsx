@@ -249,9 +249,7 @@ return Column(
         <Link to="/docs/apis">All APIs</Link>
       </p>
 
-      <PageNavigation
-        next={{ to: "/docs/apis/summarize", label: "summarize()" }}
-      />
+      <PageNavigation next={{ to: "/docs/apis/chain", label: "Chain" }} />
     </div>
   );
 }

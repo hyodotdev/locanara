@@ -12,20 +12,20 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.locanara.RewriteOutputType
 import com.locanara.RewriteResult
+import com.locanara.builtin.RewriteChain
 import com.locanara.example.components.shared.FeatureScreenTemplate
 import com.locanara.example.components.shared.SampleTexts
-import com.locanara.example.viewmodel.LocanaraViewModel
+import kotlinx.coroutines.launch
 
 private val rewriteOutputTypes = listOf(
     RewriteOutputType.ELABORATE to "Elaborate",
@@ -39,24 +39,16 @@ private val rewriteOutputTypes = listOf(
 /**
  * Rewrite Feature Demo Screen.
  *
- * Demonstrates text rewriting with ML Kit GenAI styles:
- * - ELABORATE: Make text more detailed
- * - EMOJIFY: Add emojis to text
- * - SHORTEN: Make text more concise
- * - FRIENDLY: Make text more casual and friendly
- * - PROFESSIONAL: Make text more formal and professional
- * - REPHRASE: Reword the text differently
+ * Demonstrates text rewriting with different styles using RewriteChain.
  */
 @Composable
-fun RewriteScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: LocanaraViewModel = viewModel()
-) {
+fun RewriteScreen(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf(SampleTexts.REWRITE_TEXT) }
-    var selectedOutputType by remember { mutableStateOf(RewriteOutputType.PROFESSIONAL) }
-
-    val isExecuting by viewModel.isExecuting.collectAsState()
-    val executionResult by viewModel.executionResult.collectAsState()
+    var selectedStyle by remember { mutableStateOf(RewriteOutputType.PROFESSIONAL) }
+    var result by remember { mutableStateOf<RewriteResult?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     FeatureScreenTemplate(
         title = "Rewrite",
@@ -64,13 +56,27 @@ fun RewriteScreen(
         inputValue = inputText,
         onInputChange = { inputText = it },
         inputPlaceholder = "Enter text to rewrite in a different style...",
-        isExecuting = isExecuting,
-        executionResult = executionResult,
+        isLoading = isLoading,
+        errorMessage = errorMessage,
         onExecute = {
-            viewModel.rewrite(
-                text = inputText,
-                outputType = selectedOutputType
-            )
+            isLoading = true
+            errorMessage = null
+            result = null
+            scope.launch {
+                try {
+                    println("[RewriteScreen] input: ${inputText.take(200)}, style: $selectedStyle")
+                    val chain = RewriteChain(
+                        style = selectedStyle
+                    )
+                    result = chain.run(inputText)
+                    println("[RewriteScreen] result: ${result?.rewrittenText?.take(200)}")
+                } catch (e: Exception) {
+                    println("[RewriteScreen] error: ${e.message}")
+                    errorMessage = e.message ?: "Unknown error"
+                } finally {
+                    isLoading = false
+                }
+            }
         },
         onNavigateBack = onNavigateBack,
         executeButtonText = "Rewrite",
@@ -93,8 +99,8 @@ fun RewriteScreen(
             ) {
                 rewriteOutputTypes.take(3).forEach { (outputType, label) ->
                     FilterChip(
-                        selected = selectedOutputType == outputType,
-                        onClick = { selectedOutputType = outputType },
+                        selected = selectedStyle == outputType,
+                        onClick = { selectedStyle = outputType },
                         label = { Text(label) }
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -111,16 +117,15 @@ fun RewriteScreen(
             ) {
                 rewriteOutputTypes.drop(3).forEach { (outputType, label) ->
                     FilterChip(
-                        selected = selectedOutputType == outputType,
-                        onClick = { selectedOutputType = outputType },
+                        selected = selectedStyle == outputType,
+                        onClick = { selectedStyle = outputType },
                         label = { Text(label) }
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
             }
         },
-        resultContent = { result ->
-            val rewriteResult = result.result as? RewriteResult
+        resultContent = result?.let { rewriteResult -> {
             Column {
                 Text(
                     text = "Rewritten Text",
@@ -129,16 +134,16 @@ fun RewriteScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = rewriteResult?.rewrittenText ?: "No rewritten text available",
+                    text = rewriteResult.rewrittenText,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Style: ${rewriteOutputTypes.find { it.first == selectedOutputType }?.second ?: selectedOutputType.name}",
+                    text = "Style: ${rewriteOutputTypes.find { it.first == selectedStyle }?.second ?: selectedStyle.name}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
+        }}
     )
 }

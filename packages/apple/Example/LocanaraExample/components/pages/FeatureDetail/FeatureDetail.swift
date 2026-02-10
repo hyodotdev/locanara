@@ -22,10 +22,8 @@ struct FeatureDetail: View {
                 RewriteDemo()
             case .proofread:
                 ProofreadDemo()
-            case .describeImage, .describeImageAndroid:
-                DescribeImageDemo()
-            case .generateImage, .generateImageIos:
-                Text("Image generation coming soon")
+            default:
+                Text("Not available")
                     .foregroundStyle(.secondary)
             }
         }
@@ -44,8 +42,7 @@ struct FeatureDetail: View {
         case .translate: return "Translate"
         case .rewrite: return "Rewrite"
         case .proofread: return "Proofread"
-        case .describeImage, .describeImageAndroid: return "Describe Image"
-        case .generateImage, .generateImageIos: return "Generate Image"
+        default: return "Feature"
         }
     }
 }

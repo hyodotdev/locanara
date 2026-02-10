@@ -1,0 +1,124 @@
+# Web-specific API operations (Chrome Built-in AI)
+
+extend type Query {
+  """
+  Get browser/environment information
+  """
+  getBrowserInfo: BrowserInfoWeb!
+
+  """
+  Get Chrome AI model status
+  """
+  getChromeAIModelStatus: ChromeAIModelInfo!
+
+  """
+  Check if Chrome Built-in AI is available
+  """
+  isChromeAIAvailable: Boolean!
+
+  """
+  Get feature capabilities for web
+  """
+  getFeatureCapabilitiesWeb: [FeatureCapabilityWeb!]!
+}
+
+extend type Mutation {
+  """
+  Summarize text
+  """
+  summarize(
+    text: String!
+    type: SummarizeTypeWeb
+    length: SummarizeLengthWeb
+    format: SummarizeFormatWeb
+    context: String
+  ): SummarizeResultWeb!
+
+  """
+  Translate text
+  """
+  translate(
+    text: String!
+    sourceLanguage: String!
+    targetLanguage: String!
+  ): TranslateResultWeb!
+
+  """
+  Chat with AI
+  """
+  chat(
+    message: String!
+    systemPrompt: String
+    temperature: Float
+    topK: Int
+  ): ChatResultWeb!
+
+  """
+  Reset chat session
+  """
+  resetChat: VoidResult!
+
+  """
+  Rewrite text
+  """
+  rewrite(
+    text: String!
+    tone: RewriteToneWeb
+    length: RewriteLengthWeb
+    format: SummarizeFormatWeb
+    context: String
+  ): RewriteResultWeb!
+
+  """
+  Classify text into categories
+  """
+  classify(
+    text: String!
+    categories: [String!]!
+    context: String
+  ): ClassifyResultWeb!
+
+  """
+  Extract entities from text
+  """
+  extract(text: String!, schema: String, context: String): ExtractResultWeb!
+
+  """
+  Proofread text
+  """
+  proofread(text: String!, context: String): ProofreadResultWeb!
+
+  """
+  Describe an image (base64 encoded)
+  """
+  describeImage(imageBase64: String!, context: String): DescribeImageResultWeb!
+
+  """
+  Detect language of text
+  """
+  detectLanguage(text: String!): [DetectLanguageResultWeb!]!
+
+  """
+  Generate text (Chrome Writer API)
+  """
+  write(
+    prompt: String!
+    tone: WriterToneWeb
+    length: WriterLengthWeb
+    format: SummarizeFormatWeb
+    context: String
+  ): WriteResultWeb!
+
+  """
+  Execute feature with web-specific options
+  """
+  executeFeatureWeb(
+    input: ExecuteFeatureInput!
+    options: ExecuteFeatureOptionsWeb
+  ): ExecutionResult!
+
+  """
+  Destroy/cleanup all cached AI sessions
+  """
+  destroySessions: VoidResult!
+}

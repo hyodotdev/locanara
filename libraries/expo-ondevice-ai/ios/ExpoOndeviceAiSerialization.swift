@@ -27,34 +27,7 @@ enum ExpoOndeviceAiSerialization {
         ]
     }
 
-    // MARK: - Feature Results
-
-    static func result(_ executionResult: ExecutionResult) throws -> [String: Any] {
-        switch executionResult.result {
-        case .summarize(let r):
-            return summarize(r)
-        case .classify(let r):
-            return classify(r)
-        case .extract(let r):
-            return extract(r)
-        case .chat(let r):
-            return chat(r)
-        case .translate(let r):
-            return translate(r)
-        case .rewrite(let r):
-            return rewrite(r)
-        case .proofread(let r):
-            return proofread(r)
-        default:
-            throw NSError(
-                domain: "ExpoOndeviceAi",
-                code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Unsupported result type"]
-            )
-        }
-    }
-
-    // MARK: - Individual Serializers
+    // MARK: - Result Serializers
 
     static func summarize(_ r: SummarizeResult) -> [String: Any] {
         [

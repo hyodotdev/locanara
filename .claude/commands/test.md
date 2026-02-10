@@ -52,8 +52,8 @@ Always check implemented code first:
 
 **iOS (Swift + XCTest)**:
 
-1. Find implementation file (e.g., `Features/Summarize.swift`)
-2. Create/update test file (`Tests/Features/SummarizeTests.swift`)
+1. Find implementation file (e.g., `Sources/BuiltIn/SummarizeChain.swift`)
+2. Create/update test file (`Tests/FrameworkTests.swift`)
 3. Write test cases:
    - Happy path
    - Invalid input
@@ -64,8 +64,8 @@ Always check implemented code first:
 
 **Android (Kotlin + JUnit + MockK)**:
 
-1. Find implementation file (e.g., `features/Summarize.kt`)
-2. Create/update test file (`src/test/.../SummarizeTest.kt`)
+1. Find implementation file (e.g., `builtin/SummarizeChain.kt`)
+2. Create/update test file (`src/test/kotlin/com/locanara/FrameworkTest.kt`)
 3. Write test cases:
    - Happy path
    - Invalid input
@@ -88,9 +88,9 @@ swift test --filter SummarizeTests
 
 ```bash
 cd packages/android
-./gradlew test
+./gradlew :locanara:test
 # Or specific test only
-./gradlew test --tests SummarizeTest
+./gradlew :locanara:test --tests "com.locanara.FrameworkTest"
 ```
 
 Parse results and report to user
@@ -304,6 +304,6 @@ Agent:
 
 ## Reference Documents
 
-- `skills/4-test-engineer/SKILL.md` - Test Engineer skill guide
+- `CLAUDE.md` - Project conventions
 - `packages/apple/Tests/` - iOS tests
 - `packages/android/.../src/test/` - Android tests

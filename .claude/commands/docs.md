@@ -31,7 +31,17 @@ packages/docs/
 │   │   ├── resources.tsx        # Resources page
 │   │   └── docs/                # Documentation pages
 │   │       ├── index.tsx        # Docs index
-│   │       ├── apis/            # API reference
+│   │       ├── apis/            # Framework API reference
+│   │       │   ├── index.tsx
+│   │       │   ├── model.tsx
+│   │       │   ├── chain.tsx
+│   │       │   ├── pipeline.tsx
+│   │       │   ├── memory.tsx
+│   │       │   ├── guardrail.tsx
+│   │       │   ├── session.tsx
+│   │       │   ├── agent.tsx
+│   │       │   └── get-device-capability.tsx
+│   │       ├── utils/           # Utility (feature) API reference
 │   │       │   ├── index.tsx
 │   │       │   ├── ios.tsx
 │   │       │   ├── android.tsx
@@ -214,6 +224,6 @@ firebase deploy --only hosting
 
 ## Reference Documents
 
-- `skills/5-docs-manager/SKILL.md` - Documentation Manager skill guide
+- `CLAUDE.md` - Project conventions
 - `packages/gql/src/` - GraphQL schema (doc generation source)
 - `locanara-versions.json` - Version information

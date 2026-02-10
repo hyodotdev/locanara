@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Spellcheck
@@ -111,13 +110,6 @@ private val features = listOf(
         icon = Icons.Default.Spellcheck,
         route = Routes.PROOFREAD
     ),
-    FeatureItem(
-        type = FeatureType.DESCRIBE_IMAGE_ANDROID,
-        name = "Describe Image",
-        description = "Generate descriptions for images",
-        icon = Icons.Default.Image,
-        route = Routes.DESCRIBE_IMAGE
-    )
 )
 
 /**
