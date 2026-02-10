@@ -1,143 +1,92 @@
 import Locanara
 
-/// Decodes JS options dictionaries into Locanara SDK input types
+/// Decodes JS options dictionaries into chain constructor parameters
+@available(iOS 15.0, macOS 14.0, *)
 enum ExpoOndeviceAiHelper {
 
-    static func buildFeatureInput(
-        feature: FeatureType,
-        text: String,
-        options: [String: Any]?
-    ) -> ExecuteFeatureInput {
-        let parameters = decodeParameters(feature: feature, options: options)
-        return ExecuteFeatureInput(
-            feature: feature,
-            input: text,
-            parameters: parameters
-        )
-    }
+    // MARK: - Summarize
 
-    // MARK: - Parameter Decoding
-
-    private static func decodeParameters(
-        feature: FeatureType,
-        options: [String: Any]?
-    ) -> FeatureParametersInput? {
-        guard let opts = options else { return nil }
-
-        switch feature {
-        case .summarize:
-            return decodeSummarize(opts)
-        case .classify:
-            return decodeClassify(opts)
-        case .extract:
-            return decodeExtract(opts)
-        case .chat:
-            return decodeChat(opts)
-        case .translate:
-            return decodeTranslate(opts)
-        case .rewrite:
-            return decodeRewrite(opts)
-        case .proofread:
-            return decodeProofread(opts)
-        default:
-            return nil
-        }
-    }
-
-    private static func decodeSummarize(_ opts: [String: Any]) -> FeatureParametersInput? {
-        let inputType = (opts["inputType"] as? String).flatMap(SummarizeInputType.init(rawValue:))
-        let outputType = (opts["outputType"] as? String).flatMap(SummarizeOutputType.init(rawValue:))
-        guard inputType != nil || outputType != nil else { return nil }
-        return FeatureParametersInput(
-            summarize: SummarizeParametersInput(inputType: inputType, outputType: outputType)
-        )
-    }
-
-    private static func decodeClassify(_ opts: [String: Any]) -> FeatureParametersInput? {
-        let categories = opts["categories"] as? [String]
-        let maxResults = opts["maxResults"] as? Int
-        guard categories != nil || maxResults != nil else { return nil }
-        return FeatureParametersInput(
-            classify: ClassifyParametersInput(categories: categories, maxResults: maxResults)
-        )
-    }
-
-    private static func decodeExtract(_ opts: [String: Any]) -> FeatureParametersInput? {
-        let entityTypes = opts["entityTypes"] as? [String]
-        let extractKeyValues = opts["extractKeyValues"] as? Bool
-        guard entityTypes != nil || extractKeyValues != nil else { return nil }
-        return FeatureParametersInput(
-            extract: ExtractParametersInput(entityTypes: entityTypes, extractKeyValues: extractKeyValues)
-        )
-    }
-
-    /// Public helper to decode chat parameters from JS options dictionary.
-    /// Used by chatStream bridge to extract ChatParametersInput directly.
-    static func decodeChatParameters(_ opts: [String: Any]?) -> ChatParametersInput? {
-        guard let opts = opts else { return nil }
-        let conversationId = opts["conversationId"] as? String
-        let systemPrompt = opts["systemPrompt"] as? String
-        var history: [ChatMessageInput]? = nil
-
-        if let historyArray = opts["history"] as? [[String: String]] {
-            history = historyArray.compactMap { msg in
-                guard let role = msg["role"], let content = msg["content"] else { return nil }
-                return ChatMessageInput(role: role, content: content)
+    static func bulletCount(from options: [String: Any]?) -> Int {
+        guard let opts = options else { return 1 }
+        if let outputType = opts["outputType"] as? String {
+            switch outputType {
+            case "TWO_BULLETS": return 2
+            case "THREE_BULLETS": return 3
+            default: return 1
             }
         }
-
-        return ChatParametersInput(
-            conversationId: conversationId,
-            systemPrompt: systemPrompt,
-            history: history
-        )
+        return 1
     }
 
-    private static func decodeChat(_ opts: [String: Any]) -> FeatureParametersInput? {
-        let conversationId = opts["conversationId"] as? String
-        let systemPrompt = opts["systemPrompt"] as? String
-        var history: [ChatMessageInput]? = nil
+    // MARK: - Classify
 
-        if let historyArray = opts["history"] as? [[String: String]] {
-            history = historyArray.compactMap { msg in
-                guard let role = msg["role"], let content = msg["content"] else { return nil }
-                return ChatMessageInput(role: role, content: content)
-            }
+    static func classifyOptions(from options: [String: Any]?) -> (categories: [String], maxResults: Int) {
+        guard let opts = options else {
+            return (["positive", "negative", "neutral"], 3)
+        }
+        let categories = (opts["categories"] as? [String]) ?? ["positive", "negative", "neutral"]
+        let maxResults = (opts["maxResults"] as? Int) ?? 3
+        return (categories, maxResults)
+    }
+
+    // MARK: - Extract
+
+    static func entityTypes(from options: [String: Any]?) -> [String] {
+        (options?["entityTypes"] as? [String]) ?? ["person", "location", "date", "organization"]
+    }
+
+    // MARK: - Chat
+
+    static func chatOptions(from options: [String: Any]?) -> (systemPrompt: String, memory: (any Memory)?) {
+        let systemPrompt = (options?["systemPrompt"] as? String) ?? "You are a friendly, helpful assistant."
+
+        var memory: (any Memory)? = nil
+        if let historyArray = options?["history"] as? [[String: String]], !historyArray.isEmpty {
+            memory = PrefilledMemory(history: historyArray)
         }
 
-        return FeatureParametersInput(
-            chat: ChatParametersInput(
-                conversationId: conversationId,
-                systemPrompt: systemPrompt,
-                history: history
-            )
-        )
+        return (systemPrompt, memory)
     }
 
-    private static func decodeTranslate(_ opts: [String: Any]) -> FeatureParametersInput? {
-        guard let targetLanguage = opts["targetLanguage"] as? String else { return nil }
-        let sourceLanguage = opts["sourceLanguage"] as? String
-        return FeatureParametersInput(
-            translate: TranslateParametersInput(
-                sourceLanguage: sourceLanguage,
-                targetLanguage: targetLanguage
-            )
-        )
+    // MARK: - Translate
+
+    static func translateOptions(from options: [String: Any]?) -> (sourceLanguage: String, targetLanguage: String) {
+        let source = (options?["sourceLanguage"] as? String) ?? "en"
+        let target = (options?["targetLanguage"] as? String) ?? "en"
+        return (source, target)
     }
 
-    private static func decodeRewrite(_ opts: [String: Any]) -> FeatureParametersInput? {
-        guard let outputTypeStr = opts["outputType"] as? String,
-              let outputType = RewriteOutputType(rawValue: outputTypeStr) else { return nil }
-        return FeatureParametersInput(
-            rewrite: RewriteParametersInput(outputType: outputType)
-        )
+    // MARK: - Rewrite
+
+    static func rewriteStyle(from options: [String: Any]?) -> RewriteOutputType {
+        guard let opts = options,
+              let outputTypeStr = opts["outputType"] as? String,
+              let outputType = RewriteOutputType(rawValue: outputTypeStr) else {
+            return .rephrase
+        }
+        return outputType
+    }
+}
+
+// MARK: - Prefilled Memory
+
+/// Memory adapter that provides pre-filled chat history from JS.
+@available(iOS 15.0, macOS 14.0, *)
+final class PrefilledMemory: Memory, @unchecked Sendable {
+    private let entries: [MemoryEntry]
+
+    init(history: [[String: String]]) {
+        self.entries = history.compactMap { msg in
+            guard let role = msg["role"], let content = msg["content"] else { return nil }
+            return MemoryEntry(role: role, content: content)
+        }
     }
 
-    private static func decodeProofread(_ opts: [String: Any]) -> FeatureParametersInput? {
-        let inputType = (opts["inputType"] as? String).flatMap(ProofreadInputType.init(rawValue:))
-        guard inputType != nil else { return nil }
-        return FeatureParametersInput(
-            proofread: ProofreadParametersInput(inputType: inputType)
-        )
+    func load(for input: ChainInput) async -> [MemoryEntry] { entries }
+    func save(input: ChainInput, output: ChainOutput) async { }
+    func clear() async { }
+
+    var estimatedTokenCount: Int {
+        entries.reduce(0) { $0 + ($1.content.count / 4) }
     }
 }

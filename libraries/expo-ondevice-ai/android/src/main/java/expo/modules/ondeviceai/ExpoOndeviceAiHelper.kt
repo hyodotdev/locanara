@@ -1,142 +1,104 @@
 package expo.modules.ondeviceai
 
-import com.locanara.*
+import com.locanara.RewriteOutputType
+import com.locanara.composable.Memory
+import com.locanara.composable.MemoryEntry
+import com.locanara.core.ChainInput
+import com.locanara.core.ChainOutput
 
-/// Decodes JS options maps into Locanara SDK input types
+/** Decodes JS options maps into chain constructor parameters */
 object ExpoOndeviceAiHelper {
 
-    fun buildFeatureInput(
-        feature: FeatureType,
-        text: String,
-        options: Map<String, Any>?
-    ): ExecuteFeatureInput {
-        val parameters = decodeParameters(feature, options)
-        return ExecuteFeatureInput(
-            feature = feature,
-            input = text,
-            parameters = parameters
-        )
-    }
+    // region Summarize
 
-    // MARK: - Parameter Decoding
-
-    private fun decodeParameters(
-        feature: FeatureType,
-        options: Map<String, Any>?
-    ): FeatureParametersInput? {
-        val opts = options ?: return null
-
-        return when (feature) {
-            FeatureType.SUMMARIZE -> decodeSummarize(opts)
-            FeatureType.CLASSIFY -> decodeClassify(opts)
-            FeatureType.EXTRACT -> decodeExtract(opts)
-            FeatureType.CHAT -> decodeChat(opts)
-            FeatureType.TRANSLATE -> decodeTranslate(opts)
-            FeatureType.REWRITE -> decodeRewrite(opts)
-            FeatureType.PROOFREAD -> decodeProofread(opts)
-            else -> null
+    fun bulletCount(options: Map<String, Any>?): Int {
+        val outputType = options?.get("outputType") as? String
+        return when (outputType) {
+            "TWO_BULLETS" -> 2
+            "THREE_BULLETS" -> 3
+            else -> 1
         }
     }
 
-    private fun decodeSummarize(opts: Map<String, Any>): FeatureParametersInput? {
-        val inputType = (opts["inputType"] as? String)?.let {
-            runCatching { SummarizeInputType.valueOf(it) }.getOrNull()
-        }
-        val outputType = (opts["outputType"] as? String)?.let {
-            runCatching { SummarizeOutputType.valueOf(it) }.getOrNull()
-        }
-        if (inputType == null && outputType == null) return null
-        return FeatureParametersInput(
-            summarize = SummarizeParametersInput(inputType = inputType, outputType = outputType)
-        )
-    }
+    // endregion
 
-    private fun decodeClassify(opts: Map<String, Any>): FeatureParametersInput? {
+    // region Classify
+
+    fun classifyOptions(options: Map<String, Any>?): Pair<List<String>, Int> {
         @Suppress("UNCHECKED_CAST")
-        val categories = opts["categories"] as? List<String>
-        val maxResults = (opts["maxResults"] as? Number)?.toInt()
-        if (categories == null && maxResults == null) return null
-        return FeatureParametersInput(
-            classify = ClassifyParametersInput(categories = categories, maxResults = maxResults)
-        )
+        val categories = (options?.get("categories") as? List<String>)
+            ?: listOf("positive", "negative", "neutral")
+        val maxResults = (options?.get("maxResults") as? Number)?.toInt() ?: 3
+        return Pair(categories, maxResults)
     }
 
-    private fun decodeExtract(opts: Map<String, Any>): FeatureParametersInput? {
+    // endregion
+
+    // region Extract
+
+    fun entityTypes(options: Map<String, Any>?): List<String> {
         @Suppress("UNCHECKED_CAST")
-        val entityTypes = opts["entityTypes"] as? List<String>
-        val extractKeyValues = opts["extractKeyValues"] as? Boolean
-        if (entityTypes == null && extractKeyValues == null) return null
-        return FeatureParametersInput(
-            extract = ExtractParametersInput(entityTypes = entityTypes, extractKeyValues = extractKeyValues)
-        )
+        return (options?.get("entityTypes") as? List<String>)
+            ?: listOf("person", "location", "date", "organization")
     }
 
-    /**
-     * Public helper to decode chat parameters from JS options map.
-     * Used by chatStream bridge to extract ChatParametersInput directly.
-     */
-    @Suppress("UNCHECKED_CAST")
-    fun decodeChatParameters(opts: Map<String, Any>?): ChatParametersInput? {
-        val options = opts ?: return null
-        val conversationId = options["conversationId"] as? String
-        val systemPrompt = options["systemPrompt"] as? String
-        val history = (options["history"] as? List<Map<String, String>>)?.mapNotNull { msg ->
-            val role = msg["role"] ?: return@mapNotNull null
-            val content = msg["content"] ?: return@mapNotNull null
-            ChatMessageInput(role = role, content = content)
-        }
-        return ChatParametersInput(
-            conversationId = conversationId,
-            systemPrompt = systemPrompt,
-            history = history
-        )
-    }
+    // endregion
+
+    // region Chat
 
     @Suppress("UNCHECKED_CAST")
-    private fun decodeChat(opts: Map<String, Any>): FeatureParametersInput {
-        val conversationId = opts["conversationId"] as? String
-        val systemPrompt = opts["systemPrompt"] as? String
-        val history = (opts["history"] as? List<Map<String, String>>)?.mapNotNull { msg ->
-            val role = msg["role"] ?: return@mapNotNull null
-            val content = msg["content"] ?: return@mapNotNull null
-            ChatMessageInput(role = role, content = content)
-        }
-        return FeatureParametersInput(
-            chat = ChatParametersInput(
-                conversationId = conversationId,
-                systemPrompt = systemPrompt,
-                history = history
-            )
-        )
+    fun chatOptions(options: Map<String, Any>?): Pair<String, Memory?> {
+        val systemPrompt = (options?.get("systemPrompt") as? String)
+            ?: "You are a friendly, helpful assistant."
+
+        val historyArray = options?.get("history") as? List<Map<String, String>>
+        val memory: Memory? = if (!historyArray.isNullOrEmpty()) {
+            PrefilledMemory(historyArray)
+        } else null
+
+        return Pair(systemPrompt, memory)
     }
 
-    private fun decodeTranslate(opts: Map<String, Any>): FeatureParametersInput? {
-        val targetLanguage = opts["targetLanguage"] as? String ?: return null
-        val sourceLanguage = opts["sourceLanguage"] as? String
-        return FeatureParametersInput(
-            translate = TranslateParametersInput(
-                sourceLanguage = sourceLanguage,
-                targetLanguage = targetLanguage
-            )
-        )
+    // endregion
+
+    // region Translate
+
+    fun translateOptions(options: Map<String, Any>?): Pair<String, String> {
+        val source = (options?.get("sourceLanguage") as? String) ?: "en"
+        val target = (options?.get("targetLanguage") as? String) ?: "en"
+        return Pair(source, target)
     }
 
-    private fun decodeRewrite(opts: Map<String, Any>): FeatureParametersInput? {
-        val outputType = (opts["outputType"] as? String)?.let {
+    // endregion
+
+    // region Rewrite
+
+    fun rewriteStyle(options: Map<String, Any>?): RewriteOutputType {
+        val outputType = options?.get("outputType") as? String
+        return outputType?.let {
             runCatching { RewriteOutputType.valueOf(it) }.getOrNull()
-        } ?: return null
-        return FeatureParametersInput(
-            rewrite = RewriteParametersInput(outputType = outputType)
-        )
+        } ?: RewriteOutputType.REPHRASE
     }
 
-    private fun decodeProofread(opts: Map<String, Any>): FeatureParametersInput? {
-        val inputType = (opts["inputType"] as? String)?.let {
-            runCatching { ProofreadInputType.valueOf(it) }.getOrNull()
-        }
-        if (inputType == null) return null
-        return FeatureParametersInput(
-            proofread = ProofreadParametersInput(inputType = inputType)
-        )
+    // endregion
+}
+
+/**
+ * Memory adapter that provides pre-filled chat history from JS.
+ */
+private class PrefilledMemory(
+    history: List<Map<String, String>>
+) : Memory {
+    private val entries: List<MemoryEntry> = history.mapNotNull { msg ->
+        val role = msg["role"] ?: return@mapNotNull null
+        val content = msg["content"] ?: return@mapNotNull null
+        MemoryEntry(role = role, content = content)
     }
+
+    override suspend fun load(input: ChainInput): List<MemoryEntry> = entries
+    override suspend fun save(input: ChainInput, output: ChainOutput) { }
+    override suspend fun clear() { }
+
+    override val estimatedTokenCount: Int
+        get() = entries.sumOf { it.content.length / 4 }
 }

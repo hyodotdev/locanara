@@ -4,8 +4,16 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.kotlin.Promise
 import com.locanara.Locanara
-import com.locanara.FeatureType
 import com.locanara.Platform
+import com.locanara.builtin.ChatChain
+import com.locanara.builtin.ClassifyChain
+import com.locanara.builtin.ExtractChain
+import com.locanara.builtin.ProofreadChain
+import com.locanara.builtin.RewriteChain
+import com.locanara.builtin.SummarizeChain
+import com.locanara.builtin.TranslateChain
+import com.locanara.core.LocanaraDefaults
+import com.locanara.platform.PromptApiModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,6 +42,9 @@ class ExpoOndeviceAiModule : Module() {
             scope.launch {
                 try {
                     locanara.initializeSDK(Platform.ANDROID)
+                    val context = appContext.reactContext?.applicationContext
+                        ?: throw IllegalStateException("React context is not available")
+                    LocanaraDefaults.model = PromptApiModel(context)
                     promise.resolve(mapOf("success" to true))
                 } catch (e: Exception) {
                     promise.reject("ERR_INITIALIZE", e.message, e)
@@ -53,61 +64,81 @@ class ExpoOndeviceAiModule : Module() {
         }
 
         AsyncFunction("summarize") { text: String, options: Map<String, Any>?, promise: Promise ->
-            executeFeature(FeatureType.SUMMARIZE, text, options, promise)
+            scope.launch {
+                try {
+                    val bulletCount = ExpoOndeviceAiHelper.bulletCount(options)
+                    val result = SummarizeChain(bulletCount = bulletCount).run(text)
+                    promise.resolve(ExpoOndeviceAiSerialization.summarize(result))
+                } catch (e: Exception) {
+                    promise.reject("ERR_SUMMARIZE", e.message, e)
+                }
+            }
         }
 
         AsyncFunction("classify") { text: String, options: Map<String, Any>?, promise: Promise ->
-            executeFeature(FeatureType.CLASSIFY, text, options, promise)
+            scope.launch {
+                try {
+                    val (categories, maxResults) = ExpoOndeviceAiHelper.classifyOptions(options)
+                    val result = ClassifyChain(categories = categories, maxResults = maxResults).run(text)
+                    promise.resolve(ExpoOndeviceAiSerialization.classify(result))
+                } catch (e: Exception) {
+                    promise.reject("ERR_CLASSIFY", e.message, e)
+                }
+            }
         }
 
         AsyncFunction("extract") { text: String, options: Map<String, Any>?, promise: Promise ->
-            executeFeature(FeatureType.EXTRACT, text, options, promise)
+            scope.launch {
+                try {
+                    val entityTypes = ExpoOndeviceAiHelper.entityTypes(options)
+                    val result = ExtractChain(entityTypes = entityTypes).run(text)
+                    promise.resolve(ExpoOndeviceAiSerialization.extract(result))
+                } catch (e: Exception) {
+                    promise.reject("ERR_EXTRACT", e.message, e)
+                }
+            }
         }
 
         AsyncFunction("chat") { message: String, options: Map<String, Any>?, promise: Promise ->
-            executeFeature(FeatureType.CHAT, message, options, promise)
+            scope.launch {
+                try {
+                    val (systemPrompt, memory) = ExpoOndeviceAiHelper.chatOptions(options)
+                    val result = ChatChain(memory = memory, systemPrompt = systemPrompt).run(message)
+                    promise.resolve(ExpoOndeviceAiSerialization.chat(result))
+                } catch (e: Exception) {
+                    promise.reject("ERR_CHAT", e.message, e)
+                }
+            }
         }
 
         AsyncFunction("chatStream") { message: String, options: Map<String, Any>?, promise: Promise ->
             scope.launch {
                 try {
-                    val params = ExpoOndeviceAiHelper.decodeChatParameters(options)
-                    var lastAccumulated = ""
-                    var lastConversationId: String? = null
-                    var finalMessage = ""
-                    var finalConversationId: String? = null
+                    val (systemPrompt, memory) = ExpoOndeviceAiHelper.chatOptions(options)
+                    val chain = ChatChain(memory = memory, systemPrompt = systemPrompt)
+                    var accumulated = ""
 
-                    locanara.chatStream(
-                        message = message,
-                        systemPrompt = params?.systemPrompt,
-                        history = params?.history,
-                        conversationId = params?.conversationId
-                    ).collect { chunk ->
-                        lastAccumulated = chunk.accumulated
-                        lastConversationId = chunk.conversationId
+                    chain.streamRun(message).collect { chunk ->
+                        accumulated += chunk
                         sendEvent("onChatStreamChunk", mapOf(
-                            "delta" to chunk.delta,
-                            "accumulated" to chunk.accumulated,
-                            "isFinal" to chunk.isFinal,
-                            "conversationId" to chunk.conversationId
+                            "delta" to chunk,
+                            "accumulated" to accumulated,
+                            "isFinal" to false,
+                            "conversationId" to null
                         ))
-                        if (chunk.isFinal) {
-                            finalMessage = chunk.accumulated
-                            finalConversationId = chunk.conversationId
-                        }
                     }
 
-                    // Fallback: use last accumulated text if no isFinal chunk was emitted
-                    if (finalMessage.isEmpty() && lastAccumulated.isNotEmpty()) {
-                        finalMessage = lastAccumulated
-                        finalConversationId = finalConversationId ?: lastConversationId
-                    }
+                    sendEvent("onChatStreamChunk", mapOf(
+                        "delta" to "",
+                        "accumulated" to accumulated,
+                        "isFinal" to true,
+                        "conversationId" to null
+                    ))
 
                     promise.resolve(mapOf(
-                        "message" to finalMessage,
-                        "conversationId" to finalConversationId,
-                        "canContinue" to true,
-                        "suggestedPrompts" to listOf("Tell me more", "Can you explain?", "What else?")
+                        "message" to accumulated,
+                        "conversationId" to null,
+                        "canContinue" to true
                     ))
                 } catch (e: Exception) {
                     promise.reject("ERR_CHAT_STREAM", e.message, e)
@@ -116,31 +147,37 @@ class ExpoOndeviceAiModule : Module() {
         }
 
         AsyncFunction("translate") { text: String, options: Map<String, Any>?, promise: Promise ->
-            executeFeature(FeatureType.TRANSLATE, text, options, promise)
+            scope.launch {
+                try {
+                    val (source, target) = ExpoOndeviceAiHelper.translateOptions(options)
+                    val result = TranslateChain(sourceLanguage = source, targetLanguage = target).run(text)
+                    promise.resolve(ExpoOndeviceAiSerialization.translate(result))
+                } catch (e: Exception) {
+                    promise.reject("ERR_TRANSLATE", e.message, e)
+                }
+            }
         }
 
         AsyncFunction("rewrite") { text: String, options: Map<String, Any>?, promise: Promise ->
-            executeFeature(FeatureType.REWRITE, text, options, promise)
+            scope.launch {
+                try {
+                    val style = ExpoOndeviceAiHelper.rewriteStyle(options)
+                    val result = RewriteChain(style = style).run(text)
+                    promise.resolve(ExpoOndeviceAiSerialization.rewrite(result))
+                } catch (e: Exception) {
+                    promise.reject("ERR_REWRITE", e.message, e)
+                }
+            }
         }
 
         AsyncFunction("proofread") { text: String, options: Map<String, Any>?, promise: Promise ->
-            executeFeature(FeatureType.PROOFREAD, text, options, promise)
-        }
-    }
-
-    private fun executeFeature(
-        feature: FeatureType,
-        text: String,
-        options: Map<String, Any>?,
-        promise: Promise
-    ) {
-        scope.launch {
-            try {
-                val input = ExpoOndeviceAiHelper.buildFeatureInput(feature, text, options)
-                val result = locanara.executeFeature(input)
-                promise.resolve(ExpoOndeviceAiSerialization.result(result))
-            } catch (e: Exception) {
-                promise.reject("ERR_${feature.name}", e.message, e)
+            scope.launch {
+                try {
+                    val result = ProofreadChain().run(text)
+                    promise.resolve(ExpoOndeviceAiSerialization.proofread(result))
+                } catch (e: Exception) {
+                    promise.reject("ERR_PROOFREAD", e.message, e)
+                }
             }
         }
     }

@@ -2,10 +2,10 @@ package expo.modules.ondeviceai
 
 import com.locanara.*
 
-/// Serializes Locanara SDK result types into JS-compatible maps
+/** Serializes Locanara SDK result types into JS-compatible maps */
 object ExpoOndeviceAiSerialization {
 
-    // MARK: - Device Capability
+    // region Device Capability
 
     fun deviceCapability(capability: DeviceCapability): Map<String, Any> {
         val availableSet = capability.availableFeatures.toSet()
@@ -24,34 +24,18 @@ object ExpoOndeviceAiSerialization {
         )
     }
 
-    // MARK: - Feature Results
+    // endregion
 
-    fun result(executionResult: ExecutionResult): Map<String, Any> {
-        val data = executionResult.result
-            ?: throw Exception("No result data")
+    // region Result Serializers
 
-        return when (data) {
-            is SummarizeResult -> summarize(data)
-            is ClassifyResult -> classify(data)
-            is ExtractResult -> extract(data)
-            is ChatResult -> chat(data)
-            is TranslateResult -> translate(data)
-            is RewriteResult -> rewrite(data)
-            is ProofreadResult -> proofread(data)
-            else -> throw Exception("Unsupported result type")
-        }
-    }
-
-    // MARK: - Individual Serializers
-
-    private fun summarize(r: SummarizeResult): Map<String, Any> = mapOf(
+    fun summarize(r: SummarizeResult): Map<String, Any> = mapOf(
         "summary" to r.summary,
         "originalLength" to r.originalLength,
         "summaryLength" to r.summaryLength,
         "confidence" to (r.confidence ?: 0.0)
     )
 
-    private fun classify(r: ClassifyResult): Map<String, Any> {
+    fun classify(r: ClassifyResult): Map<String, Any> {
         val classifications = r.classifications.map { c ->
             mapOf(
                 "label" to c.label,
@@ -68,7 +52,7 @@ object ExpoOndeviceAiSerialization {
         )
     }
 
-    private fun extract(r: ExtractResult): Map<String, Any> {
+    fun extract(r: ExtractResult): Map<String, Any> {
         val entities = r.entities.map { e ->
             mapOf(
                 "type" to e.type,
@@ -94,7 +78,7 @@ object ExpoOndeviceAiSerialization {
         return response
     }
 
-    private fun chat(r: ChatResult): Map<String, Any> {
+    fun chat(r: ChatResult): Map<String, Any> {
         val response = mutableMapOf<String, Any>(
             "message" to r.message,
             "canContinue" to r.canContinue
@@ -104,14 +88,14 @@ object ExpoOndeviceAiSerialization {
         return response
     }
 
-    private fun translate(r: TranslateResult): Map<String, Any> = mapOf(
+    fun translate(r: TranslateResult): Map<String, Any> = mapOf(
         "translatedText" to r.translatedText,
         "sourceLanguage" to r.sourceLanguage,
         "targetLanguage" to r.targetLanguage,
         "confidence" to (r.confidence ?: 0.0)
     )
 
-    private fun rewrite(r: RewriteResult): Map<String, Any> {
+    fun rewrite(r: RewriteResult): Map<String, Any> {
         val response = mutableMapOf<String, Any>(
             "rewrittenText" to r.rewrittenText,
             "confidence" to (r.confidence ?: 0.0)
@@ -121,7 +105,7 @@ object ExpoOndeviceAiSerialization {
         return response
     }
 
-    private fun proofread(r: ProofreadResult): Map<String, Any> {
+    fun proofread(r: ProofreadResult): Map<String, Any> {
         val corrections = r.corrections.map { c ->
             mapOf(
                 "original" to c.original,
@@ -139,13 +123,16 @@ object ExpoOndeviceAiSerialization {
         )
     }
 
-    // MARK: - Helpers
+    // endregion
+
+    // region Helpers
 
     /** Convert FeatureType enum to camelCase key for JS */
     private fun featureKey(feature: FeatureType): String {
-        // SUMMARIZE -> summarize, DESCRIBE_IMAGE -> describeImage
         return feature.name.lowercase().replace(Regex("_([a-z])")) { match ->
             match.groupValues[1].uppercase()
         }
     }
+
+    // endregion
 }

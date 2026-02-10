@@ -43,9 +43,13 @@ packages/gql/src/
 ├── type.graphql          # Shared types
 ├── type-ios.graphql      # iOS specific
 ├── type-android.graphql  # Android specific
-├── api.graphql           # Shared API
-├── api-ios.graphql       # iOS API
-└── api-android.graphql   # Android API
+├── type-web.graphql      # Web specific
+├── utils.graphql         # Shared utils
+├── utils-ios.graphql     # iOS utils
+├── utils-android.graphql # Android utils
+├── utils-web.graphql     # Web utils
+├── error.graphql         # Error types
+└── event.graphql         # Event types
 ```
 
 ### 3. Automatic Validation Items
@@ -334,9 +338,9 @@ type VoiceRecognitionResult {
 User: /gql check if iOS and Android schemas match
 
 Agent:
-1. Check shared API (api.graphql)
-2. Check iOS API (api-ios.graphql)
-3. Check Android API (api-android.graphql)
+1. Check shared utils (utils.graphql)
+2. Check iOS utils (utils-ios.graphql)
+3. Check Android utils (utils-android.graphql)
 4. Alignment status:
    - Shared API: 10 ✓
    - iOS specific: 5 ✓
@@ -348,6 +352,6 @@ Agent:
 
 ## Reference Documents
 
-- `skills/1-graphql-architect/SKILL.md` - GraphQL Architect skill guide
+- `.claude/guides/06-gql-package.md` - GraphQL package guide
 - `packages/gql/src/` - GraphQL schema
 - `.claude/guides/02-api-naming.md` - API naming guide

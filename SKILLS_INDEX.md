@@ -91,12 +91,11 @@
 
 ## Detailed Guides
 
-- `/gql`: `skills/1-graphql-architect/commands/gql.md`
-- `/apple`: `skills/2-apple-intelligence/commands/apple.md`
-- `/android`: `skills/3-android-sdk/commands/android.md`
-- `/web`: `skills/6-web-sdk/commands/web.md`
-- `/test`: `skills/4-test-engineer/commands/test.md`
-- `/docs`: `skills/5-docs-manager/commands/docs.md`
+- `/gql`: `.claude/commands/gql.md`
+- `/apple`: `.claude/commands/apple.md`
+- `/android`: `.claude/commands/android.md`
+- `/test`: `.claude/commands/test.md`
+- `/docs`: `.claude/commands/docs.md`
 
 ---
 
