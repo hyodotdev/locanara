@@ -27,7 +27,7 @@ const apiData: ApiItem[] = [
     description: "Initialize the Locanara SDK",
     parameters: "Platform",
     returns: "VoidResult",
-    path: "/docs/apis#initialize-sdk",
+    path: "/docs/introduction",
   },
   {
     id: "get-device-capability",
@@ -36,7 +36,7 @@ const apiData: ApiItem[] = [
     description: "Get device AI capabilities",
     parameters: "",
     returns: "DeviceCapability",
-    path: "/docs/apis#get-device-capability",
+    path: "/docs/apis/get-device-capability",
   },
   {
     id: "is-feature-available",
@@ -45,7 +45,7 @@ const apiData: ApiItem[] = [
     description: "Check if a specific AI feature is available",
     parameters: "FeatureType",
     returns: "Boolean",
-    path: "/docs/apis#is-feature-available",
+    path: "/docs/apis/get-device-capability",
   },
 
   // Feature APIs
@@ -56,7 +56,7 @@ const apiData: ApiItem[] = [
     description: "Summarize text into key points",
     parameters: "SummarizeParametersInput",
     returns: "SummarizeResult",
-    path: "/docs/apis#summarize",
+    path: "/docs/utils#summarize",
   },
   {
     id: "classify",
@@ -65,7 +65,7 @@ const apiData: ApiItem[] = [
     description: "Classify text into categories",
     parameters: "ClassifyParametersInput",
     returns: "ClassifyResult",
-    path: "/docs/apis#classify",
+    path: "/docs/utils#classify",
   },
   {
     id: "extract",
@@ -74,7 +74,7 @@ const apiData: ApiItem[] = [
     description: "Extract entities and key-value pairs from text",
     parameters: "ExtractParametersInput",
     returns: "ExtractResult",
-    path: "/docs/apis#extract",
+    path: "/docs/utils#extract",
   },
   {
     id: "chat",
@@ -83,7 +83,7 @@ const apiData: ApiItem[] = [
     description: "Conversational AI interactions",
     parameters: "ChatParametersInput",
     returns: "ChatResult",
-    path: "/docs/apis#chat",
+    path: "/docs/utils#chat",
   },
   {
     id: "translate",
@@ -92,7 +92,7 @@ const apiData: ApiItem[] = [
     description: "Translate text between languages",
     parameters: "TranslateParametersInput",
     returns: "TranslateResult",
-    path: "/docs/apis#translate",
+    path: "/docs/utils#translate",
   },
   {
     id: "rewrite",
@@ -101,7 +101,7 @@ const apiData: ApiItem[] = [
     description: "Rewrite text with different styles",
     parameters: "RewriteParametersInput",
     returns: "RewriteResult",
-    path: "/docs/apis#rewrite",
+    path: "/docs/utils#rewrite",
   },
   {
     id: "proofread",
@@ -110,16 +110,7 @@ const apiData: ApiItem[] = [
     description: "Grammar and spelling correction",
     parameters: "ProofreadParametersInput",
     returns: "ProofreadResult",
-    path: "/docs/apis#proofread",
-  },
-  {
-    id: "describe-image",
-    title: "describeImage",
-    category: "Features",
-    description: "Generate descriptions for images",
-    parameters: "ImageDescriptionParametersInput",
-    returns: "ImageDescriptionResult",
-    path: "/docs/apis#describe-image",
+    path: "/docs/utils#proofread",
   },
 
   // iOS APIs
@@ -130,7 +121,7 @@ const apiData: ApiItem[] = [
     description: "Execute AI feature with iOS-specific options",
     parameters: "ExecuteFeatureInput, ExecuteFeatureIOSOptions",
     returns: "ExecutionResult",
-    path: "/docs/apis/ios#execute-feature-ios",
+    path: "/docs/utils/ios#built-in-chains",
   },
   {
     id: "get-foundation-model-status",
@@ -139,7 +130,7 @@ const apiData: ApiItem[] = [
     description: "Get Foundation Models availability status",
     parameters: "",
     returns: "FoundationModelInfoIOS",
-    path: "/docs/apis/ios#get-foundation-model-status",
+    path: "/docs/utils/ios#is-apple-intelligence-available",
   },
 
   // Android APIs
@@ -150,7 +141,7 @@ const apiData: ApiItem[] = [
     description: "Execute AI feature with Android-specific options",
     parameters: "ExecuteFeatureInput, ExecuteFeatureOptionsAndroid",
     returns: "ExecutionResult",
-    path: "/docs/apis/android#execute-feature-android",
+    path: "/docs/utils/android#built-in-chains",
   },
   {
     id: "get-gemini-nano-status",
@@ -159,7 +150,7 @@ const apiData: ApiItem[] = [
     description: "Get Gemini Nano availability and download status",
     parameters: "",
     returns: "GeminiNanoInfoAndroid",
-    path: "/docs/apis/android#get-gemini-nano-status",
+    path: "/docs/utils/android#get-gemini-nano-status",
   },
   {
     id: "download-gemini-nano",
@@ -168,7 +159,7 @@ const apiData: ApiItem[] = [
     description: "Download Gemini Nano model",
     parameters: "variant: String?",
     returns: "VoidResult",
-    path: "/docs/apis/android#download-gemini-nano",
+    path: "/docs/utils/android#get-gemini-nano-status",
   },
 
   // Types
@@ -256,7 +247,7 @@ const apiData: ApiItem[] = [
     title: "APIs",
     category: "Documentation",
     description: "API reference and function signatures",
-    path: "/docs/apis",
+    path: "/docs/utils",
   },
   {
     id: "errors-page",

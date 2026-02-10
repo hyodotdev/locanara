@@ -2,7 +2,6 @@ import SwiftUI
 import Locanara
 
 struct SummarizeDemo: View {
-    @EnvironmentObject var appState: AppState
     @State private var inputText = """
         Apple Intelligence is the personal intelligence system that puts powerful \
         generative models right at the core of iPhone, iPad, and Mac. It powers \
@@ -16,19 +15,11 @@ struct SummarizeDemo: View {
     @State private var result: SummarizeResult?
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var selectedInputType: SummarizeInputType = .article
-    @State private var selectedOutputType: SummarizeOutputType = .oneBullet
-
-    private var isAIAvailable: Bool {
-        appState.currentEngine != .none && appState.isModelReady
-    }
+    @State private var bulletCount = 1
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if !isAIAvailable {
-                    AIModelRequiredBanner()
-                }
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Input Text")
                         .font(.headline)
@@ -41,24 +32,13 @@ struct SummarizeDemo: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Input Type")
+                    Text("Bullet Count")
                         .font(.headline)
 
-                    Picker("Input Type", selection: $selectedInputType) {
-                        Text("Article").tag(SummarizeInputType.article)
-                        Text("Conversation").tag(SummarizeInputType.conversation)
-                    }
-                    .pickerStyle(.segmented)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Output Type")
-                        .font(.headline)
-
-                    Picker("Output Type", selection: $selectedOutputType) {
-                        Text("1 Bullet").tag(SummarizeOutputType.oneBullet)
-                        Text("2 Bullets").tag(SummarizeOutputType.twoBullets)
-                        Text("3 Bullets").tag(SummarizeOutputType.threeBullets)
+                    Picker("Bullet Count", selection: $bulletCount) {
+                        Text("1 Bullet").tag(1)
+                        Text("2 Bullets").tag(2)
+                        Text("3 Bullets").tag(3)
                     }
                     .pickerStyle(.segmented)
                 }
@@ -76,7 +56,7 @@ struct SummarizeDemo: View {
                     .frame(height: 20)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(isLoading || inputText.isEmpty || !isAIAvailable)
+                .disabled(isLoading || inputText.isEmpty)
 
                 if let error = errorMessage {
                     Text(error)
@@ -117,31 +97,14 @@ struct SummarizeDemo: View {
 
         Task {
             do {
-                let params = SummarizeParametersInput(
-                    inputType: selectedInputType,
-                    outputType: selectedOutputType,
-                    language: .english,
-                    autoTruncate: true
+                let chain = SummarizeChain(
+                    bulletCount: bulletCount
                 )
-
-                DemoLogger.logInput(feature: "SUMMARIZE", input: inputText, parameters: params)
-
-                let input = ExecuteFeatureInput(
-                    feature: .summarize,
-                    input: inputText,
-                    parameters: FeatureParametersInput(summarize: params)
-                )
-
-                let executionResult = try await LocanaraClient.shared.executeFeature(input)
-
-                if case .summarize(let summarizeResult) = executionResult.result {
-                    DemoLogger.logResult(feature: "SUMMARIZE", result: summarizeResult)
-                    await MainActor.run {
-                        self.result = summarizeResult
-                    }
+                let summarizeResult = try await chain.run(inputText)
+                await MainActor.run {
+                    self.result = summarizeResult
                 }
             } catch {
-                DemoLogger.logError(feature: "SUMMARIZE", error: error)
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                 }

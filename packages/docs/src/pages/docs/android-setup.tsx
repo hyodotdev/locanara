@@ -94,9 +94,17 @@ dependencies {
         </AnchorLink>
 
         <AnchorLink id="import" level="h3">
-          Import the SDK
+          Set Up Default Model
         </AnchorLink>
-        <CodeBlock language="kotlin" code={`import com.locanara.Locanara`} />
+        <CodeBlock
+          language="kotlin"
+          code={`import com.locanara.Locanara
+import com.locanara.core.LocanaraDefaults
+import com.locanara.platform.PromptApiModel
+
+// Set the default model once at app startup
+LocanaraDefaults.model = PromptApiModel(context)`}
+        />
 
         <AnchorLink id="check-availability" level="h3">
           Check Device Capability
@@ -104,9 +112,9 @@ dependencies {
         <CodeBlock
           language="kotlin"
           code={`// Check if Gemini Nano is available
-val capability = Locanara.getDeviceCapability()
+val capability = Locanara.getInstance().getDeviceCapability()
 
-if (capability.isAvailable) {
+if (capability.supportsOnDeviceAI) {
     println("AI features available: \${capability.availableFeatures}")
 } else {
     println("Gemini Nano not available")
@@ -120,46 +128,19 @@ if (capability.isAvailable) {
           </p>
         </Callout>
 
-        <AnchorLink id="download-model" level="h3">
-          Download Gemini Nano Model
-        </AnchorLink>
-        <CodeBlock
-          language="kotlin"
-          code={`// Check model status and download if needed
-val status = Locanara.getGeminiNanoStatus()
-
-when (status.downloadStatus) {
-    DownloadStatus.NOT_DOWNLOADED -> {
-        // Trigger model download
-        Locanara.downloadGeminiNano()
-    }
-    DownloadStatus.DOWNLOADING -> {
-        println("Download progress: \${status.downloadProgress}%")
-    }
-    DownloadStatus.DOWNLOADED -> {
-        println("Model ready to use")
-    }
-}`}
-        />
-
         <AnchorLink id="summarize" level="h3">
           Summarize Text
         </AnchorLink>
         <CodeBlock
           language="kotlin"
-          code={`val result = Locanara.summarize(
-    text = "Your long text here...",
-    style = SummarizeStyle.PARAGRAPH
-)
+          code={`import com.locanara.builtin.SummarizeChain
 
-result.fold(
-    onSuccess = { summary ->
-        println(summary.text)
-    },
-    onFailure = { error ->
-        println("Error: $error")
-    }
-)`}
+// Using SummarizeChain
+val result = SummarizeChain(bulletCount = 3).run(
+    "Your long text here..."
+)
+println(result.summary)
+println("Original: \${result.originalLength} chars")`}
         />
 
         <AnchorLink id="rewrite" level="h3">
@@ -167,41 +148,36 @@ result.fold(
         </AnchorLink>
         <CodeBlock
           language="kotlin"
-          code={`val result = Locanara.rewrite(
-    text = "Your text here...",
-    style = RewriteStyle.FORMAL
-)
+          code={`import com.locanara.builtin.RewriteChain
+import com.locanara.builtin.RewriteOutputType
 
-result.fold(
-    onSuccess = { rewritten ->
-        println(rewritten.text)
-    },
-    onFailure = { error ->
-        println("Error: $error")
-    }
-)`}
+// Using RewriteChain
+val result = RewriteChain(style = RewriteOutputType.PROFESSIONAL).run(
+    "Your text here..."
+)
+println(result.rewrittenText)`}
         />
 
-        <AnchorLink id="proofread" level="h3">
-          Proofread Text
+        <AnchorLink id="chat" level="h3">
+          Chat (Conversational AI)
         </AnchorLink>
         <CodeBlock
           language="kotlin"
-          code={`val result = Locanara.proofread(
-    text = "Text with erors to fix..."
+          code={`import com.locanara.builtin.ChatChain
+import com.locanara.composable.BufferMemory
+
+// Chat with memory
+val memory = BufferMemory()
+val chain = ChatChain(
+    memory = memory,
+    systemPrompt = "You are a helpful assistant."
 )
 
-result.fold(
-    onSuccess = { proofread ->
-        println("Corrected: \${proofread.correctedText}")
-        proofread.corrections.forEach { correction ->
-            println("\${correction.original} -> \${correction.corrected}")
-        }
-    },
-    onFailure = { error ->
-        println("Error: $error")
-    }
-)`}
+val r1 = chain.run("What is the capital of France?")
+println(r1.message)  // "The capital of France is Paris."
+
+val r2 = chain.run("What about Germany?")
+println(r2.message)  // Remembers context from previous turn`}
         />
       </section>
 
@@ -213,7 +189,7 @@ result.fold(
           <thead>
             <tr>
               <th>Feature</th>
-              <th>ML Kit API</th>
+              <th>Chain / Backend</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -221,58 +197,51 @@ result.fold(
             <tr>
               <td>Summarize</td>
               <td>
-                <code>Summarization</code>
+                <code>SummarizeChain</code> (ML Kit)
               </td>
               <td>Available</td>
             </tr>
             <tr>
               <td>Rewrite</td>
               <td>
-                <code>Rewriting</code>
+                <code>RewriteChain</code> (ML Kit)
               </td>
               <td>Available</td>
             </tr>
             <tr>
               <td>Proofread</td>
               <td>
-                <code>Proofreading</code>
+                <code>ProofreadChain</code> (ML Kit)
               </td>
               <td>Available</td>
             </tr>
             <tr>
-              <td>Describe Image</td>
+              <td>Classify</td>
               <td>
-                <code>ImageDescription</code>
+                <code>ClassifyChain</code> (Prompt API)
+              </td>
+              <td>Available</td>
+            </tr>
+            <tr>
+              <td>Extract</td>
+              <td>
+                <code>ExtractChain</code> (Prompt API)
+              </td>
+              <td>Available</td>
+            </tr>
+            <tr>
+              <td>Translate</td>
+              <td>
+                <code>TranslateChain</code> (Prompt API)
               </td>
               <td>Available</td>
             </tr>
             <tr>
               <td>Chat</td>
               <td>
-                <code>AICore Inference</code>
+                <code>ChatChain</code> (Prompt API)
               </td>
-              <td>Experimental</td>
-            </tr>
-            <tr>
-              <td>Translate</td>
-              <td>
-                <code>-</code>
-              </td>
-              <td>Planned</td>
-            </tr>
-            <tr>
-              <td>Classify</td>
-              <td>
-                <code>-</code>
-              </td>
-              <td>Planned</td>
-            </tr>
-            <tr>
-              <td>Extract</td>
-              <td>
-                <code>-</code>
-              </td>
-              <td>Planned</td>
+              <td>Available</td>
             </tr>
           </tbody>
         </table>
@@ -284,26 +253,21 @@ result.fold(
         </AnchorLink>
         <CodeBlock
           language="kotlin"
-          code={`val result = Locanara.summarize(text = text)
-
-result.fold(
-    onSuccess = { summary ->
-        // Handle success
-        println(summary.text)
-    },
-    onFailure = { error ->
-        when (error) {
-            is LocanaraError.FeatureNotAvailable ->
-                println("This feature is not available on this device")
-            is LocanaraError.ModelNotReady ->
-                println("Gemini Nano model is not ready")
-            is LocanaraError.InputTooLong ->
-                println("Input text exceeds maximum length")
-            is LocanaraError.Unknown ->
-                println("Unknown error: \${error.message}")
-        }
+          code={`try {
+    val result = SummarizeChain().run(text)
+    println(result.summary)
+} catch (e: LocanaraException) {
+    when (e) {
+        is LocanaraException.FeatureNotAvailable ->
+            println("This feature is not available on this device")
+        is LocanaraException.ModelNotReady ->
+            println("Gemini Nano model is not ready")
+        is LocanaraException.InputTooLong ->
+            println("Input text exceeds maximum length")
+        else ->
+            println("Error: \${e.message}")
     }
-)`}
+}`}
         />
       </section>
 
@@ -347,6 +311,9 @@ result.fold(
           Best Practices
         </AnchorLink>
         <ul>
+          <li>
+            Set <code>LocanaraDefaults.model</code> once at app startup
+          </li>
           <li>
             Always check <code>getDeviceCapability()</code> before using
             features

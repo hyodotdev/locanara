@@ -12,7 +12,13 @@ import com.locanara.example.components.pages.ChatScreen
 import com.locanara.example.components.pages.TranslateScreen
 import com.locanara.example.components.pages.RewriteScreen
 import com.locanara.example.components.pages.ProofreadScreen
-import com.locanara.example.components.pages.DescribeImageScreen
+import com.locanara.example.components.pages.framework.AgentDemo
+import com.locanara.example.components.pages.framework.ChainDemo
+import com.locanara.example.components.pages.framework.GuardrailDemo
+import com.locanara.example.components.pages.framework.MemoryDemo
+import com.locanara.example.components.pages.framework.ModelDemo
+import com.locanara.example.components.pages.framework.PipelineDemo
+import com.locanara.example.components.pages.framework.SessionDemo
 
 /**
  * Navigation routes for the example app.
@@ -26,7 +32,14 @@ object Routes {
     const val TRANSLATE = "translate"
     const val REWRITE = "rewrite"
     const val PROOFREAD = "proofread"
-    const val DESCRIBE_IMAGE = "describe_image"
+    // Framework demos
+    const val FRAMEWORK_MODEL = "framework_model"
+    const val FRAMEWORK_CHAIN = "framework_chain"
+    const val FRAMEWORK_PIPELINE = "framework_pipeline"
+    const val FRAMEWORK_MEMORY = "framework_memory"
+    const val FRAMEWORK_GUARDRAIL = "framework_guardrail"
+    const val FRAMEWORK_SESSION = "framework_session"
+    const val FRAMEWORK_AGENT = "framework_agent"
 }
 
 /**
@@ -50,6 +63,9 @@ fun LocanaraNavHost(
             MainTabNavigation(
                 navController = navController,
                 onNavigateToFeature = { route ->
+                    navController.navigate(route)
+                },
+                onNavigateToFrameworkDemo = { route ->
                     navController.navigate(route)
                 }
             )
@@ -98,8 +114,45 @@ fun LocanaraNavHost(
             )
         }
 
-        composable(Routes.DESCRIBE_IMAGE) {
-            DescribeImageScreen(
+        // Framework Demo Screens
+        composable(Routes.FRAMEWORK_MODEL) {
+            ModelDemo(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.FRAMEWORK_CHAIN) {
+            ChainDemo(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.FRAMEWORK_PIPELINE) {
+            PipelineDemo(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.FRAMEWORK_MEMORY) {
+            MemoryDemo(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.FRAMEWORK_GUARDRAIL) {
+            GuardrailDemo(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.FRAMEWORK_SESSION) {
+            SessionDemo(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.FRAMEWORK_AGENT) {
+            AgentDemo(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

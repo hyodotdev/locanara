@@ -12,20 +12,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.locanara.ClassifyResult
+import com.locanara.builtin.ClassifyChain
 import com.locanara.example.components.shared.FeatureScreenTemplate
 import com.locanara.example.components.shared.SampleTexts
-import com.locanara.example.viewmodel.LocanaraViewModel
+import kotlinx.coroutines.launch
 
 private val defaultCategories = listOf(
     "Technology",
@@ -42,16 +42,14 @@ private val defaultCategories = listOf(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ClassifyScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: LocanaraViewModel = viewModel()
-) {
+fun ClassifyScreen(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf(SampleTexts.CLASSIFY_TEXT) }
     val selectedCategories = remember { mutableStateListOf(*defaultCategories.toTypedArray()) }
     var customCategory by remember { mutableStateOf("") }
-
-    val isExecuting by viewModel.isExecuting.collectAsState()
-    val executionResult by viewModel.executionResult.collectAsState()
+    var result by remember { mutableStateOf<ClassifyResult?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     FeatureScreenTemplate(
         title = "Classify",
@@ -59,13 +57,27 @@ fun ClassifyScreen(
         inputValue = inputText,
         onInputChange = { inputText = it },
         inputPlaceholder = "Enter text to classify into categories...",
-        isExecuting = isExecuting,
-        executionResult = executionResult,
+        isLoading = isLoading,
+        errorMessage = errorMessage,
         onExecute = {
-            viewModel.classify(
-                text = inputText,
-                categories = if (selectedCategories.isNotEmpty()) selectedCategories.toList() else null
-            )
+            isLoading = true
+            errorMessage = null
+            result = null
+            scope.launch {
+                try {
+                    println("[ClassifyScreen] input: ${inputText.take(200)}, categories: ${selectedCategories.toList()}")
+                    val chain = ClassifyChain(
+                        categories = selectedCategories.toList()
+                    )
+                    result = chain.run(inputText)
+                    println("[ClassifyScreen] result: ${result?.classifications?.joinToString { "${it.label}: ${it.score}" }}")
+                } catch (e: Exception) {
+                    println("[ClassifyScreen] error: ${e.message}")
+                    errorMessage = e.message ?: "Unknown error"
+                } finally {
+                    isLoading = false
+                }
+            }
         },
         onNavigateBack = onNavigateBack,
         executeButtonText = "Classify",
@@ -130,8 +142,7 @@ fun ClassifyScreen(
                 )
             }
         },
-        resultContent = { result ->
-            val classifyResult = result.result as? ClassifyResult
+        resultContent = result?.let { classifyResult -> {
             Column {
                 Text(
                     text = "Classification Results",
@@ -139,20 +150,14 @@ fun ClassifyScreen(
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                classifyResult?.classifications?.forEach { classification ->
+                classifyResult.classifications.forEach { classification ->
                     Text(
                         text = "${classification.label}: ${String.format("%.1f", classification.score * 100)}%",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                 }
-                if (classifyResult == null) {
-                    Text(
-                        text = "No classification results available",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
             }
-        }
+        }}
     )
 }

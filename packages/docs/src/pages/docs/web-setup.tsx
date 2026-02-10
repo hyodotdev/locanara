@@ -299,7 +299,7 @@ locanara.destroy();`}
             <a href="/docs/types/web">Web Types</a>
           </li>
           <li>
-            <a href="/docs/apis/web">Web APIs</a>
+            <a href="/docs/utils/web">Web APIs</a>
           </li>
           <li>
             <a href="/docs/errors">Error Handling</a>

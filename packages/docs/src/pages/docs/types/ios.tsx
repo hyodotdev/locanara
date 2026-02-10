@@ -95,7 +95,7 @@ function TypesIOS() {
             <Link to="/docs/types/web">Web Types</Link>
           </li>
           <li>
-            <Link to="/docs/apis/ios">iOS APIs</Link>
+            <Link to="/docs/utils/ios">iOS APIs</Link>
           </li>
           <li>
             <Link to="/docs/ios-setup">iOS Setup Guide</Link>

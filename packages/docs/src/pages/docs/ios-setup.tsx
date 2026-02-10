@@ -103,9 +103,9 @@ import Locanara`}
         <CodeBlock
           language="swift"
           code={`// Check if Apple Intelligence is available
-let capability = await Locanara.getDeviceCapability()
+let capability = try await LocanaraClient.shared.getDeviceCapability()
 
-if capability.isAvailable {
+if capability.supportsOnDeviceAI {
     print("AI features available: \\(capability.availableFeatures)")
 } else {
     print("Apple Intelligence not available")
@@ -124,17 +124,12 @@ if capability.isAvailable {
         </AnchorLink>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.summarize(
-    text: "Your long text here...",
-    style: .paragraph
+          code={`// Using SummarizeChain
+let result = try await SummarizeChain(bulletCount: 3).run(
+    "Your long text here..."
 )
-
-switch result {
-case .success(let summary):
-    print(summary.text)
-case .failure(let error):
-    print("Error: \\(error)")
-}`}
+print(result.summary)
+print("Original: \\(result.originalLength) chars")`}
         />
 
         <AnchorLink id="translate" level="h3">
@@ -142,17 +137,11 @@ case .failure(let error):
         </AnchorLink>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.translate(
-    text: "Hello, world!",
-    targetLanguage: .korean
+          code={`// Using TranslateChain
+let result = try await TranslateChain(targetLanguage: "ko").run(
+    "Hello, world!"
 )
-
-switch result {
-case .success(let translation):
-    print(translation.translatedText)
-case .failure(let error):
-    print("Error: \\(error)")
-}`}
+print(result.translatedText)  // "안녕하세요, 세계!"`}
         />
 
         <AnchorLink id="chat" level="h3">
@@ -160,18 +149,18 @@ case .failure(let error):
         </AnchorLink>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.chat(
-    messages: [
-        ChatMessage(role: .user, content: "What is the capital of France?")
-    ]
+          code={`// Using ChatChain with memory
+let memory = BufferMemory()
+let chain = ChatChain(
+    memory: memory,
+    systemPrompt: "You are a helpful assistant."
 )
 
-switch result {
-case .success(let response):
-    print(response.message)
-case .failure(let error):
-    print("Error: \\(error)")
-}`}
+let r1 = try await chain.run("What is the capital of France?")
+print(r1.message)  // "The capital of France is Paris."
+
+let r2 = try await chain.run("What about Germany?")
+print(r2.message)  // Remembers context from previous turn`}
         />
       </section>
 
@@ -183,7 +172,7 @@ case .failure(let error):
           <thead>
             <tr>
               <th>Feature</th>
-              <th>Method</th>
+              <th>Chain</th>
               <th>Description</th>
             </tr>
           </thead>
@@ -191,58 +180,51 @@ case .failure(let error):
             <tr>
               <td>Summarize</td>
               <td>
-                <code>summarize()</code>
+                <code>SummarizeChain</code>
               </td>
               <td>Condense text into key points</td>
             </tr>
             <tr>
               <td>Classify</td>
               <td>
-                <code>classify()</code>
+                <code>ClassifyChain</code>
               </td>
               <td>Categorize text into labels</td>
             </tr>
             <tr>
               <td>Extract</td>
               <td>
-                <code>extract()</code>
+                <code>ExtractChain</code>
               </td>
               <td>Extract entities from text</td>
             </tr>
             <tr>
               <td>Chat</td>
               <td>
-                <code>chat()</code>
+                <code>ChatChain</code>
               </td>
               <td>Conversational AI</td>
             </tr>
             <tr>
               <td>Translate</td>
               <td>
-                <code>translate()</code>
+                <code>TranslateChain</code>
               </td>
               <td>Language translation</td>
             </tr>
             <tr>
               <td>Rewrite</td>
               <td>
-                <code>rewrite()</code>
+                <code>RewriteChain</code>
               </td>
               <td>Rephrase with different styles</td>
             </tr>
             <tr>
               <td>Proofread</td>
               <td>
-                <code>proofread()</code>
+                <code>ProofreadChain</code>
               </td>
               <td>Grammar and spelling check</td>
-            </tr>
-            <tr>
-              <td>Describe Image</td>
-              <td>
-                <code>describeImage()</code>
-              </td>
-              <td>Generate image descriptions</td>
             </tr>
           </tbody>
         </table>
@@ -254,14 +236,10 @@ case .failure(let error):
         </AnchorLink>
         <CodeBlock
           language="swift"
-          code={`let result = await Locanara.summarize(text: text)
-
-switch result {
-case .success(let summary):
-    // Handle success
-    print(summary.text)
-
-case .failure(let error):
+          code={`do {
+    let result = try await SummarizeChain().run(text)
+    print(result.summary)
+} catch let error as LocanaraError {
     switch error {
     case .featureNotAvailable:
         print("This feature is not available on this device")
@@ -269,11 +247,11 @@ case .failure(let error):
         print("AI model is still loading")
     case .inputTooLong:
         print("Input text exceeds maximum length")
-    case .networkError(let underlying):
-        print("Network error: \\(underlying)")
-    case .unknown(let message):
-        print("Unknown error: \\(message)")
+    default:
+        print("Error: \\(error)")
     }
+} catch {
+    print("Unexpected error: \\(error)")
 }`}
         />
       </section>

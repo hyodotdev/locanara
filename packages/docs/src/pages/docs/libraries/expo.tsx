@@ -55,7 +55,8 @@ if (capability.isSupported) {
         <h2 id="available-apis">Available APIs</h2>
         <p>
           This library exposes the same API as Locanara SDK. See the{" "}
-          <Link to="/docs/apis">API Reference</Link> for detailed documentation.
+          <Link to="/docs/utils">API Reference</Link> for detailed
+          documentation.
         </p>
         <ul>
           <li>
@@ -65,43 +66,43 @@ if (capability.isSupported) {
             - Check device AI support
           </li>
           <li>
-            <Link to="/docs/apis/summarize">
+            <Link to="/docs/utils/summarize">
               <code>summarize()</code>
             </Link>{" "}
             - Text summarization
           </li>
           <li>
-            <Link to="/docs/apis/classify">
+            <Link to="/docs/utils/classify">
               <code>classify()</code>
             </Link>{" "}
             - Text classification
           </li>
           <li>
-            <Link to="/docs/apis/extract">
+            <Link to="/docs/utils/extract">
               <code>extract()</code>
             </Link>{" "}
             - Entity extraction
           </li>
           <li>
-            <Link to="/docs/apis/chat">
+            <Link to="/docs/utils/chat">
               <code>chat()</code>
             </Link>{" "}
             - Conversational AI
           </li>
           <li>
-            <Link to="/docs/apis/translate">
+            <Link to="/docs/utils/translate">
               <code>translate()</code>
             </Link>{" "}
             - Language translation
           </li>
           <li>
-            <Link to="/docs/apis/rewrite">
+            <Link to="/docs/utils/rewrite">
               <code>rewrite()</code>
             </Link>{" "}
             - Text rewriting
           </li>
           <li>
-            <Link to="/docs/apis/proofread">
+            <Link to="/docs/utils/proofread">
               <code>proofread()</code>
             </Link>{" "}
             - Grammar correction
@@ -124,7 +125,7 @@ if (capability.isSupported) {
 
       <PageNavigation
         prev={{ to: "/docs/libraries", label: "Libraries" }}
-        next={{ to: "/docs/apis", label: "API Reference" }}
+        next={{ to: "/docs/utils", label: "API Reference" }}
       />
     </div>
   );

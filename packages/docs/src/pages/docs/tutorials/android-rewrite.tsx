@@ -14,7 +14,7 @@ function AndroidRewriteTutorial() {
       <h1>Android: Rewrite Tutorial</h1>
       <p>
         Rewrite text with different tones like professional, friendly,
-        elaborate, or shortened using Gemini Nano and ML Kit GenAI.
+        elaborate, or shortened using Gemini Nano.
       </p>
 
       <section>
@@ -26,39 +26,24 @@ function AndroidRewriteTutorial() {
             Locanara SDK installed (see{" "}
             <a href="/docs/android-setup">Setup Guide</a>)
           </li>
+          <li>
+            Default model set at startup:{" "}
+            <code>LocanaraDefaults.model = PromptApiModel(context)</code>
+          </li>
         </ul>
       </section>
 
       <section>
         <h2>1. Basic Rewrite</h2>
-        <p>Rewrite text with a specific style.</p>
+        <p>Rewrite text with a specific style using RewriteChain.</p>
 
-        <CodeBlock language="kotlin">{`import com.locanara.*
+        <CodeBlock language="kotlin">{`import com.locanara.builtin.RewriteChain
+import com.locanara.builtin.RewriteOutputType
 
-suspend fun rewrite(text: String, style: RewriteOutputType): String {
-    val locanara = Locanara.getInstance()
-
-    val input = ExecuteFeatureInput(
-        feature = FeatureType.REWRITE,
-        input = text,
-        parameters = FeatureParametersInput(
-            rewrite = RewriteParametersInput(
-                outputType = style
-            )
-        )
-    )
-
-    val result = locanara.executeFeature(input)
-    return result.result?.rewrite?.rewrittenText
-        ?: throw LocanaraException("Rewrite failed")
-}
-
-// Usage
-val professional = rewrite(
-    text = "Hey! Can we meet tomorrow?",
-    style = RewriteOutputType.PROFESSIONAL
+val result = RewriteChain(style = RewriteOutputType.PROFESSIONAL).run(
+    "Hey! Can we meet tomorrow?"
 )
-println(professional)
+println(result.rewrittenText)
 // "I would appreciate the opportunity to meet with you tomorrow."`}</CodeBlock>
       </section>
 
@@ -69,21 +54,39 @@ println(professional)
         <CodeBlock language="kotlin">{`val original = "Hey! Can we meet up tomorrow to talk about the project?"
 
 // Professional - formal business tone
-val pro = rewrite(original, RewriteOutputType.PROFESSIONAL)
+val pro = RewriteChain(style = RewriteOutputType.PROFESSIONAL).run(original)
 // "I would like to schedule a meeting for tomorrow to discuss the project."
 
 // Friendly - casual, warm tone
-val friendly = rewrite(original, RewriteOutputType.FRIENDLY)
+val friendly = RewriteChain(style = RewriteOutputType.FRIENDLY).run(original)
 // "Would love to catch up tomorrow and chat about the project!"
 
 // Elaborate - more detailed
-val elaborate = rewrite(original, RewriteOutputType.ELABORATE)
+val elaborate = RewriteChain(style = RewriteOutputType.ELABORATE).run(original)
 // "I was wondering if you might be available tomorrow so that we could
 //  have a discussion about the current state of our project."
 
 // Shorten - concise
-val short = rewrite(original, RewriteOutputType.SHORTEN)
+val short = RewriteChain(style = RewriteOutputType.SHORTEN).run(original)
 // "Meeting tomorrow to discuss project?"`}</CodeBlock>
+      </section>
+
+      <section>
+        <h2>3. Pipeline Composition</h2>
+        <p>Combine RewriteChain with other chains.</p>
+
+        <CodeBlock language="kotlin">{`import com.locanara.core.LocanaraDefaults
+
+val model = LocanaraDefaults.model
+
+// Proofread first, then rewrite in professional tone
+val result = model.pipeline()
+    .proofread()
+    .rewrite(style = RewriteOutputType.PROFESSIONAL)
+    .run("Hey thier! Cna we mee tomorrow?")
+
+println(result.rewrittenText)
+// Corrected and professionalized`}</CodeBlock>
       </section>
 
       <section>
@@ -128,14 +131,17 @@ val short = rewrite(original, RewriteOutputType.SHORTEN)
         <h2>Key Points</h2>
         <ul>
           <li>
-            <strong>RewriteOutputType</strong>: Choose between{" "}
-            <code>PROFESSIONAL</code>, <code>FRIENDLY</code>,{" "}
-            <code>ELABORATE</code>, or <code>SHORTEN</code>
+            <strong>RewriteChain</strong>: Takes a <code>style</code> parameter
+            ( <code>PROFESSIONAL</code>, <code>FRIENDLY</code>,{" "}
+            <code>ELABORATE</code>, <code>SHORTEN</code>)
+          </li>
+          <li>
+            <strong>RewriteResult</strong>: Contains <code>rewrittenText</code>
           </li>
           <li>The original meaning is preserved while adapting the tone</li>
           <li>
-            Useful for email drafting, social media posts, and content
-            adaptation
+            Combine with ProofreadChain via Pipeline for corrected + rewritten
+            output
           </li>
         </ul>
       </section>

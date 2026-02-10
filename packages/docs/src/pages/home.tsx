@@ -20,7 +20,7 @@ function Home() {
           </h1>
           <div style={{ marginBottom: "1.5rem" }}>
             <Link
-              to="/docs/updates/versions"
+              to="/docs/introduction"
               className="version-badge"
               title="View versions"
             >
@@ -28,9 +28,10 @@ function Home() {
             </Link>
           </div>
           <p className="hero-subtitle">
-            Unified On-Device AI SDK for iOS, Android, and Web
+            On-Device AI Framework for iOS and Android
             <br />
-            Privacy-first AI processing with GraphQL-based API
+            Composable chains, memory, guardrails, and pipeline DSL —
+            privacy-first
           </p>
           <div className="hero-actions">
             <Link to="/introduction" className="btn btn-primary">
@@ -104,13 +105,13 @@ function Home() {
               textAlign: "center",
             }}
           >
-            Locanara is an SDK and common layer for developers to easily use
-            on-device AI. Use the same concepts and structure across iOS,
-            Android, Web, React Native, and Flutter.
+            Locanara is an on-device AI framework inspired by LangChain,
+            purpose-built for mobile. Build, compose, and extend AI features
+            using platform-native models — all processing happens locally.
             <br />
             <br />
             <strong>
-              "AI that runs directly on device, regardless of platform."
+              "A framework for building AI features, not just calling a model."
             </strong>
           </p>
           <div className="benefit-grid">
@@ -122,31 +123,31 @@ function Home() {
               </p>
             </div>
             <div className="benefit">
-              <h3>Unified API</h3>
+              <h3>Composable Chains</h3>
               <p>
-                Same concepts, same structure across all platforms. Platform
-                differences handled by the SDK.
+                Build AI features by composing chains. Implement the Chain
+                protocol to create custom functionality.
               </p>
             </div>
             <div className="benefit">
-              <h3>Instant & Offline</h3>
+              <h3>Pipeline DSL</h3>
               <p>
-                No network required. AI responds instantly and works completely
-                offline.
+                Chain multiple operations with compile-time type safety.
+                Proofread then translate in one pipeline.
               </p>
             </div>
             <div className="benefit">
-              <h3>Cross-Platform</h3>
+              <h3>Memory & Guardrails</h3>
               <p>
-                iOS, Android, Web, React Native, Flutter. Native performance
-                with unified API.
+                Built-in conversation memory (Buffer, Summary) and input/output
+                guardrails for production use.
               </p>
             </div>
             <div className="benefit">
-              <h3>Feature Rich</h3>
+              <h3>7 Built-in Chains</h3>
               <p>
                 Summarize, Classify, Extract, Chat, Translate, Rewrite,
-                Proofread, and Image Description.
+                Proofread — ready to use and extendable.
               </p>
             </div>
             <div className="benefit">
@@ -164,31 +165,43 @@ function Home() {
         <div className="section-container">
           <h2>How Locanara Works</h2>
           <p className="section-subtitle">
-            Unifying diverse platform AI APIs into a single, consistent SDK
+            A layered framework — like LangChain, but for on-device AI
           </p>
           <div className="specification-grid">
             <div className="spec-card">
               <div className="spec-card-header">
-                <div className="spec-icon">📋</div>
-                <h3>Unified Features</h3>
-                <p>Standard AI capabilities across all platforms</p>
+                <div className="spec-icon">🔗</div>
+                <h3>Chain Protocol</h3>
+                <p>Build your own AI features</p>
               </div>
               <div className="spec-items">
-                <Link to="/docs/apis/summarize" className="spec-item">
-                  <code>summarize()</code>
-                  <span>Text summarization</span>
+                <Link
+                  to="/docs/why-locanara#our-approach"
+                  className="spec-item"
+                >
+                  <code>Chain</code>
+                  <span>Implement custom AI logic</span>
                 </Link>
-                <Link to="/docs/apis/classify" className="spec-item">
-                  <code>classify()</code>
-                  <span>Text classification</span>
+                <Link
+                  to="/docs/why-locanara#our-approach"
+                  className="spec-item"
+                >
+                  <code>Pipeline</code>
+                  <span>Compose chains with type safety</span>
                 </Link>
-                <Link to="/docs/apis/translate" className="spec-item">
-                  <code>translate()</code>
-                  <span>Language translation</span>
+                <Link
+                  to="/docs/why-locanara#our-approach"
+                  className="spec-item"
+                >
+                  <code>Memory</code>
+                  <span>Buffer &amp; Summary memory</span>
                 </Link>
-                <Link to="/docs/apis/chat" className="spec-item">
-                  <code>chat()</code>
-                  <span>Conversational AI</span>
+                <Link
+                  to="/docs/why-locanara#our-approach"
+                  className="spec-item"
+                >
+                  <code>Guardrail</code>
+                  <span>Input/output validation</span>
                 </Link>
               </div>
             </div>
@@ -196,47 +209,43 @@ function Home() {
             <div className="spec-card">
               <div className="spec-card-header">
                 <div className="spec-icon">⚡</div>
-                <h3>Platform APIs</h3>
-                <p>Native integration with platform AI</p>
+                <h3>Platform Backends</h3>
+                <p>Native integration with OS AI</p>
               </div>
               <div className="spec-items">
-                <Link to="/docs/apis/ios" className="spec-item">
+                <Link to="/docs/tutorials/ios" className="spec-item">
                   <code>Apple Intelligence</code>
                   <span>Foundation Models</span>
                 </Link>
-                <Link to="/docs/apis/android" className="spec-item">
+                <Link to="/docs/tutorials/android" className="spec-item">
                   <code>Gemini Nano</code>
                   <span>ML Kit GenAI</span>
-                </Link>
-                <Link to="/docs/apis/web" className="spec-item">
-                  <code>Chrome Built-in AI</code>
-                  <span>Gemini Nano for Web</span>
                 </Link>
               </div>
             </div>
 
             <div className="spec-card">
               <div className="spec-card-header">
-                <div className="spec-icon">🔧</div>
-                <h3>Unified Types</h3>
-                <p>GraphQL-based type definitions</p>
+                <div className="spec-icon">📦</div>
+                <h3>7 Built-in Chains</h3>
+                <p>Samples &amp; ready-to-use utilities</p>
               </div>
               <div className="spec-items">
-                <Link to="/docs/types#device-capability" className="spec-item">
-                  <code>DeviceCapability</code>
-                  <span>Device AI capabilities</span>
+                <Link to="/docs/utils/summarize" className="spec-item">
+                  <code>SummarizeChain</code>
+                  <span>Text summarization</span>
                 </Link>
-                <Link to="/docs/types#execution-result" className="spec-item">
-                  <code>ExecutionResult</code>
-                  <span>AI execution results</span>
+                <Link to="/docs/utils/classify" className="spec-item">
+                  <code>ClassifyChain</code>
+                  <span>Text classification</span>
                 </Link>
-                <Link to="/docs/types#feature-type" className="spec-item">
-                  <code>FeatureType</code>
-                  <span>Available AI features</span>
+                <Link to="/docs/utils/translate" className="spec-item">
+                  <code>TranslateChain</code>
+                  <span>Language translation</span>
                 </Link>
-                <Link to="/docs/types#summarize-result" className="spec-item">
-                  <code>SummarizeResult</code>
-                  <span>Summarization output</span>
+                <Link to="/docs/utils/chat" className="spec-item">
+                  <code>ChatChain</code>
+                  <span>Conversational AI</span>
                 </Link>
               </div>
             </div>
@@ -246,9 +255,10 @@ function Home() {
 
       <section className="home-section section-who">
         <div className="section-container">
-          <h2>Supported AI Features</h2>
+          <h2>Build Any AI Feature</h2>
           <p className="section-subtitle">
-            Comprehensive on-device AI capabilities
+            Implement the Chain protocol to create your own — built-in chains
+            are just samples
           </p>
           <div
             style={{
@@ -258,99 +268,98 @@ function Home() {
               justifyContent: "center",
             }}
           >
+            <div
+              className="implementation-card"
+              style={{ flex: "0 0 auto", minWidth: "180px" }}
+            >
+              <div style={{ fontSize: "2rem" }}>🔗</div>
+              <div>
+                <h3>Your Custom Chain</h3>
+                <p>Content moderation, food labels, medical triage...</p>
+              </div>
+            </div>
+
             <Link
-              to="/docs/apis/summarize"
+              to="/docs/utils/summarize"
               className="implementation-card"
               style={{ flex: "0 0 auto", minWidth: "180px" }}
             >
               <div style={{ fontSize: "2rem" }}>📝</div>
               <div>
-                <h3>Summarize</h3>
-                <p>Condense long text into key points</p>
+                <h3>SummarizeChain</h3>
+                <p>Built-in sample</p>
               </div>
             </Link>
 
             <Link
-              to="/docs/apis/classify"
+              to="/docs/utils/classify"
               className="implementation-card"
               style={{ flex: "0 0 auto", minWidth: "180px" }}
             >
               <div style={{ fontSize: "2rem" }}>🏷️</div>
               <div>
-                <h3>Classify</h3>
-                <p>Categorize text into predefined labels</p>
+                <h3>ClassifyChain</h3>
+                <p>Built-in sample</p>
               </div>
             </Link>
 
             <Link
-              to="/docs/apis/extract"
+              to="/docs/utils/extract"
               className="implementation-card"
               style={{ flex: "0 0 auto", minWidth: "180px" }}
             >
               <div style={{ fontSize: "2rem" }}>🔍</div>
               <div>
-                <h3>Extract</h3>
-                <p>Extract entities and key-value pairs</p>
+                <h3>ExtractChain</h3>
+                <p>Built-in sample</p>
               </div>
             </Link>
 
             <Link
-              to="/docs/apis/chat"
+              to="/docs/utils/chat"
               className="implementation-card"
               style={{ flex: "0 0 auto", minWidth: "180px" }}
             >
               <div style={{ fontSize: "2rem" }}>💬</div>
               <div>
-                <h3>Chat</h3>
-                <p>Conversational AI interactions</p>
+                <h3>ChatChain</h3>
+                <p>Built-in sample</p>
               </div>
             </Link>
 
             <Link
-              to="/docs/apis/translate"
+              to="/docs/utils/translate"
               className="implementation-card"
               style={{ flex: "0 0 auto", minWidth: "180px" }}
             >
               <div style={{ fontSize: "2rem" }}>🌐</div>
               <div>
-                <h3>Translate</h3>
-                <p>Multi-language translation</p>
+                <h3>TranslateChain</h3>
+                <p>Built-in sample</p>
               </div>
             </Link>
 
             <Link
-              to="/docs/apis/rewrite"
+              to="/docs/utils/rewrite"
               className="implementation-card"
               style={{ flex: "0 0 auto", minWidth: "180px" }}
             >
               <div style={{ fontSize: "2rem" }}>✏️</div>
               <div>
-                <h3>Rewrite</h3>
-                <p>Rephrase with different styles</p>
+                <h3>RewriteChain</h3>
+                <p>Built-in sample</p>
               </div>
             </Link>
 
             <Link
-              to="/docs/apis/proofread"
+              to="/docs/utils/proofread"
               className="implementation-card"
               style={{ flex: "0 0 auto", minWidth: "180px" }}
             >
               <div style={{ fontSize: "2rem" }}>✅</div>
               <div>
-                <h3>Proofread</h3>
-                <p>Grammar and spelling correction</p>
-              </div>
-            </Link>
-
-            <Link
-              to="/docs/apis/describe-image"
-              className="implementation-card"
-              style={{ flex: "0 0 auto", minWidth: "180px" }}
-            >
-              <div style={{ fontSize: "2rem" }}>🖼️</div>
-              <div>
-                <h3>Describe Image</h3>
-                <p>Generate image descriptions</p>
+                <h3>ProofreadChain</h3>
+                <p>Built-in sample</p>
               </div>
             </Link>
           </div>

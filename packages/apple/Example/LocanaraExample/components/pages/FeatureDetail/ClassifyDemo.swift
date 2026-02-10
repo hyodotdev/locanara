@@ -2,24 +2,15 @@ import SwiftUI
 import Locanara
 
 struct ClassifyDemo: View {
-    @EnvironmentObject var appState: AppState
     @State private var inputText = "The new iPhone features an incredible camera system with advanced computational photography."
     @State private var categories = "Technology, Sports, Entertainment, Business, Health"
     @State private var result: ClassifyResult?
     @State private var isLoading = false
     @State private var errorMessage: String?
 
-    private var isAIAvailable: Bool {
-        appState.currentEngine != .none && appState.isModelReady
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if !isAIAvailable {
-                    AIModelRequiredBanner()
-                }
-
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Text to Classify")
                         .font(.headline)
@@ -52,7 +43,7 @@ struct ClassifyDemo: View {
                     .frame(height: 20)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(isLoading || inputText.isEmpty || !isAIAvailable)
+                .disabled(isLoading || inputText.isEmpty)
 
                 if let error = errorMessage {
                     Text(error)
@@ -98,26 +89,14 @@ struct ClassifyDemo: View {
         Task {
             do {
                 let categoryList = categories.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }
-                let params = ClassifyParametersInput(categories: categoryList, maxResults: 5)
-
-                DemoLogger.logInput(feature: "CLASSIFY", input: inputText, parameters: params)
-
-                let input = ExecuteFeatureInput(
-                    feature: .classify,
-                    input: inputText,
-                    parameters: FeatureParametersInput(classify: params)
+                let chain = ClassifyChain(
+                    categories: categoryList
                 )
-
-                let executionResult = try await LocanaraClient.shared.executeFeature(input)
-
-                if case .classify(let classifyResult) = executionResult.result {
-                    DemoLogger.logResult(feature: "CLASSIFY", result: classifyResult)
-                    await MainActor.run {
-                        self.result = classifyResult
-                    }
+                let classifyResult = try await chain.run(inputText)
+                await MainActor.run {
+                    self.result = classifyResult
                 }
             } catch {
-                DemoLogger.logError(feature: "CLASSIFY", error: error)
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                 }

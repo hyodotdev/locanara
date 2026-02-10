@@ -1,6 +1,6 @@
 # /apple
 
-Performs all tasks related to the Apple Intelligence SDK (iOS).
+Performs all tasks related to the Apple Intelligence SDK (iOS). The SDK is a layered on-device AI framework with composable chains, memory, guardrails, and pipeline DSL.
 
 ## Usage
 
@@ -28,6 +28,7 @@ When this command is executed, perform the following:
 Classify the user's request into one of:
 
 - **Add Feature**: Check GraphQL schema and implement features not yet in iOS
+- **Add Chain**: Create a new built-in Chain (in BuiltIn/) with typed result and run() method
 - **Validate Code**: Review existing Swift code and identify issues
 - **Add Type**: Implement GraphQL type as Swift struct/class
 - **Implement API**: Implement GraphQL API operation as Swift async function
@@ -40,16 +41,22 @@ Always check the GraphQL schema first:
 ```text
 # Check iOS-related schemas
 - packages/gql/src/type-ios.graphql
-- packages/gql/src/api-ios.graphql
+- packages/gql/src/utils-ios.graphql
 - packages/gql/src/type.graphql (shared)
-- packages/gql/src/api.graphql (shared)
+- packages/gql/src/utils.graphql (shared)
 ```
 
 ### 3. Check Existing Implementation
 
 ```text
-# Check Swift source code
-- packages/apple/Sources/
+# Check Swift source code (framework layers)
+- packages/apple/Sources/Core/          # LocanaraModel, PromptTemplate, OutputParser, Schema
+- packages/apple/Sources/Composable/    # Chain, Tool, Memory, Guardrail
+- packages/apple/Sources/BuiltIn/       # SummarizeChain, ClassifyChain, etc.
+- packages/apple/Sources/DSL/           # Pipeline, PipelineStep, ModelExtensions
+- packages/apple/Sources/Runtime/       # Agent, Session, ChainExecutor
+- packages/apple/Sources/Platform/      # FoundationLanguageModel
+- packages/apple/Sources/Features/      # Legacy feature executors
 ```
 
 ### 4. Perform Task
@@ -121,7 +128,7 @@ public func executeFeatureIOS(
 
 **Always follow Apple Intelligence SDK's SKILL.md rules:**
 
-- Swift 5.9+ coding conventions
+- Swift 6.0+ coding conventions (language mode v5)
 - Async processing with async/await
 - Error handling with LocanaraError
 - Type definition with struct/class
@@ -134,7 +141,7 @@ public func executeFeatureIOS(
 
 Always reference when performing tasks:
 
-- `skills/2-apple-intelligence/SKILL.md` - Apple Intelligence SDK skill guide
+- `.claude/guides/04-apple-package.md` - Apple SDK guide
 - `packages/gql/src/` - GraphQL schema
 - `packages/apple/` - Existing Swift code
 

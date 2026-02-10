@@ -103,7 +103,7 @@ function TypesAndroid() {
             <Link to="/docs/types/web">Web Types</Link>
           </li>
           <li>
-            <Link to="/docs/apis/android">Android APIs</Link>
+            <Link to="/docs/utils/android">Android APIs</Link>
           </li>
           <li>
             <Link to="/docs/android-setup">Android Setup Guide</Link>

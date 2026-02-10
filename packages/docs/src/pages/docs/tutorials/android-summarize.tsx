@@ -14,7 +14,7 @@ function AndroidSummarizeTutorial() {
       <h1>Android: Summarize Tutorial</h1>
       <p>
         Learn how to implement text summarization that condenses long text into
-        bullet points using Gemini Nano and ML Kit GenAI.
+        bullet points using Gemini Nano.
       </p>
 
       <section>
@@ -26,120 +26,90 @@ function AndroidSummarizeTutorial() {
             Locanara SDK installed (see{" "}
             <a href="/docs/android-setup">Setup Guide</a>)
           </li>
+          <li>
+            Default model set at startup:{" "}
+            <code>LocanaraDefaults.model = PromptApiModel(context)</code>
+          </li>
         </ul>
       </section>
 
       <section>
         <h2>1. Basic Summarization</h2>
-        <p>The simplest way to summarize text with default settings.</p>
+        <p>The simplest way to summarize text using SummarizeChain.</p>
 
-        <CodeBlock language="kotlin">{`import com.locanara.*
+        <CodeBlock language="kotlin">{`import com.locanara.builtin.SummarizeChain
 
-suspend fun summarize(text: String): String {
-    val locanara = Locanara.getInstance()
-
-    val input = ExecuteFeatureInput(
-        feature = FeatureType.SUMMARIZE,
-        input = text,
-        parameters = FeatureParametersInput(
-            summarize = SummarizeParametersInput(
-                inputType = SummarizeInputType.ARTICLE,
-                outputType = SummarizeOutputType.ONE_BULLET
-            )
-        )
-    )
-
-    val result = locanara.executeFeature(input)
-    return result.result?.summarize?.summary
-        ?: throw LocanaraException("Summarization failed")
-}
-
-// Usage
-val summary = summarize(longArticle)
-println(summary)`}</CodeBlock>
+// Default: single bullet summary
+val result = SummarizeChain().run(longArticle)
+println(result.summary)
+println("Original: \${result.originalLength} chars -> Summary: \${result.summaryLength} chars")`}</CodeBlock>
       </section>
 
       <section>
-        <h2>2. Output Type Options</h2>
+        <h2>2. Bullet Count Options</h2>
         <p>Control the number of bullet points in the summary.</p>
 
-        <CodeBlock language="kotlin">{`// Available output types
-enum class SummarizeOutputType {
-    ONE_BULLET,     // Single concise summary
-    TWO_BULLETS,    // Two key points
-    THREE_BULLETS   // Three key points
-}
+        <CodeBlock language="kotlin">{`// Single bullet (default)
+val one = SummarizeChain(bulletCount = 1).run(text)
 
-// Example with 3 bullets
-val input = ExecuteFeatureInput(
-    feature = FeatureType.SUMMARIZE,
-    input = text,
-    parameters = FeatureParametersInput(
-        summarize = SummarizeParametersInput(
-            inputType = SummarizeInputType.ARTICLE,
-            outputType = SummarizeOutputType.THREE_BULLETS
-        )
-    )
-)`}</CodeBlock>
+// Two key points
+val two = SummarizeChain(bulletCount = 2).run(text)
+
+// Three key points
+val three = SummarizeChain(bulletCount = 3).run(text)
+println(three.summary)`}</CodeBlock>
       </section>
 
       <section>
-        <h2>3. Input Type Options</h2>
-        <p>Specify the content type for better summarization results.</p>
-
-        <CodeBlock language="kotlin">{`// Available input types
-enum class SummarizeInputType {
-    ARTICLE,       // News articles, blog posts
-    CONVERSATION   // Chat or dialogue
-}
-
-// Example for conversation summarization
-val input = ExecuteFeatureInput(
-    feature = FeatureType.SUMMARIZE,
-    input = chatLog,
-    parameters = FeatureParametersInput(
-        summarize = SummarizeParametersInput(
-            inputType = SummarizeInputType.CONVERSATION,
-            outputType = SummarizeOutputType.ONE_BULLET
-        )
-    )
-)`}</CodeBlock>
-      </section>
-
-      <section>
-        <h2>4. Handle Long Text</h2>
+        <h2>3. Pipeline Composition</h2>
         <p>
-          Use <code>autoTruncate</code> to automatically handle text that
-          exceeds the model's input limit.
+          Combine SummarizeChain with other chains using the Pipeline builder.
         </p>
 
-        <CodeBlock language="kotlin">{`val input = ExecuteFeatureInput(
-    feature = FeatureType.SUMMARIZE,
-    input = veryLongText,
-    parameters = FeatureParametersInput(
-        summarize = SummarizeParametersInput(
-            inputType = SummarizeInputType.ARTICLE,
-            outputType = SummarizeOutputType.THREE_BULLETS,
-            autoTruncate = true  // Automatically truncate if too long
-        )
-    )
-)`}</CodeBlock>
+        <CodeBlock language="kotlin">{`import com.locanara.core.LocanaraDefaults
+
+val model = LocanaraDefaults.model
+
+// Summarize then translate to Korean
+val result = model.pipeline()
+    .summarize(bulletCount = 3)
+    .translate(to = "ko")
+    .run(longArticle)
+
+println(result.translatedText)  // Korean summary`}</CodeBlock>
+      </section>
+
+      <section>
+        <h2>4. Model Extension (One-Liner)</h2>
+        <p>Use the convenience method for the simplest possible API.</p>
+
+        <CodeBlock language="kotlin">{`import com.locanara.core.LocanaraDefaults
+
+val model = LocanaraDefaults.model
+
+// One-liner convenience
+val result = model.summarize(longArticle)
+println(result.summary)`}</CodeBlock>
       </section>
 
       <section>
         <h2>Key Points</h2>
         <ul>
           <li>
-            <strong>SummarizeInputType</strong>: Choose between{" "}
-            <code>ARTICLE</code> or <code>CONVERSATION</code>
+            <strong>SummarizeChain</strong>: Configure with{" "}
+            <code>bulletCount</code> (1, 2, or 3)
           </li>
           <li>
-            <strong>SummarizeOutputType</strong>: Choose <code>ONE_BULLET</code>
-            , <code>TWO_BULLETS</code>, or <code>THREE_BULLETS</code>
+            <strong>SummarizeResult</strong>: Contains <code>summary</code>,{" "}
+            <code>originalLength</code>, and <code>summaryLength</code>
           </li>
           <li>
-            <strong>autoTruncate</strong>: Automatically truncates input if it
-            exceeds the model&apos;s limit
+            <strong>Pipeline</strong>: Compose with other chains like
+            TranslateChain for multi-step workflows
+          </li>
+          <li>
+            <strong>model.summarize()</strong>: One-liner convenience for quick
+            usage
           </li>
         </ul>
       </section>

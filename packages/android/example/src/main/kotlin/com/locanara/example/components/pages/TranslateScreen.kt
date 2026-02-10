@@ -18,19 +18,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.locanara.TranslateResult
+import com.locanara.builtin.TranslateChain
 import com.locanara.example.components.shared.FeatureScreenTemplate
-import com.locanara.example.viewmodel.LocanaraViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Supported languages for translation.
@@ -56,20 +56,18 @@ private val supportedLanguages = listOf(
 /**
  * Translate Feature Demo Screen.
  *
- * Demonstrates text translation between languages.
+ * Demonstrates text translation between languages using TranslateChain.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TranslateScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: LocanaraViewModel = viewModel()
-) {
+fun TranslateScreen(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("Hello, how are you today?") }
     var sourceLanguage by remember { mutableStateOf(supportedLanguages[0]) }  // Auto
     var targetLanguage by remember { mutableStateOf(supportedLanguages[2]) }  // Korean
-
-    val isExecuting by viewModel.isExecuting.collectAsState()
-    val executionResult by viewModel.executionResult.collectAsState()
+    var result by remember { mutableStateOf<TranslateResult?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     FeatureScreenTemplate(
         title = "Translate",
@@ -77,14 +75,29 @@ fun TranslateScreen(
         inputValue = inputText,
         onInputChange = { inputText = it },
         inputPlaceholder = "Enter text to translate...",
-        isExecuting = isExecuting,
-        executionResult = executionResult,
+        isLoading = isLoading,
+        errorMessage = errorMessage,
         onExecute = {
-            viewModel.translate(
-                text = inputText,
-                targetLanguage = targetLanguage.code,
-                sourceLanguage = if (sourceLanguage.code == "auto") null else sourceLanguage.code
-            )
+            isLoading = true
+            errorMessage = null
+            result = null
+            scope.launch {
+                try {
+                    val srcLang = if (sourceLanguage.code == "auto") "en" else sourceLanguage.code
+                    println("[TranslateScreen] input: ${inputText.take(200)}, $srcLang → ${targetLanguage.code}")
+                    val chain = TranslateChain(
+                        targetLanguage = targetLanguage.code,
+                        sourceLanguage = srcLang
+                    )
+                    result = chain.run(inputText)
+                    println("[TranslateScreen] result: ${result?.translatedText?.take(200)}")
+                } catch (e: Exception) {
+                    println("[TranslateScreen] error: ${e.message}")
+                    errorMessage = e.message ?: "Unknown error"
+                } finally {
+                    isLoading = false
+                }
+            }
         },
         onNavigateBack = onNavigateBack,
         executeButtonText = "Translate",
@@ -129,8 +142,7 @@ fun TranslateScreen(
                 )
             }
         },
-        resultContent = { result ->
-            val translateResult = result.result as? TranslateResult
+        resultContent = result?.let { translateResult -> {
             Column {
                 Text(
                     text = "Translation",
@@ -139,17 +151,17 @@ fun TranslateScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = translateResult?.translatedText ?: "No translation available",
+                    text = translateResult.translatedText,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "${translateResult?.sourceLanguage ?: sourceLanguage.name} → ${translateResult?.targetLanguage ?: targetLanguage.name}",
+                    text = "${translateResult.sourceLanguage} → ${translateResult.targetLanguage}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
+        }}
     )
 }
 

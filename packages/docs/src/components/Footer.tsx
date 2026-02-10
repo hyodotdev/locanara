@@ -17,16 +17,16 @@ function Footer() {
               <h4>Documentation</h4>
               <ul>
                 <li>
-                  <a href="/docs/apis">APIs</a>
+                  <a href="/docs/utils">APIs</a>
                 </li>
                 <li>
                   <a href="/docs/types">Types</a>
                 </li>
                 <li>
-                  <a href="/docs/apis/ios">iOS SDK</a>
+                  <a href="/docs/utils/ios">iOS SDK</a>
                 </li>
                 <li>
-                  <a href="/docs/apis/android">Android SDK</a>
+                  <a href="/docs/utils/android">Android SDK</a>
                 </li>
               </ul>
             </div>

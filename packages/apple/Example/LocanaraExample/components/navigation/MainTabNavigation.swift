@@ -25,6 +25,12 @@ struct MainTabNavigation: View {
                     Label("Settings", systemImage: "gear")
                 }
                 .tag(2)
+
+            FrameworkShowcase()
+                .tabItem {
+                    Label("Framework", systemImage: "cube.transparent")
+                }
+                .tag(3)
         }
     }
 }

@@ -6,23 +6,31 @@ import TypesIndex from "./types/index";
 import TypesIOS from "./types/ios";
 import TypesAndroid from "./types/android";
 import APIsIndex from "./apis/index";
-import APIsIOS from "./apis/ios";
-import APIsAndroid from "./apis/android";
-import SummarizeAPI from "./apis/summarize";
-import ClassifyAPI from "./apis/classify";
-import ExtractAPI from "./apis/extract";
-import ChatAPI from "./apis/chat";
-import TranslateAPI from "./apis/translate";
-import RewriteAPI from "./apis/rewrite";
-import ProofreadAPI from "./apis/proofread";
-import DescribeImageAPI from "./apis/describe-image";
 import GetDeviceCapabilityAPI from "./apis/get-device-capability";
+import ChainAPI from "./apis/chain";
+import PipelineAPI from "./apis/pipeline";
+import MemoryAPI from "./apis/memory";
+import GuardrailAPI from "./apis/guardrail";
+import SessionAPI from "./apis/session";
+import AgentAPI from "./apis/agent";
+import ModelAPI from "./apis/model";
+import UtilsIndex from "./utils/index";
+import UtilsIOS from "./utils/ios";
+import UtilsAndroid from "./utils/android";
+import SummarizeAPI from "./utils/summarize";
+import ClassifyAPI from "./utils/classify";
+import ExtractAPI from "./utils/extract";
+import ChatAPI from "./utils/chat";
+import TranslateAPI from "./utils/translate";
+import RewriteAPI from "./utils/rewrite";
+import ProofreadAPI from "./utils/proofread";
+import DescribeImageAPI from "./utils/describe-image";
 import Errors from "./errors";
 import IOSSetup from "./ios-setup";
 import AndroidSetup from "./android-setup";
 import WebSetup from "./web-setup";
 import TypesWeb from "./types/web";
-import APIsWeb from "./apis/web";
+import UtilsWeb from "./utils/web";
 import Example from "./example";
 import Resources from "./resources";
 import TutorialsIndex from "./tutorials/index";
@@ -144,21 +152,36 @@ function Docs() {
                   to: "/docs/apis/get-device-capability",
                   label: "getDeviceCapability",
                 },
-                { to: "/docs/apis/summarize", label: "summarize" },
-                { to: "/docs/apis/classify", label: "classify" },
-                { to: "/docs/apis/extract", label: "extract" },
-                { to: "/docs/apis/chat", label: "chat" },
-                { to: "/docs/apis/translate", label: "translate" },
-                { to: "/docs/apis/rewrite", label: "rewrite" },
-                { to: "/docs/apis/proofread", label: "proofread" },
-                { to: "/docs/apis/describe-image", label: "describeImage" },
-                { to: "/docs/apis/ios", label: "iOS Specific" },
-                { to: "/docs/apis/android", label: "Android Specific" },
-                { to: "/docs/apis/web", label: "Web Specific" },
+                { to: "/docs/apis/chain", label: "Chain" },
+                { to: "/docs/apis/pipeline", label: "Pipeline" },
+                { to: "/docs/apis/memory", label: "Memory" },
+                { to: "/docs/apis/guardrail", label: "Guardrail" },
+                { to: "/docs/apis/session", label: "Session" },
+                { to: "/docs/apis/agent", label: "Agent" },
+                { to: "/docs/apis/model", label: "Model" },
               ]}
               onItemClick={closeSidebar}
               isExpanded={expandedReference === "apis"}
               onToggle={() => handleReferenceToggle("apis")}
+            />
+            <MenuDropdown
+              title="Built-in Utils"
+              titleTo="/docs/utils"
+              items={[
+                { to: "/docs/utils/summarize", label: "summarize" },
+                { to: "/docs/utils/classify", label: "classify" },
+                { to: "/docs/utils/extract", label: "extract" },
+                { to: "/docs/utils/chat", label: "chat" },
+                { to: "/docs/utils/translate", label: "translate" },
+                { to: "/docs/utils/rewrite", label: "rewrite" },
+                { to: "/docs/utils/proofread", label: "proofread" },
+                { to: "/docs/utils/ios", label: "iOS Specific" },
+                { to: "/docs/utils/android", label: "Android Specific" },
+                { to: "/docs/utils/web", label: "Web Specific" },
+              ]}
+              onItemClick={closeSidebar}
+              isExpanded={expandedReference === "utils"}
+              onToggle={() => handleReferenceToggle("utils")}
             />
             <li>
               <NavLink
@@ -232,21 +255,29 @@ function Docs() {
           <Route path="types/android" element={<TypesAndroid />} />
           <Route path="types/web" element={<TypesWeb />} />
           <Route path="apis" element={<APIsIndex />} />
-          <Route path="apis/ios" element={<APIsIOS />} />
-          <Route path="apis/android" element={<APIsAndroid />} />
-          <Route path="apis/web" element={<APIsWeb />} />
           <Route
             path="apis/get-device-capability"
             element={<GetDeviceCapabilityAPI />}
           />
-          <Route path="apis/summarize" element={<SummarizeAPI />} />
-          <Route path="apis/classify" element={<ClassifyAPI />} />
-          <Route path="apis/extract" element={<ExtractAPI />} />
-          <Route path="apis/chat" element={<ChatAPI />} />
-          <Route path="apis/translate" element={<TranslateAPI />} />
-          <Route path="apis/rewrite" element={<RewriteAPI />} />
-          <Route path="apis/proofread" element={<ProofreadAPI />} />
-          <Route path="apis/describe-image" element={<DescribeImageAPI />} />
+          <Route path="apis/chain" element={<ChainAPI />} />
+          <Route path="apis/pipeline" element={<PipelineAPI />} />
+          <Route path="apis/memory" element={<MemoryAPI />} />
+          <Route path="apis/guardrail" element={<GuardrailAPI />} />
+          <Route path="apis/session" element={<SessionAPI />} />
+          <Route path="apis/agent" element={<AgentAPI />} />
+          <Route path="apis/model" element={<ModelAPI />} />
+          <Route path="utils" element={<UtilsIndex />} />
+          <Route path="utils/ios" element={<UtilsIOS />} />
+          <Route path="utils/android" element={<UtilsAndroid />} />
+          <Route path="utils/web" element={<UtilsWeb />} />
+          <Route path="utils/summarize" element={<SummarizeAPI />} />
+          <Route path="utils/classify" element={<ClassifyAPI />} />
+          <Route path="utils/extract" element={<ExtractAPI />} />
+          <Route path="utils/chat" element={<ChatAPI />} />
+          <Route path="utils/translate" element={<TranslateAPI />} />
+          <Route path="utils/rewrite" element={<RewriteAPI />} />
+          <Route path="utils/proofread" element={<ProofreadAPI />} />
+          <Route path="utils/describe-image" element={<DescribeImageAPI />} />
           <Route path="errors" element={<Errors />} />
           <Route path="ios-setup" element={<IOSSetup />} />
           <Route path="android-setup" element={<AndroidSetup />} />

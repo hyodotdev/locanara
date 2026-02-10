@@ -4,7 +4,7 @@
 
 Location: `packages/android/`
 
-The Android SDK provides Locanara functionality for Android using on-device AI via ML Kit GenAI and Gemini Nano.
+The Android SDK provides the Locanara on-device AI framework for Android using ML Kit GenAI and Gemini Nano. It includes composable chains, memory, guardrails, pipeline DSL, and 7 built-in chains.
 
 ## Requirements
 
@@ -19,17 +19,17 @@ The Android SDK provides Locanara functionality for Android using on-device AI v
 ```bash
 cd packages/android
 
-# Build
-./gradlew build
+# Build SDK
+./gradlew :locanara:build
 
 # Test
-./gradlew test
+./gradlew :locanara:test
 
-# Build example app (Pro variant)
-./gradlew :example:assembleProDebug
+# Build example app
+./gradlew :example:assembleDebug
 
 # Install example app
-adb install -r example/build/outputs/apk/pro/debug/example-pro-debug.apk
+adb install -r example/build/outputs/apk/debug/example-debug.apk
 
 # Generate types from GQL
 ./scripts/generate-types.sh
@@ -42,10 +42,18 @@ packages/android/
 ├── locanara/
 │   └── src/main/kotlin/com/locanara/
 │       ├── Locanara.kt           # Main SDK entry point
+│       ├── core/                 # LocanaraModel, PromptTemplate, OutputParser, Schema
+│       ├── composable/           # Chain, Tool, Memory, Guardrail
+│       ├── builtin/              # SummarizeChain, ClassifyChain, etc. (7 chains)
+│       ├── dsl/                  # Pipeline, ModelExtensions
+│       ├── runtime/              # Agent, Session, ChainExecutor
+│       ├── platform/             # PromptApiModel
 │       ├── mlkit/
-│       │   ├── MLKitClients.kt   # ML Kit GenAI clients (Summarize, Proofread, Rewrite, DescribeImage)
-│       │   └── MLKitPromptClient.kt  # Prompt API client (Chat, Classify, Extract, Translate)
-│       └── types/                # Generated types from GQL
+│       │   ├── MLKitClients.kt   # ML Kit GenAI clients
+│       │   └── MLKitPromptClient.kt  # Prompt API client
+│       └── Types.kt              # Generated types from GQL
+│   └── src/test/kotlin/com/locanara/
+│       └── FrameworkTest.kt      # Framework unit tests (34 tests)
 ├── example/                      # Sample app
 │   └── src/main/kotlin/com/locanara/example/
 │       ├── MainActivity.kt
@@ -211,9 +219,56 @@ dependencies {
 ## Key Files
 
 - `locanara/src/main/kotlin/com/locanara/Locanara.kt` - Main SDK entry point
+- `locanara/src/main/kotlin/com/locanara/core/Model.kt` - LocanaraModel interface
+- `locanara/src/main/kotlin/com/locanara/composable/Chain.kt` - Chain interface + SequentialChain
+- `locanara/src/main/kotlin/com/locanara/builtin/` - 7 built-in chain implementations
+- `locanara/src/main/kotlin/com/locanara/dsl/Pipeline.kt` - Pipeline DSL
+- `locanara/src/main/kotlin/com/locanara/dsl/ModelExtensions.kt` - Convenience methods
+- `locanara/src/main/kotlin/com/locanara/runtime/` - Agent, Session, ChainExecutor
 - `locanara/src/main/kotlin/com/locanara/mlkit/MLKitClients.kt` - ML Kit GenAI clients
 - `locanara/src/main/kotlin/com/locanara/mlkit/MLKitPromptClient.kt` - Prompt API client
-- `locanara/src/main/kotlin/com/locanara/types/` - Generated types from GQL
+- `locanara/src/main/kotlin/com/locanara/Types.kt` - Generated types from GQL
+
+## Framework Architecture
+
+The SDK is a layered framework:
+
+1. **Core** - `LocanaraModel`, `PromptTemplate`, `OutputParser`, `ChainInput/ChainOutput`
+2. **Composable** - `Chain`, `Memory`, `Guardrail`, `Tool`
+3. **Built-in** - `SummarizeChain`, `ClassifyChain`, `ExtractChain`, `ChatChain`, `TranslateChain`, `RewriteChain`, `ProofreadChain`
+4. **DSL** - Pipeline composition, Model extensions
+5. **Runtime** - `Agent`, `Session`, `ChainExecutor`
+
+### Three Levels of API
+
+```kotlin
+// 1. Simple - one-liner
+val result = model.summarize("text")
+
+// 2. Chain - configurable (model defaults to LocanaraDefaults.model)
+val result = SummarizeChain(bulletCount = 3).run("text")
+
+// 3. Pipeline - composition
+val result = model.pipeline()
+    .proofread()
+    .translate(to = "ko")
+    .run("text")
+```
+
+### Custom Chain Pattern
+
+```kotlin
+class MyChain(private val model: LocanaraModel) : Chain {
+    override val name = "MyChain"
+
+    override suspend fun invoke(input: ChainInput): ChainOutput {
+        val prompt = PromptTemplate.from("...{text}...").format(mapOf("text" to input.text))
+        val response = model.generate(prompt, GenerationConfig.STRUCTURED)
+        val result = MyResult(...)
+        return ChainOutput(value = result, text = response.text)
+    }
+}
+```
 
 ## Troubleshooting
 

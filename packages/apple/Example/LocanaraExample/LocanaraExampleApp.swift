@@ -33,10 +33,11 @@ enum ExamplePackageSource: String {
 
 /// Locanara Example App
 ///
-/// Demonstrates all features of the Locanara SDK including:
-/// - AI availability check (Apple Intelligence / Gemini)
-/// - SDK lifecycle management
-/// - Feature demos (Summarize, Classify, Extract, Chat, Translate, Rewrite)
+/// Demonstrates the Locanara on-device AI framework including:
+/// - Built-in chains (Summarize, Classify, Extract, Chat, Translate, Rewrite, Proofread)
+/// - Pipeline DSL for chain composition
+/// - Memory management and guardrails
+/// - AI availability check (Apple Intelligence)
 @main
 struct LocanaraExampleApp: App {
     @StateObject private var appState = AppState()
@@ -146,13 +147,10 @@ final class AppState: ObservableObject {
     private static let iosFeatureTypes: [FeatureType] = [
         .summarize, .classify, .extract, .chat,
         .translate, .rewrite, .proofread,
-        .describeImage, .generateImage,
     ]
 
     /// Features that are not yet implemented (shown as Coming Soon)
-    private static let comingSoonFeatures: Set<FeatureType> = [
-        .describeImage, .generateImage,
-    ]
+    private static let comingSoonFeatures: Set<FeatureType> = []
 
     /// Load available features
     private func loadAvailableFeatures() {
@@ -192,10 +190,8 @@ final class AppState: ObservableObject {
             return "Rewrite text in different styles or tones"
         case .proofread:
             return "Check and correct grammar and spelling"
-        case .describeImage, .describeImageAndroid:
-            return "Generate descriptions for images"
-        case .generateImage, .generateImageIos:
-            return "Generate images from text prompts"
+        default:
+            return ""
         }
     }
 

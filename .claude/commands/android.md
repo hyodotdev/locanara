@@ -1,6 +1,6 @@
 # /android
 
-Performs all tasks related to the Android SDK (Gemini Nano).
+Performs all tasks related to the Android SDK (Gemini Nano). The SDK is a layered on-device AI framework with composable chains, memory, guardrails, and pipeline DSL.
 
 ## Usage
 
@@ -28,6 +28,7 @@ When this command is executed, perform the following:
 Classify the user's request into one of:
 
 - **Add Feature**: Check GraphQL schema and implement features not yet in Android
+- **Add Chain**: Create a new built-in Chain (in builtin/) with typed result and run() method
 - **Validate Code**: Review existing Kotlin code and identify issues
 - **Add Type**: Implement GraphQL type as Kotlin data class
 - **Implement API**: Implement GraphQL API operation as Kotlin suspend function
@@ -40,16 +41,22 @@ Always check the GraphQL schema first:
 ```text
 # Check Android-related schemas
 - packages/gql/src/type-android.graphql
-- packages/gql/src/api-android.graphql
+- packages/gql/src/utils-android.graphql
 - packages/gql/src/type.graphql (shared)
-- packages/gql/src/api.graphql (shared)
+- packages/gql/src/utils.graphql (shared)
 ```
 
 ### 3. Check Existing Implementation
 
 ```text
-# Check Kotlin source code
-- packages/android/locanara/src/main/kotlin/dev/hyo/locanara/
+# Check Kotlin source code (framework layers)
+- packages/android/locanara/src/main/kotlin/com/locanara/core/       # LocanaraModel, PromptTemplate, OutputParser, Schema
+- packages/android/locanara/src/main/kotlin/com/locanara/composable/ # Chain, Tool, Memory, Guardrail
+- packages/android/locanara/src/main/kotlin/com/locanara/builtin/    # SummarizeChain, ClassifyChain, etc.
+- packages/android/locanara/src/main/kotlin/com/locanara/dsl/        # Pipeline, ModelExtensions
+- packages/android/locanara/src/main/kotlin/com/locanara/runtime/    # Agent, Session, ChainExecutor
+- packages/android/locanara/src/main/kotlin/com/locanara/platform/   # PromptApiModel
+- packages/android/locanara/src/main/kotlin/com/locanara/mlkit/      # ML Kit clients
 ```
 
 ### 4. Perform Task
@@ -57,7 +64,7 @@ Always check the GraphQL schema first:
 #### 4.1 When Adding Feature
 
 1. Check Android-specific or shared feature types in GraphQL schema
-2. Check `packages/android/locanara/src/main/kotlin/dev/hyo/locanara/features/`
+2. Check `packages/android/locanara/src/main/kotlin/com/locanara/builtin/`
 3. Find unimplemented features
 4. Implement Feature in Kotlin:
    - Define data class types (Types.kt)
@@ -124,7 +131,7 @@ suspend fun executeFeatureAndroid(
 
 **Always follow Android SDK's SKILL.md rules:**
 
-- Kotlin 1.9+ coding conventions
+- Kotlin 2.0+ coding conventions
 - Async processing with Coroutines
 - Error handling with sealed class
 - Type definition with data class
@@ -137,7 +144,7 @@ suspend fun executeFeatureAndroid(
 
 Always reference when performing tasks:
 
-- `skills/3-android-sdk/SKILL.md` - Android SDK skill guide
+- `.claude/guides/05-android-package.md` - Android SDK guide
 - `packages/gql/src/` - GraphQL schema
 - `packages/android/` - Existing Kotlin code
 

@@ -1,5 +1,7 @@
 package com.locanara.example.components.pages
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -8,27 +10,28 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.locanara.ExtractResult
+import com.locanara.builtin.ExtractChain
 import com.locanara.example.components.shared.FeatureScreenTemplate
 import com.locanara.example.components.shared.SampleTexts
-import com.locanara.example.viewmodel.LocanaraViewModel
+import kotlinx.coroutines.launch
 
 private val entityTypes = listOf(
     "person",
@@ -46,21 +49,17 @@ private val entityTypes = listOf(
  *
  * Demonstrates entity extraction from text:
  * - Named entities (people, places, organizations)
- * - Key-value pairs
  * - Contact information
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ExtractScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: LocanaraViewModel = viewModel()
-) {
+fun ExtractScreen(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf(SampleTexts.EXTRACT_TEXT) }
     val selectedEntityTypes = remember { mutableStateListOf<String>() }
-    var extractKeyValues by remember { mutableStateOf(true) }
-
-    val isExecuting by viewModel.isExecuting.collectAsState()
-    val executionResult by viewModel.executionResult.collectAsState()
+    var result by remember { mutableStateOf<ExtractResult?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     FeatureScreenTemplate(
         title = "Extract",
@@ -68,14 +67,26 @@ fun ExtractScreen(
         inputValue = inputText,
         onInputChange = { inputText = it },
         inputPlaceholder = "Enter text containing entities to extract...",
-        isExecuting = isExecuting,
-        executionResult = executionResult,
+        isLoading = isLoading,
+        errorMessage = errorMessage,
         onExecute = {
-            viewModel.extract(
-                text = inputText,
-                entityTypes = if (selectedEntityTypes.isNotEmpty()) selectedEntityTypes.toList() else null,
-                extractKeyValues = extractKeyValues
-            )
+            isLoading = true
+            errorMessage = null
+            result = null
+            scope.launch {
+                try {
+                    val types = if (selectedEntityTypes.isNotEmpty()) selectedEntityTypes.toList() else entityTypes
+                    println("[ExtractScreen] input: ${inputText.take(200)}, entityTypes: $types")
+                    val chain = ExtractChain(entityTypes = types)
+                    result = chain.run(inputText)
+                    println("[ExtractScreen] result: ${result?.entities?.joinToString { "[${it.type}] ${it.value}" }}")
+                } catch (e: Exception) {
+                    println("[ExtractScreen] error: ${e.message}")
+                    errorMessage = e.message ?: "Unknown error"
+                } finally {
+                    isLoading = false
+                }
+            }
         },
         onNavigateBack = onNavigateBack,
         executeButtonText = "Extract",
@@ -106,25 +117,8 @@ fun ExtractScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = extractKeyValues,
-                    onCheckedChange = { extractKeyValues = it }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Extract key-value pairs",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
         },
-        resultContent = { result ->
-            val extractResult = result.result as? ExtractResult
+        resultContent = result?.let { extractResult -> {
             Column {
                 Text(
                     text = "Extracted Entities",
@@ -132,38 +126,42 @@ fun ExtractScreen(
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                extractResult?.entities?.forEach { entity ->
-                    Text(
-                        text = "[${entity.type.uppercase()}] ${entity.value}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-                extractResult?.keyValuePairs?.let { pairs ->
-                    if (pairs.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                extractResult.entities.forEach { entity ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    ) {
                         Text(
-                            text = "Key-Value Pairs",
-                            style = MaterialTheme.typography.titleSmall,
+                            text = entity.type.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(entityColor(entity.type))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                        Text(
+                            text = entity.value,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        pairs.forEach { pair ->
-                            Text(
-                                text = "${pair.key}: ${pair.value}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                        }
                     }
                 }
-                if (extractResult == null) {
-                    Text(
-                        text = "No extracted entities available",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
             }
-        }
+        }}
     )
+}
+
+private fun entityColor(type: String): Color = when (type.lowercase()) {
+    "person" -> Color(0xFF2196F3)       // Blue
+    "email" -> Color(0xFFFF9800)        // Orange
+    "phone" -> Color(0xFF4CAF50)        // Green
+    "date" -> Color(0xFF9C27B0)         // Purple
+    "location" -> Color(0xFFF44336)     // Red
+    "organization" -> Color(0xFF00BCD4) // Cyan
+    "money" -> Color(0xFFFF5722)        // Deep Orange
+    "url" -> Color(0xFF607D8B)          // Blue Grey
+    else -> Color(0xFF9E9E9E)           // Grey
 }

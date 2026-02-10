@@ -1,7 +1,6 @@
 package com.locanara.example.components.shared
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,13 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,14 +25,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.locanara.ExecutionResult
-import com.locanara.ExecutionState
 
 /**
  * Template composable for feature demo screens.
@@ -58,18 +45,16 @@ fun FeatureScreenTemplate(
     inputValue: String,
     onInputChange: (String) -> Unit,
     inputPlaceholder: String = "",
-    isExecuting: Boolean,
-    executionResult: ExecutionResult?,
+    isLoading: Boolean,
+    errorMessage: String?,
     onExecute: () -> Unit,
     onNavigateBack: () -> Unit,
     executeButtonText: String = "Execute",
     showMainInput: Boolean = true,
     executeEnabled: Boolean? = null,
     additionalInputs: @Composable (() -> Unit)? = null,
-    resultContent: @Composable ((ExecutionResult) -> Unit)? = null
+    resultContent: @Composable (() -> Unit)? = null
 ) {
-    val clipboardManager = LocalClipboardManager.current
-
     // Use custom executeEnabled if provided, otherwise default to inputValue check
     val isButtonEnabled = executeEnabled ?: inputValue.isNotBlank()
 
@@ -102,7 +87,7 @@ fun FeatureScreenTemplate(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 4,
                     maxLines = 8,
-                    enabled = !isExecuting
+                    enabled = !isLoading
                 )
             }
 
@@ -115,9 +100,9 @@ fun FeatureScreenTemplate(
             Button(
                 onClick = onExecute,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isExecuting && isButtonEnabled
+                enabled = !isLoading && isButtonEnabled
             ) {
-                if (isExecuting) {
+                if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
@@ -132,108 +117,18 @@ fun FeatureScreenTemplate(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Result Section
-            executionResult?.let { result ->
-                ResultCard(
-                    result = result,
-                    onCopyResult = { text ->
-                        clipboardManager.setText(AnnotatedString(text))
-                    },
-                    customContent = resultContent
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ResultCard(
-    result: ExecutionResult,
-    onCopyResult: (String) -> Unit,
-    customContent: @Composable ((ExecutionResult) -> Unit)? = null
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when (result.state) {
-                ExecutionState.COMPLETED -> MaterialTheme.colorScheme.primaryContainer
-                ExecutionState.FAILED -> MaterialTheme.colorScheme.errorContainer
-                else -> MaterialTheme.colorScheme.surfaceVariant
-            }
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Header with status
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = when (result.state) {
-                            ExecutionState.COMPLETED -> Icons.Default.CheckCircle
-                            ExecutionState.FAILED -> Icons.Default.Error
-                            else -> Icons.Default.Timer
-                        },
-                        contentDescription = null,
-                        tint = when (result.state) {
-                            ExecutionState.COMPLETED -> MaterialTheme.colorScheme.primary
-                            ExecutionState.FAILED -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = when (result.state) {
-                            ExecutionState.COMPLETED -> "Completed"
-                            ExecutionState.FAILED -> "Failed"
-                            ExecutionState.PROCESSING -> "Processing"
-                            else -> result.state.name
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // Processing time
-                result.processingTimeMs?.let { time ->
-                    Text(
-                        text = "${time}ms",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Show error first if present
-            if (result.error != null) {
+            // Error display
+            errorMessage?.let { error ->
                 Text(
-                    text = "Error: ${result.error?.message}",
+                    text = error,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )
-                result.error?.details?.let { details ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = details.take(500),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            } else if (customContent != null) {
-                // Custom content for successful results
-                customContent(result)
-            } else {
-                // Default: show processing location
-                Text(
-                    text = "Processed on: ${result.processedOn.name}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(modifier = Modifier.height(16.dp))
             }
+
+            // Result content
+            resultContent?.invoke()
         }
     }
 }

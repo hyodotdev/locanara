@@ -259,6 +259,32 @@ The example app should match the iOS native app in:
 
 Reference: `packages/apple/Example/LocanaraExample/`
 
+## Native Module Architecture (expo-ondevice-ai)
+
+The native modules bridge the TypeScript API to Locanara SDK chains:
+
+### iOS (`ios/`)
+- `ExpoOndeviceAiModule.swift` - Expo module exposing async functions
+- `ExpoOndeviceAiHelper.swift` - Option extractors for chain constructors + `PrefilledMemory` adapter
+- `ExpoOndeviceAiSerialization.swift` - Converts chain results to JS-compatible dictionaries
+
+### Android (`android/`)
+- `ExpoOndeviceAiModule.kt` - Expo module exposing async functions
+- `ExpoOndeviceAiHelper.kt` - Option extractors + `PrefilledMemory` adapter
+- `ExpoOndeviceAiSerialization.kt` - Converts chain results to JS-compatible maps
+
+### How it works
+
+Each TypeScript function maps to a built-in chain:
+- `summarize(text, options)` → `SummarizeChain(bulletCount: n).run(text)`
+- `classify(text, options)` → `ClassifyChain(labels: [...]).run(text)`
+- `chat(message, options)` → `ChatChain(memory: PrefilledMemory(history)).run(message)`
+- `chatStream(message, options)` → `ChatChain(...).streamRun(message)` (returns chunks)
+
+`PrefilledMemory` adapts the JS chat history array `[{role, content}]` to the `Memory` protocol used by `ChatChain`.
+
+`LocanaraClient`/`Locanara` is only used for `initialize()` and `getDeviceCapability()` (no chain equivalents).
+
 ## Checklist for New Libraries
 
 When creating a new library example app:
