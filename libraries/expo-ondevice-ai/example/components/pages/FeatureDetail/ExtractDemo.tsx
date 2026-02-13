@@ -8,7 +8,12 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import {extract, type ExtractResult, type Entity, ExpoOndeviceAiLog} from 'expo-ondevice-ai';
+import {
+  extract,
+  type ExtractResult,
+  type Entity,
+  ExpoOndeviceAiLog,
+} from 'expo-ondevice-ai';
 import {useAppState} from '../../AppState';
 import {AIModelRequiredBanner} from './AIModelRequiredBanner';
 
@@ -45,7 +50,9 @@ export function ExtractDemo() {
       ExpoOndeviceAiLog.json('[ExtractDemo] ExtractResult', extractResult);
       setResult(extractResult);
     } catch (error: any) {
-      ExpoOndeviceAiLog.error('[ExtractDemo] Error: ' + (error.message || 'Unknown error'));
+      ExpoOndeviceAiLog.error(
+        '[ExtractDemo] Error: ' + (error.message || 'Unknown error'),
+      );
       setErrorMessage(error.message || 'Failed to extract entities');
     } finally {
       setIsLoading(false);
@@ -59,7 +66,10 @@ export function ExtractDemo() {
   const renderEntity = (entity: Entity, index: number) => (
     <View key={index} style={styles.entityRow}>
       <View
-        style={[styles.entityType, {backgroundColor: getEntityColor(entity.type)}]}
+        style={[
+          styles.entityType,
+          {backgroundColor: getEntityColor(entity.type)},
+        ]}
       >
         <Text style={styles.entityTypeText}>{entity.type}</Text>
       </View>
@@ -98,9 +108,7 @@ export function ExtractDemo() {
           onPress={executeExtract}
           disabled={isLoading || !inputText.trim() || !isModelReady}
         >
-          {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : null}
+          {isLoading ? <ActivityIndicator color="white" size="small" /> : null}
           <Text style={styles.buttonText}>
             {isLoading ? 'Processing...' : 'Extract Entities'}
           </Text>

@@ -31,7 +31,8 @@ const CORRECTION_TYPE_COLORS: Record<string, string> = {
 export function ProofreadDemo() {
   const {isModelReady} = useAppState();
   const [inputText, setInputText] = useState(DEFAULT_INPUT);
-  const [selectedInputType, setSelectedInputType] = useState<ProofreadInputType>('KEYBOARD');
+  const [selectedInputType, setSelectedInputType] =
+    useState<ProofreadInputType>('KEYBOARD');
   const [result, setResult] = useState<ProofreadResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,10 +52,15 @@ export function ProofreadDemo() {
       });
 
       ExpoOndeviceAiLog.d('[ProofreadDemo] Result received');
-      ExpoOndeviceAiLog.json('[ProofreadDemo] ProofreadResult', proofreadResult);
+      ExpoOndeviceAiLog.json(
+        '[ProofreadDemo] ProofreadResult',
+        proofreadResult,
+      );
       setResult(proofreadResult);
     } catch (error: any) {
-      ExpoOndeviceAiLog.error('[ProofreadDemo] Error: ' + (error.message || 'Unknown error'));
+      ExpoOndeviceAiLog.error(
+        '[ProofreadDemo] Error: ' + (error.message || 'Unknown error'),
+      );
       setErrorMessage(error.message || 'Failed to proofread');
     } finally {
       setIsLoading(false);
@@ -72,7 +78,10 @@ export function ProofreadDemo() {
         <View
           style={[
             styles.correctionType,
-            {backgroundColor: CORRECTION_TYPE_COLORS[correction.type] || '#666'},
+            {
+              backgroundColor:
+                CORRECTION_TYPE_COLORS[correction.type] || '#666',
+            },
           ]}
         >
           <Text style={styles.correctionTypeText}>{correction.type}</Text>
@@ -145,9 +154,7 @@ export function ProofreadDemo() {
           onPress={executeProofread}
           disabled={isLoading || !inputText.trim() || !isModelReady}
         >
-          {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : null}
+          {isLoading ? <ActivityIndicator color="white" size="small" /> : null}
           <Text style={styles.buttonText}>
             {isLoading ? 'Processing...' : 'Proofread'}
           </Text>

@@ -2,6 +2,8 @@ package com.locanara.example.components.pages.framework
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,7 +75,7 @@ private enum class ChainMode(val label: String) {
 /**
  * Demonstrates Chain variants: ModelChain, SequentialChain, ParallelChain, ConditionalChain, Custom.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChainDemo(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("I absolutely love how easy it is to build AI features with Locanara. The framework makes everything so simple and intuitive!") }
@@ -162,7 +164,10 @@ class SentimentChain(private val model: LocanaraModel) : Chain {
             Column {
                 Text("Chain Type", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     ChainMode.entries.forEach { mode ->
                         FilterChip(
                             selected = selectedMode == mode,

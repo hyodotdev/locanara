@@ -27,11 +27,11 @@ function DescribeImageAPI() {
       <TLDRBox>
         <ul>
           <li>
-            <strong>iOS</strong>: Pro tier only (Foundation Models is text-only)
+            <strong>iOS</strong>: Apple Intelligence (iOS 26+) with llama.cpp
+            fallback for older devices
           </li>
           <li>
-            <strong>Android</strong>: Uses ML Kit Image Labeling with Gemini
-            Nano
+            <strong>Android</strong>: Gemini Nano via ML Kit
           </li>
           <li>
             <strong>Input</strong>: Base64 encoded image or file path
@@ -42,18 +42,6 @@ function DescribeImageAPI() {
           </li>
         </ul>
       </TLDRBox>
-
-      <div className="alert-card alert-card--warning">
-        <p>
-          <strong>iOS Community Tier Limitation:</strong> Apple's Foundation
-          Models framework (iOS 26+) currently does not support multimodal
-          (image) input. On iOS, <code>describeImage()</code> requires{" "}
-          <strong>Pro tier</strong> with llama.cpp or a custom vision model.
-          Android Community tier fully supports this feature via Gemini Nano. We
-          plan to add iOS Community tier support in v1.1.0 when Apple releases
-          multimodal APIs.
-        </p>
-      </div>
 
       <section>
         <AnchorLink id="signature" level="h2">
@@ -261,51 +249,21 @@ print(result.description);
         </AnchorLink>
 
         <h4>iOS</h4>
-        <div className="alert-card alert-card--warning">
-          <p>
-            <strong>Pro Tier Required:</strong> Apple's Foundation Models
-            framework does not support multimodal input yet. Use Pro tier with
-            llama.cpp for image description on iOS.
-          </p>
-        </div>
         <ul>
-          <li>
-            <strong>Community tier</strong>: Not available (Foundation Models is
-            text-only)
-          </li>
-          <li>
-            <strong>Pro tier</strong>: Uses llama.cpp with vision-capable models
-            (e.g., LLaVA)
-          </li>
+          <li>Uses Apple Intelligence (iOS 26+) for image understanding</li>
+          <li>llama.cpp fallback available for older devices</li>
           <li>Supports various image formats (JPEG, PNG, HEIC)</li>
-          <li>
-            <em>Planned for v1.1.0</em>: Community tier support when Apple
-            releases multimodal APIs
-          </li>
         </ul>
 
         <h4>Android</h4>
         <ul>
+          <li>Uses Gemini Nano via ML Kit for image description</li>
           <li>
-            <strong>Community tier</strong>: The cross-platform{" "}
-            <code>describeImage()</code> API requires Pro tier on Android. For
-            Community tier, use the platform-specific{" "}
-            <code>describeImageAndroid()</code> API, which uses Gemini Nano.
-          </li>
-          <li>
-            <strong>Pro tier</strong>: Uses llama.cpp with vision-capable models
+            Platform-specific <code>describeImageAndroid()</code> API also
+            available
           </li>
           <li>Supports various image formats (JPEG, PNG, WebP)</li>
         </ul>
-
-        <div className="alert-card alert-card--info">
-          <p>
-            <strong>Android Community Users:</strong> For image description
-            without Pro tier, use the platform-specific{" "}
-            <code>describeImageAndroid()</code> API which uses Gemini Nano via
-            ML Kit GenAI.
-          </p>
-        </div>
 
         <div className="alert-card alert-card--info">
           <p>

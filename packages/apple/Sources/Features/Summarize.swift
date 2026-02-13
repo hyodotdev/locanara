@@ -36,7 +36,7 @@ internal final class SummarizeExecutor {
             processedInput = input
         }
 
-        // Try Pro tier inference provider first (if registered)
+        // Try custom inference provider first (if registered)
         if let provider = LocanaraClient.shared.inferenceProvider, provider.isReady() {
             return try await provider.summarize(input: processedInput, params: parameters)
         }

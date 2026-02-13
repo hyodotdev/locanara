@@ -12,10 +12,7 @@ export default function DeviceScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>DEVICE</Text>
         <View style={styles.sectionContent}>
-          <InfoRow
-            label="Platform"
-            value={deviceInfo?.platform || 'Unknown'}
-          />
+          <InfoRow label="Platform" value={deviceInfo?.platform || 'Unknown'} />
           <View style={styles.separator} />
           <InfoRow
             label="OS Version"
@@ -30,14 +27,13 @@ export default function DeviceScreen() {
         <View style={styles.sectionContent}>
           <InfoRow
             label="On-Device AI"
-            value={deviceInfo?.supportsOnDeviceAI ? 'Supported' : 'Not Supported'}
+            value={
+              deviceInfo?.supportsOnDeviceAI ? 'Supported' : 'Not Supported'
+            }
             valueColor={deviceInfo?.supportsOnDeviceAI ? '#34C759' : '#FF3B30'}
           />
           <View style={styles.separator} />
-          <InfoRow
-            label="Provider"
-            value={deviceInfo?.provider || 'None'}
-          />
+          <InfoRow label="Provider" value={deviceInfo?.provider || 'None'} />
         </View>
       </View>
 

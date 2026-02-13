@@ -24,7 +24,7 @@ internal final class ClassifyExecutor {
             throw LocanaraError.invalidInput("Input cannot be empty")
         }
 
-        // Try Pro tier inference provider first (if registered)
+        // Try custom inference provider first (if registered)
         if let provider = LocanaraClient.shared.inferenceProvider, provider.isReady() {
             return try await provider.classify(input: input, params: parameters)
         }

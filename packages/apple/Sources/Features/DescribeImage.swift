@@ -37,7 +37,7 @@ internal final class DescribeImageExecutor {
             throw LocanaraError.invalidInput("Either imageBase64 or imagePath must be provided")
         }
 
-        // Try Pro tier inference provider first (if registered)
+        // Try custom inference provider first (if registered)
         if let provider = LocanaraClient.shared.inferenceProvider, provider.isReady() {
             return try await provider.describeImage(input: input, params: params)
         }
@@ -78,8 +78,7 @@ internal final class DescribeImageExecutor {
         // However, as of Xcode 26.2, the public LanguageModelSession API only accepts String prompts.
         //
         // When image input API is exposed:
-        // 1. Remove .describeImage from requiresProTier() in Tier.swift
-        // 2. Implement UIImage/CGImage input here using the new API
+        // 1. Implement UIImage/CGImage input here using the new API
         // 3. Unify describeImage across platforms (remove describeImageAndroid distinction)
         //
         // Reference: https://machinelearning.apple.com/research/apple-foundation-models-2025-updates

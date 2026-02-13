@@ -27,8 +27,10 @@ export function SummarizeDemo() {
   const [result, setResult] = useState<SummarizeResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedInputType, setSelectedInputType] = useState<SummarizeInputType>('ARTICLE');
-  const [selectedOutputType, setSelectedOutputType] = useState<SummarizeOutputType>('ONE_BULLET');
+  const [selectedInputType, setSelectedInputType] =
+    useState<SummarizeInputType>('ARTICLE');
+  const [selectedOutputType, setSelectedOutputType] =
+    useState<SummarizeOutputType>('ONE_BULLET');
 
   const executeSummarize = async () => {
     setIsLoading(true);
@@ -47,10 +49,15 @@ export function SummarizeDemo() {
       });
 
       ExpoOndeviceAiLog.d('[SummarizeDemo] Result received');
-      ExpoOndeviceAiLog.json('[SummarizeDemo] SummarizeResult', summarizeResult);
+      ExpoOndeviceAiLog.json(
+        '[SummarizeDemo] SummarizeResult',
+        summarizeResult,
+      );
       setResult(summarizeResult);
     } catch (error: any) {
-      ExpoOndeviceAiLog.error('[SummarizeDemo] Error: ' + (error.message || 'Unknown error'));
+      ExpoOndeviceAiLog.error(
+        '[SummarizeDemo] Error: ' + (error.message || 'Unknown error'),
+      );
       setErrorMessage(error.message || 'Failed to summarize');
     } finally {
       setIsLoading(false);
@@ -96,14 +103,16 @@ export function SummarizeDemo() {
             <TouchableOpacity
               style={[
                 styles.segmentButton,
-                selectedInputType === 'CONVERSATION' && styles.segmentButtonActive,
+                selectedInputType === 'CONVERSATION' &&
+                  styles.segmentButtonActive,
               ]}
               onPress={() => setSelectedInputType('CONVERSATION')}
             >
               <Text
                 style={[
                   styles.segmentText,
-                  selectedInputType === 'CONVERSATION' && styles.segmentTextActive,
+                  selectedInputType === 'CONVERSATION' &&
+                    styles.segmentTextActive,
                 ]}
               >
                 Conversation
@@ -118,14 +127,16 @@ export function SummarizeDemo() {
             <TouchableOpacity
               style={[
                 styles.segmentButton,
-                selectedOutputType === 'ONE_BULLET' && styles.segmentButtonActive,
+                selectedOutputType === 'ONE_BULLET' &&
+                  styles.segmentButtonActive,
               ]}
               onPress={() => setSelectedOutputType('ONE_BULLET')}
             >
               <Text
                 style={[
                   styles.segmentText,
-                  selectedOutputType === 'ONE_BULLET' && styles.segmentTextActive,
+                  selectedOutputType === 'ONE_BULLET' &&
+                    styles.segmentTextActive,
                 ]}
               >
                 1 Bullet
@@ -134,14 +145,16 @@ export function SummarizeDemo() {
             <TouchableOpacity
               style={[
                 styles.segmentButton,
-                selectedOutputType === 'TWO_BULLETS' && styles.segmentButtonActive,
+                selectedOutputType === 'TWO_BULLETS' &&
+                  styles.segmentButtonActive,
               ]}
               onPress={() => setSelectedOutputType('TWO_BULLETS')}
             >
               <Text
                 style={[
                   styles.segmentText,
-                  selectedOutputType === 'TWO_BULLETS' && styles.segmentTextActive,
+                  selectedOutputType === 'TWO_BULLETS' &&
+                    styles.segmentTextActive,
                 ]}
               >
                 2 Bullets
@@ -150,14 +163,16 @@ export function SummarizeDemo() {
             <TouchableOpacity
               style={[
                 styles.segmentButton,
-                selectedOutputType === 'THREE_BULLETS' && styles.segmentButtonActive,
+                selectedOutputType === 'THREE_BULLETS' &&
+                  styles.segmentButtonActive,
               ]}
               onPress={() => setSelectedOutputType('THREE_BULLETS')}
             >
               <Text
                 style={[
                   styles.segmentText,
-                  selectedOutputType === 'THREE_BULLETS' && styles.segmentTextActive,
+                  selectedOutputType === 'THREE_BULLETS' &&
+                    styles.segmentTextActive,
                 ]}
               >
                 3 Bullets
@@ -175,9 +190,7 @@ export function SummarizeDemo() {
           onPress={executeSummarize}
           disabled={isLoading || !inputText.trim() || !isModelReady}
         >
-          {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : null}
+          {isLoading ? <ActivityIndicator color="white" size="small" /> : null}
           <Text style={styles.buttonText}>
             {isLoading ? 'Processing...' : 'Summarize'}
           </Text>
@@ -192,7 +205,10 @@ export function SummarizeDemo() {
               <Text style={styles.resultText}>{result.summary}</Text>
             </View>
             <View style={styles.statsRow}>
-              <StatBadge label="Original" value={`${result.originalLength} chars`} />
+              <StatBadge
+                label="Original"
+                value={`${result.originalLength} chars`}
+              />
               <StatBadge
                 label="Summary"
                 value={`${result.summaryLength} chars`}

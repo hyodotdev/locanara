@@ -4,16 +4,16 @@ package com.locanara.core
  * A reusable prompt template with variable interpolation.
  *
  * ```kotlin
- * val template = PromptTemplate(
- *     template = "Summarize into {count} points:\n{text}",
+ * val tmpl = PromptTemplate(
+ *     templateString = "Summarize into {count} points:\n{text}",
  *     inputVariables = listOf("count", "text")
  * )
- * val prompt = template.format(mapOf("count" to "3", "text" to article))
+ * val prompt = tmpl.format(mapOf("count" to "3", "text" to article))
  * ```
  */
 data class PromptTemplate(
     /** The template string with {variable} placeholders */
-    val template: String,
+    val templateString: String,
     /** Required variable names */
     val inputVariables: List<String>,
     /** Optional system instruction prefix */
@@ -27,7 +27,7 @@ data class PromptTemplate(
             }
         }
 
-        var result = template
+        var result = templateString
         for ((key, value) in values) {
             result = result.replace("{$key}", value)
         }
@@ -41,10 +41,10 @@ data class PromptTemplate(
 
     companion object {
         /** Create from a string, auto-detecting {variable} placeholders */
-        fun from(template: String): PromptTemplate {
+        fun from(templateString: String): PromptTemplate {
             val pattern = Regex("""\{(\w+)\}""")
-            val variables = pattern.findAll(template).map { it.groupValues[1] }.toList()
-            return PromptTemplate(template = template, inputVariables = variables)
+            val variables = pattern.findAll(templateString).map { it.groupValues[1] }.toList()
+            return PromptTemplate(templateString = templateString, inputVariables = variables)
         }
     }
 }

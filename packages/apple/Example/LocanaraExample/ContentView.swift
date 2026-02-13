@@ -30,7 +30,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationTitle("Locanara for Community")
+            .navigationTitle("Locanara")
         }
         .task {
             await appState.initializeSDK()
@@ -47,7 +47,7 @@ struct InitializingView: View {
                 .font(.system(size: 80))
                 .foregroundStyle(.blue)
 
-            Text("Locanara for Community")
+            Text("Locanara")
                 .font(.largeTitle)
                 .fontWeight(.bold)
 

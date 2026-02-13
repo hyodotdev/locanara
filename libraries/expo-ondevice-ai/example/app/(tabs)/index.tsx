@@ -7,7 +7,8 @@ import {AIStatusBanner} from '../../components/shared/AIStatusBanner';
 
 export default function FeaturesScreen() {
   const router = useRouter();
-  const {sdkState, availableFeatures, errorMessage, initializeSDK} = useAppState();
+  const {sdkState, availableFeatures, errorMessage, initializeSDK} =
+    useAppState();
 
   if (sdkState === 'notInitialized' || sdkState === 'initializing') {
     return (

@@ -69,33 +69,33 @@ fun MainTabNavigation(
             }
         }
     ) { padding ->
-        val bottomPadding = Modifier.padding(bottom = padding.calculateBottomPadding())
+        val contentModifier = Modifier.padding(padding)
         when (tabs.getOrNull(selectedTab)) {
             MainTab.FEATURES -> {
                 FeaturesListTab(
-                    modifier = bottomPadding,
+                    modifier = contentModifier,
                     onNavigateToFeature = onNavigateToFeature
                 )
             }
             MainTab.FRAMEWORK -> {
                 FrameworkShowcase(
-                    modifier = bottomPadding,
+                    modifier = contentModifier,
                     onNavigateToDemo = onNavigateToFrameworkDemo
                 )
             }
             MainTab.DEVICE -> {
                 DeviceInfoScreen(
-                    modifier = bottomPadding
+                    modifier = contentModifier
                 )
             }
             MainTab.SETTINGS -> {
                 SettingsScreen(
-                    modifier = bottomPadding
+                    modifier = contentModifier
                 )
             }
             null -> {
                 FeaturesListTab(
-                    modifier = bottomPadding,
+                    modifier = contentModifier,
                     onNavigateToFeature = onNavigateToFeature
                 )
             }

@@ -11,7 +11,12 @@ export function ChatBubble({role, content}: ChatBubbleProps) {
 
   return (
     <View style={[styles.container, isUser && styles.containerUser]}>
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
+      <View
+        style={[
+          styles.bubble,
+          isUser ? styles.bubbleUser : styles.bubbleAssistant,
+        ]}
+      >
         <Text style={[styles.text, isUser && styles.textUser]}>{content}</Text>
       </View>
     </View>

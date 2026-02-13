@@ -23,11 +23,7 @@ export default ({config}: ConfigContext): ExpoConfig => {
       infoPlist: {
         UIRequiredDeviceCapabilities: [],
         LSMinimumSystemVersion: '14.0',
-        LSApplicationQueriesSchemes: [
-          'App-Prefs',
-          'prefs',
-          'app-settings',
-        ],
+        LSApplicationQueriesSchemes: ['App-Prefs', 'prefs', 'app-settings'],
       },
     },
     android: {

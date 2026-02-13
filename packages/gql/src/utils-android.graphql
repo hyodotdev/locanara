@@ -38,7 +38,7 @@ extend type Mutation {
 
   """
   Describe image using Android ML Kit GenAI (Gemini Nano)
-  Community tier - uses on-device Gemini Nano vision model
+  Uses on-device Gemini Nano vision model
   """
   describeImageAndroid(
     parameters: ImageDescriptionParametersAndroid!

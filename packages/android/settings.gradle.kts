@@ -11,7 +11,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // GitHub Packages for Pro tier
+        // GitHub Packages
         maven {
             url = uri("https://maven.pkg.github.com/hyodotdev/locanara")
             credentials {

@@ -77,6 +77,13 @@ final class AppState: ObservableObject {
     @Published var isModelReady: Bool = false
     @Published var isFoundationModelsEligibleButNotReady: Bool = false
 
+    // Model management
+    @Published var availableModels: [ModelDisplayInfo] = []
+    @Published var downloadProgress: Double = 0
+    @Published var isDownloading: Bool = false
+    @Published var downloadError: String?
+    @Published var loadedModelId: String?
+
     // Locanara SDK instance
     private var locanara: LocanaraClient {
         LocanaraClient.shared
@@ -103,9 +110,13 @@ final class AppState: ObservableObject {
             let packageSource = ExamplePackageSource.current
             print("[LocanaraExample] Package Source: \(packageSource.rawValue)")
 
-            // Community tier: use standard methods
-            currentEngine = locanara.getCurrentInferenceEngine()
-            isModelReady = locanara.isModelReady()
+            // Auto-load last used model or first downloaded model
+            await autoLoadModel()
+
+            currentEngine = locanara.getCurrentEngine()
+            isModelReady = locanara.isExternalModelReady()
+            isFoundationModelsEligibleButNotReady = locanara.isFoundationModelsEligibleButNotReady()
+            loadedModelId = locanara.getLoadedModel()
 
             // Check AI availability based on current engine
             await checkAIAvailability()
@@ -115,6 +126,9 @@ final class AppState: ObservableObject {
 
             // Load available features
             loadAvailableFeatures()
+
+            // Load available models
+            loadAvailableModels()
 
         } catch {
             sdkState = .error(error.localizedDescription)
@@ -154,14 +168,8 @@ final class AppState: ObservableObject {
 
     /// Load available features
     private func loadAvailableFeatures() {
-        // Community tier: check device capability
-        let featuresAvailable: Bool
-        do {
-            let capability = try locanara.getDeviceCapability()
-            featuresAvailable = !capability.availableFeatures.isEmpty
-        } catch {
-            featuresAvailable = false
-        }
+        // Check if model is ready (either Foundation Models or llama.cpp)
+        let featuresAvailable = isModelReady
 
         availableFeatures = Self.iosFeatureTypes.map { feature in
             let isComingSoon = Self.comingSoonFeatures.contains(feature)
@@ -195,11 +203,233 @@ final class AppState: ObservableObject {
         }
     }
 
+    // MARK: - Model Management
+
+    /// Load available models for download
+    private func loadAvailableModels() {
+        let models = locanara.getAvailableModels()
+        let downloadedModels = Set(locanara.getDownloadedModels())
+        let currentLoadedModel = locanara.getLoadedModel()
+        loadedModelId = currentLoadedModel
+
+        let capability = locanara.getExtendedDeviceCapability()
+
+        availableModels = models.map { model in
+            ModelDisplayInfo(
+                modelId: model.modelId,
+                name: model.name,
+                sizeMB: model.sizeMB,
+                isDownloaded: downloadedModels.contains(model.modelId),
+                isRecommended: model.modelId == capability.recommendedModel,
+                isLoaded: model.modelId == currentLoadedModel
+            )
+        }
+    }
+
+    /// Download the recommended model
+    func downloadRecommendedModel() async {
+        let capability = locanara.getExtendedDeviceCapability()
+        guard let modelId = capability.recommendedModel else {
+            downloadError = "No recommended model found for this device"
+            return
+        }
+        await downloadModel(modelId)
+    }
+
+    /// Download a specific model
+    func downloadModel(_ modelId: String) async {
+        isDownloading = true
+        downloadProgress = 0
+        downloadError = nil
+
+        do {
+            let progressStream = try await locanara.downloadModelWithProgress(modelId)
+
+            for await progress in progressStream {
+                downloadProgress = progress.progress
+
+                switch progress.state {
+                case .completed:
+                    isDownloading = false
+                    // Load the model into memory after download completes
+                    do {
+                        try await locanara.loadModel(modelId)
+                        saveLastUsedModel(modelId)
+                        downloadError = nil
+                    } catch {
+                        downloadError = "Failed to load model: \(error.localizedDescription)"
+                    }
+                    isModelReady = locanara.isExternalModelReady()
+                    currentEngine = locanara.getCurrentEngine()
+                    loadedModelId = locanara.getLoadedModel()
+                    if isModelReady {
+                        downloadError = nil
+                    }
+                    loadAvailableModels()
+                    await checkAIAvailability()
+                    loadAvailableFeatures()
+
+                case .failed:
+                    isDownloading = false
+                    downloadError = "Download failed"
+
+                case .cancelled:
+                    isDownloading = false
+                    downloadError = "Download cancelled"
+
+                default:
+                    break
+                }
+            }
+        } catch {
+            isDownloading = false
+            downloadError = error.localizedDescription
+        }
+    }
+
+    /// Delete a downloaded model
+    func deleteModel(_ modelId: String) async {
+        do {
+            try locanara.deleteModel(modelId)
+            isModelReady = locanara.isExternalModelReady()
+            currentEngine = locanara.getCurrentEngine()
+            loadAvailableModels()
+            await checkAIAvailability()
+            loadAvailableFeatures()
+        } catch {
+            print("[Example] Failed to delete model: \(error)")
+        }
+    }
+
+    /// Load a downloaded model into memory
+    func loadModel(_ modelId: String) async {
+        do {
+            try await locanara.loadModel(modelId)
+            saveLastUsedModel(modelId)
+            downloadError = nil
+            isModelReady = locanara.isExternalModelReady()
+            currentEngine = locanara.getCurrentEngine()
+            loadedModelId = locanara.getLoadedModel()
+            loadAvailableModels()
+            await checkAIAvailability()
+            loadAvailableFeatures()
+        } catch {
+            downloadError = "Failed to load model: \(error.localizedDescription)"
+        }
+    }
+
     /// Refresh features list
     func refreshFeatures() {
-        currentEngine = locanara.getCurrentInferenceEngine()
-        isModelReady = locanara.isModelReady()
+        isModelReady = locanara.isExternalModelReady()
+        isFoundationModelsEligibleButNotReady = locanara.isFoundationModelsEligibleButNotReady()
+        currentEngine = locanara.getCurrentEngine()
+        loadedModelId = locanara.getLoadedModel()
+        if isModelReady {
+            downloadError = nil
+        }
+        loadAvailableModels()
         loadAvailableFeatures()
+    }
+
+    /// Switch to Apple Intelligence (device AI)
+    func switchToAppleIntelligence() {
+        Task {
+            do {
+                try await locanara.switchToDeviceAI()
+                await MainActor.run {
+                    downloadError = nil
+                    savePreferredEngine(.foundationModels)
+                    refreshFeatures()
+                }
+            } catch {
+                await MainActor.run {
+                    downloadError = "Failed to switch: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    /// Switch to external model (llama.cpp)
+    func switchToExternalModel(_ modelId: String) {
+        Task {
+            do {
+                try await locanara.switchToExternalModel(modelId)
+                await MainActor.run {
+                    downloadError = nil
+                    savePreferredEngine(.llamaCpp)
+                    saveLastUsedModel(modelId)
+                    refreshFeatures()
+                }
+            } catch {
+                await MainActor.run {
+                    downloadError = "Failed to switch: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: - Auto Model Loading
+
+    private static let lastUsedModelKey = "com.locanara.example.lastUsedModel"
+    private static let preferredEngineKey = "com.locanara.example.preferredEngine"
+
+    private func savePreferredEngine(_ engine: InferenceEngineType) {
+        UserDefaults.standard.set(engine.rawValue, forKey: Self.preferredEngineKey)
+    }
+
+    private func getPreferredEngine() -> InferenceEngineType? {
+        guard let rawValue = UserDefaults.standard.string(forKey: Self.preferredEngineKey) else {
+            return nil
+        }
+        return InferenceEngineType(rawValue: rawValue)
+    }
+
+    private func autoLoadModel() async {
+        let preferredEngine = getPreferredEngine()
+        let downloadedModels = locanara.getDownloadedModels()
+
+        guard !downloadedModels.isEmpty else { return }
+
+        var loadedModel: String?
+        if let lastModelId = UserDefaults.standard.string(forKey: Self.lastUsedModelKey),
+           downloadedModels.contains(lastModelId) {
+            do {
+                try await locanara.loadModel(lastModelId)
+                downloadError = nil
+                loadedModel = lastModelId
+            } catch {
+                print("[Example] Failed to auto-load last used model: \(error)")
+            }
+        }
+
+        if loadedModel == nil {
+            let firstModel = downloadedModels[0]
+            do {
+                try await locanara.loadModel(firstModel)
+                saveLastUsedModel(firstModel)
+                downloadError = nil
+                loadedModel = firstModel
+            } catch {
+                print("[Example] Failed to auto-load first model: \(error)")
+            }
+        }
+
+        if preferredEngine == .llamaCpp, let modelId = loadedModel {
+            do {
+                try await locanara.switchToExternalModel(modelId)
+            } catch {
+                print("[Example] Failed to switch to external model: \(error)")
+            }
+        }
+    }
+
+    private func saveLastUsedModel(_ modelId: String) {
+        UserDefaults.standard.set(modelId, forKey: Self.lastUsedModelKey)
+    }
+
+    /// Check if device needs model download
+    var needsModelDownload: Bool {
+        return currentEngine == .none || (currentEngine != .foundationModels && !isModelReady)
     }
 }
 

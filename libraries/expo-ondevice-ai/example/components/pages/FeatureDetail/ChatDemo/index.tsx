@@ -162,7 +162,10 @@ export function ChatDemo() {
             color={!useStreaming ? '#fff' : '#666'}
           />
           <Text
-            style={[styles.toggleText, !useStreaming && styles.toggleTextActive]}
+            style={[
+              styles.toggleText,
+              !useStreaming && styles.toggleTextActive,
+            ]}
           >
             Standard
           </Text>

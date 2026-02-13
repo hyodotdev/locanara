@@ -6,7 +6,10 @@
 // Enums
 
 export type SummarizeInputType = 'ARTICLE' | 'CONVERSATION';
-export type SummarizeOutputType = 'ONE_BULLET' | 'TWO_BULLETS' | 'THREE_BULLETS';
+export type SummarizeOutputType =
+  | 'ONE_BULLET'
+  | 'TWO_BULLETS'
+  | 'THREE_BULLETS';
 export type RewriteOutputType =
   | 'ELABORATE'
   | 'EMOJIFY'
@@ -286,4 +289,50 @@ export interface ProofreadResult {
  */
 export interface InitializeResult {
   success: boolean;
+}
+
+// Model Management Types
+
+export type InferenceEngine =
+  | 'foundation_models'
+  | 'llama_cpp'
+  | 'mlx'
+  | 'core_ml'
+  | 'prompt_api'
+  | 'none';
+
+export type ModelDownloadState =
+  | 'pending'
+  | 'downloading'
+  | 'verifying'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+export interface DownloadableModelInfo {
+  modelId: string;
+  name: string;
+  version: string;
+  sizeMB: number;
+  quantization: string;
+  contextLength: number;
+  minMemoryMB: number;
+  isMultimodal: boolean;
+}
+
+export interface ModelDownloadProgress {
+  modelId: string;
+  bytesDownloaded: number;
+  totalBytes: number;
+  progress: number;
+  state: ModelDownloadState;
+}
+
+export interface ModelDisplayInfo {
+  modelId: string;
+  name: string;
+  sizeMB: number;
+  isDownloaded: boolean;
+  isRecommended: boolean;
+  isLoaded: boolean;
 }

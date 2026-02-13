@@ -20,7 +20,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Features',
-          headerTitle: 'Locanara for Community',
+          headerTitle: 'Locanara',
           tabBarIcon: ({color, size}) => (
             <Ionicons name="sparkles" size={size} color={color} />
           ),

@@ -27,11 +27,6 @@ public enum LocanaraSDK {
     /// SDK version (keep in sync with locanara-versions.json)
     public static let version = "1.0.1"
 
-    /// Check if Pro tier is available (always false in Community SDK)
-    public static var isProTier: Bool {
-        return false
-    }
-
     /// Detect if SDK is from local source or released package
     /// When loaded from xcframework, the bundle will be a framework bundle
     /// When compiled from source, the code is in the main app bundle
@@ -56,6 +51,12 @@ private final class BundleToken {}
 public enum InferenceEngineType: String, Sendable, CaseIterable {
     /// Apple Foundation Models (iOS 26+)
     case foundationModels = "foundation_models"
+    /// llama.cpp - GGUF models with Metal GPU acceleration
+    case llamaCpp = "llama_cpp"
+    /// MLX - Apple Silicon optimized (macOS)
+    case mlx = "mlx"
+    /// CoreML - NPU-accelerated inference
+    case coreML = "core_ml"
     /// No engine available
     case none = "none"
 
@@ -63,6 +64,9 @@ public enum InferenceEngineType: String, Sendable, CaseIterable {
     public var displayName: String {
         switch self {
         case .foundationModels: return "Apple Intelligence"
+        case .llamaCpp: return "llama.cpp"
+        case .mlx: return "MLX"
+        case .coreML: return "CoreML"
         case .none: return "None"
         }
     }
@@ -71,24 +75,27 @@ public enum InferenceEngineType: String, Sendable, CaseIterable {
     public var engineDescription: String {
         switch self {
         case .foundationModels: return "Native Apple Intelligence (iOS 26+)"
+        case .llamaCpp: return "llama.cpp with Metal GPU acceleration"
+        case .mlx: return "MLX - Apple Silicon optimized (macOS)"
+        case .coreML: return "CoreML - NPU-accelerated inference"
         case .none: return "No inference engine available"
         }
     }
 
     /// Whether this engine requires model download
     public var requiresModelDownload: Bool {
-        return false
+        switch self {
+        case .llamaCpp, .mlx, .coreML: return true
+        case .foundationModels, .none: return false
+        }
     }
 }
 
-/// Locanara SDK for iOS - Community Edition
+/// Locanara SDK for iOS
 ///
 /// Provides a unified interface for on-device AI capabilities
-/// built on top of Apple Intelligence and Foundation Models.
-///
-/// **Note:** This is the Community tier which only supports
-/// devices with Apple Intelligence (iOS 26+).
-/// For universal device support, upgrade to Locanara Pro.
+/// built on top of Apple Intelligence, Foundation Models,
+/// and fallback engines (llama.cpp) for older devices.
 @available(iOS 15.0, macOS 14.0, tvOS 15.0, watchOS 8.0, *)
 public final class LocanaraClient {
 
@@ -135,6 +142,9 @@ public final class LocanaraClient {
 
         // Load available Foundation Models
         self.availableFoundationModels = await loadAvailableFoundationModels()
+
+        // Initialize inference router (needed for RouterModel used by built-in chains)
+        try await InferenceRouter.shared.initialize()
 
         isInitialized = true
         let source = LocanaraSDK.packageSource
@@ -221,7 +231,7 @@ public final class LocanaraClient {
     /// Get current inference engine type
     ///
     /// Returns the active inference engine being used for AI operations.
-    /// Community tier only supports Foundation Models.
+    /// Returns the active inference engine being used for AI operations.
     ///
     /// - Returns: InferenceEngineType being used
     public func getCurrentInferenceEngine() -> InferenceEngineType {
@@ -235,26 +245,9 @@ public final class LocanaraClient {
         return .none
     }
 
-    /// Check if upgrade to Pro tier is recommended
-    ///
-    /// Returns guidance on why an upgrade might be beneficial,
-    /// especially when Community tier features are limited.
-    ///
-    /// - Returns: UpgradeReason if upgrade is recommended, nil otherwise
-    public func checkUpgradeRecommendation() -> UpgradeReason? {
-        return UpgradeGuidance.checkUpgradeNeeded()
-    }
-
-    /// Get upgrade guidance for Pro tier
-    ///
-    /// - Returns: UpgradeGuidance with available Pro tier engines info
-    public static var proTierInfo: String {
-        return UpgradeGuidance.proTierEngines
-    }
-
     /// Check if model is loaded and ready for inference
     ///
-    /// Community tier: Returns true if Foundation Models are available
+    /// Returns true if Foundation Models are available or a fallback engine is loaded
     ///
     /// - Returns: true if model is ready
     public func isModelReady() -> Bool {
@@ -423,9 +416,6 @@ public final class LocanaraClient {
             throw LocanaraError.sdkNotInitialized
         }
 
-        // Check tier requirements
-        try guardProTier(input.feature)
-
         guard isFeatureAvailable(input.feature) else {
             throw LocanaraError.featureNotAvailable(input.feature)
         }
@@ -508,13 +498,6 @@ public final class LocanaraClient {
             }
         }
 
-        if let opts = options, opts.modelId != nil {
-            logger.warning("""
-                executeFeatureIOS() modelId option is ignored in Community tier. \
-                Foundation Models use OS-managed models. Upgrade to Pro for custom model selection.
-                """)
-        }
-
         return try await executeFeature(input)
     }
 
@@ -523,17 +506,16 @@ public final class LocanaraClient {
     /// - Parameter executionId: Execution ID to cancel
     /// - Returns: VoidResult indicating success
     public func cancelExecution(_ executionId: String) -> VoidResult {
-        logger.warning("""
-            cancelExecution() is a no-op in Community tier. \
-            Foundation Models operations complete quickly. \
-            Upgrade to Pro for cancellable long-running inference.
-            """)
+        // TODO: Integrate with InferenceRouter for cancellable engine-based inference
         return VoidResult(success: true)
     }
 
     // MARK: - Model Management
 
-    /// Download a specific Foundation Model
+    /// Download a model
+    ///
+    /// For Foundation Models, this is a no-op (OS-managed).
+    /// For llama.cpp models, use LocanaraClient+Engine extension methods.
     ///
     /// - Parameter modelId: Model identifier to download
     /// - Returns: VoidResult indicating success
@@ -543,10 +525,7 @@ public final class LocanaraClient {
             throw LocanaraError.sdkNotInitialized
         }
 
-        logger.warning("""
-            downloadFoundationModel() is a no-op in Community tier. \
-            Foundation Models are managed by the OS. Upgrade to Pro for custom model downloads.
-            """)
+        // Foundation Models are managed by the OS
         return VoidResult(success: true)
     }
 
@@ -559,10 +538,7 @@ public final class LocanaraClient {
             throw LocanaraError.sdkNotInitialized
         }
 
-        logger.warning("""
-            requestAppleIntelligencePermission() is a no-op in Community tier. \
-            Apple Intelligence permission is handled by the OS.
-            """)
+        // Apple Intelligence permission is handled by the OS
         return VoidResult(success: true)
     }
 
@@ -571,10 +547,7 @@ public final class LocanaraClient {
     /// - Parameter features: Features to preload models for
     /// - Returns: VoidResult indicating success
     public func preloadModels(_ features: [FeatureType]) async -> VoidResult {
-        logger.warning("""
-            preloadModels() is a no-op in Community tier. \
-            Foundation Models manage caching automatically via the OS. Upgrade to Pro for model preloading.
-            """)
+        // TODO: Integrate with ModelManager for engine-based preloading
         return VoidResult(success: true)
     }
 
@@ -583,10 +556,7 @@ public final class LocanaraClient {
     /// - Parameter features: Features to unload models for
     /// - Returns: VoidResult indicating success
     public func unloadModels(_ features: [FeatureType]) -> VoidResult {
-        logger.warning("""
-            unloadModels() is a no-op in Community tier. \
-            Foundation Models manage memory automatically via the OS.
-            """)
+        // TODO: Integrate with ModelManager for engine-based unloading
         return VoidResult(success: true)
     }
 
@@ -622,22 +592,18 @@ public final class LocanaraClient {
     private func checkDeviceCapabilities() async throws -> DeviceCapability {
         let deviceInfo = DeviceInfoIOS.current()
 
-        // Filter available features for iOS Community tier:
-        // - Exclude describeImage (Pro only - Foundation Models is text-only)
-        // - Exclude describeImageAndroid (Android only)
-        // - Exclude generateImage (Pro only - requires Stable Diffusion etc)
-        // - Include generateImageIos (iOS Community - uses Image Playground)
-        let iOSCommunityFeatures = FeatureType.allCases.filter { feature in
+        // Filter available features for iOS
+        let iOSFeatures = FeatureType.allCases.filter { feature in
             switch feature {
-            case .describeImage, .describeImageAndroid, .generateImage:
-                return false  // Pro or Android only
+            case .describeImageAndroid:
+                return false  // Android only
             default:
-                return true  // Including generateImageIos
+                return true
             }
         }
 
         let featureCapabilities: [FeatureCapability] = deviceInfo.supportsAppleIntelligence
-            ? iOSCommunityFeatures.map { feature in
+            ? iOSFeatures.map { feature in
                 FeatureCapability(
                     feature: feature,
                     level: .full,
@@ -653,7 +619,7 @@ public final class LocanaraClient {
             platform: .ios,
             supportsOnDeviceAI: deviceInfo.supportsAppleIntelligence,
             availableFeatures: deviceInfo.supportsAppleIntelligence
-                ? iOSCommunityFeatures
+                ? iOSFeatures
                 : [],
             featureCapabilities: featureCapabilities,
             availableMemoryMB: availableMemory,
@@ -748,8 +714,8 @@ public final class LocanaraClient {
             throw LocanaraError.featureNotAvailable(.describeImageAndroid)
 
         case .generateImage:
-            // Pro tier only - requires Stable Diffusion or similar
-            throw LocanaraError.proTierRequired(.generateImage)
+            // Cross-platform image generation - not yet implemented
+            throw LocanaraError.featureNotSupported(.generateImage)
 
         case .generateImageIos:
             let result = try await generateImageExecutor.execute(

@@ -38,7 +38,7 @@ extend type Mutation {
 
   """
   Generate image using iOS Image Playground (iOS 18.2+)
-  Community tier - uses on-device Image Playground API
+  Uses on-device Image Playground API
   """
   generateImageIOS(
     parameters: ImagePlaygroundParametersIOS!

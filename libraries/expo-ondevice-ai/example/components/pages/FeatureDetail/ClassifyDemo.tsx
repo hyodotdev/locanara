@@ -8,13 +8,18 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import {classify, type ClassifyResult, ExpoOndeviceAiLog} from 'expo-ondevice-ai';
+import {
+  classify,
+  type ClassifyResult,
+  ExpoOndeviceAiLog,
+} from 'expo-ondevice-ai';
 import {useAppState} from '../../AppState';
 import {AIModelRequiredBanner} from './AIModelRequiredBanner';
 
 const DEFAULT_INPUT =
   'The new iPhone features an incredible camera system with advanced computational photography.';
-const DEFAULT_CATEGORIES = 'Technology, Sports, Entertainment, Business, Health';
+const DEFAULT_CATEGORIES =
+  'Technology, Sports, Entertainment, Business, Health';
 
 export function ClassifyDemo() {
   const {isModelReady} = useAppState();
@@ -37,7 +42,10 @@ export function ClassifyDemo() {
 
       ExpoOndeviceAiLog.d('[ClassifyDemo] Starting classify');
       ExpoOndeviceAiLog.d('[ClassifyDemo] Input:', inputText);
-      ExpoOndeviceAiLog.d('[ClassifyDemo] Categories:', categoryList.join(', '));
+      ExpoOndeviceAiLog.d(
+        '[ClassifyDemo] Categories:',
+        categoryList.join(', '),
+      );
 
       const classifyResult = await classify(inputText, {
         categories: categoryList,
@@ -47,7 +55,9 @@ export function ClassifyDemo() {
       ExpoOndeviceAiLog.json('[ClassifyDemo] ClassifyResult', classifyResult);
       setResult(classifyResult);
     } catch (error: any) {
-      ExpoOndeviceAiLog.error('[ClassifyDemo] Error: ' + (error.message || 'Unknown error'));
+      ExpoOndeviceAiLog.error(
+        '[ClassifyDemo] Error: ' + (error.message || 'Unknown error'),
+      );
       setErrorMessage(error.message || 'Failed to classify');
     } finally {
       setIsLoading(false);
@@ -90,9 +100,7 @@ export function ClassifyDemo() {
           onPress={executeClassify}
           disabled={isLoading || !inputText.trim() || !isModelReady}
         >
-          {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : null}
+          {isLoading ? <ActivityIndicator color="white" size="small" /> : null}
           <Text style={styles.buttonText}>
             {isLoading ? 'Processing...' : 'Classify'}
           </Text>
@@ -104,13 +112,22 @@ export function ClassifyDemo() {
           <View style={styles.resultSection}>
             <Text style={styles.sectionTitle}>Classifications</Text>
             {result.classifications.map((classification, index) => {
-              const isTop = classification.label === result.topClassification.label;
+              const isTop =
+                classification.label === result.topClassification.label;
               return (
                 <View
                   key={index}
-                  style={[styles.classificationRow, index > 0 && styles.classificationRowMargin]}
+                  style={[
+                    styles.classificationRow,
+                    index > 0 && styles.classificationRowMargin,
+                  ]}
                 >
-                  <Text style={[styles.categoryLabel, isTop && styles.categoryLabelTop]}>
+                  <Text
+                    style={[
+                      styles.categoryLabel,
+                      isTop && styles.categoryLabelTop,
+                    ]}
+                  >
                     {classification.label}
                   </Text>
                   <View style={styles.confidenceContainer}>

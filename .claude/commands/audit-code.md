@@ -1,6 +1,6 @@
 # Audit Code
 
-Audit code against Locanara Community project rules and conventions.
+Audit code against Locanara project rules and conventions.
 
 ## Overview
 

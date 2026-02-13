@@ -8,6 +8,10 @@ import android.util.Log
 import com.locanara.mlkit.MLKitClients
 import com.locanara.mlkit.MLKitPromptClient
 import com.locanara.mlkit.PromptApiStatus
+import com.locanara.engine.InferenceEngine
+import com.locanara.rag.RAGManager
+import com.locanara.rag.RAGQueryEngine
+import com.locanara.personalization.PersonalizationManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -15,15 +19,17 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.UUID
 
 /**
- * Locanara SDK for Android (Community Edition)
+ * Locanara SDK for Android
  *
  * Provides a unified interface for on-device AI capabilities
- * built on top of Gemini Nano and Google ML Kit GenAI.
+ * built on top of Gemini Nano, Google ML Kit GenAI,
+ * and ExecuTorch for devices without native AI support.
  */
 class Locanara private constructor(
     private val context: Context
@@ -45,6 +51,13 @@ class Locanara private constructor(
 
     // Prompt API availability status (checked during initialization)
     private var promptApiStatus: PromptApiStatus = PromptApiStatus.NotAvailable("Not yet initialized")
+
+    // Engine, RAG, and Personalization (lazy initialized)
+    private val ragManager: RAGManager by lazy { RAGManager(context) }
+    private val ragQueryEngine: RAGQueryEngine by lazy { RAGQueryEngine(context, ragManager) }
+    private val personalizationManager: PersonalizationManager by lazy { PersonalizationManager(context) }
+    private var inferenceEngine: InferenceEngine? = null
+    private val engineMutex = Mutex()
 
     // Event flows for subscriptions
     private val _executionStateFlow = MutableSharedFlow<ExecutionResult>()
@@ -291,7 +304,7 @@ class Locanara private constructor(
                 )
             }
 
-            // describeImageAndroid - Android Community tier (Gemini Nano via ML Kit)
+            // describeImageAndroid - Android (Gemini Nano via ML Kit)
             FeatureType.DESCRIBE_IMAGE_ANDROID -> {
                 val params = input.parameters?.imageDescription
                     ?: throw LocanaraException.InvalidInput("Image parameters are required")
@@ -303,7 +316,7 @@ class Locanara private constructor(
                 result
             }
 
-            // Features not available in Community tier
+            // Features not available on this platform
             FeatureType.DESCRIBE_IMAGE,
             FeatureType.GENERATE_IMAGE,
             FeatureType.GENERATE_IMAGE_IOS -> {

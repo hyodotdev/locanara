@@ -3,26 +3,26 @@ import Foundation
 /// A reusable prompt template with variable interpolation.
 ///
 /// ```swift
-/// let template = PromptTemplate(
-///     template: "Summarize into {count} points:\n{text}",
+/// let tmpl = PromptTemplate(
+///     templateString: "Summarize into {count} points:\n{text}",
 ///     inputVariables: ["count", "text"]
 /// )
-/// let prompt = try template.format(["count": "3", "text": article])
+/// let prompt = try tmpl.format(["count": "3", "text": article])
 /// ```
 public struct PromptTemplate: Sendable {
     /// The template string with {variable} placeholders
-    public let template: String
+    public let templateString: String
     /// Required variable names
     public let inputVariables: [String]
     /// Optional system instruction prefix
     public let systemInstruction: String?
 
     public init(
-        template: String,
+        templateString: String,
         inputVariables: [String],
         systemInstruction: String? = nil
     ) {
-        self.template = template
+        self.templateString = templateString
         self.inputVariables = inputVariables
         self.systemInstruction = systemInstruction
     }
@@ -35,7 +35,7 @@ public struct PromptTemplate: Sendable {
             }
         }
 
-        var result = template
+        var result = templateString
         for (key, value) in values {
             result = result.replacingOccurrences(of: "{\(key)}", with: value)
         }
@@ -47,16 +47,16 @@ public struct PromptTemplate: Sendable {
     }
 
     /// Create a prompt template from a string with auto-detected {variable} placeholders
-    public static func from(_ template: String) -> PromptTemplate {
+    public static func from(_ templateString: String) -> PromptTemplate {
         let pattern = try! NSRegularExpression(pattern: "\\{(\\w+)\\}")
         let matches = pattern.matches(
-            in: template,
-            range: NSRange(template.startIndex..., in: template)
+            in: templateString,
+            range: NSRange(templateString.startIndex..., in: templateString)
         )
         let variables = matches.compactMap { match -> String? in
-            guard let range = Range(match.range(at: 1), in: template) else { return nil }
-            return String(template[range])
+            guard let range = Range(match.range(at: 1), in: templateString) else { return nil }
+            return String(templateString[range])
         }
-        return PromptTemplate(template: template, inputVariables: variables)
+        return PromptTemplate(templateString: templateString, inputVariables: variables)
     }
 }

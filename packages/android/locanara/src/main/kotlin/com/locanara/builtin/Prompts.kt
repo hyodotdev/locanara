@@ -5,7 +5,7 @@ import com.locanara.core.PromptTemplate
 /** Pre-built prompt templates for common on-device AI tasks */
 object BuiltInPrompts {
     val summarize = PromptTemplate(
-        template = """
+        templateString = """
             Summarize the following text into exactly {bulletCount} concise bullet point(s), each capturing a key point.
 
             Text to summarize:
@@ -15,7 +15,7 @@ object BuiltInPrompts {
     )
 
     val classify = PromptTemplate(
-        template = """
+        templateString = """
             Classify the following text into one or more of these categories: {categories}
 
             Return ONLY the matching categories with confidence scores, one per line, in this exact format:
@@ -31,7 +31,7 @@ object BuiltInPrompts {
     )
 
     val extract = PromptTemplate(
-        template = """
+        templateString = """
             Extract entities from the following text.
             Entity types to find: {entityTypes}
 
@@ -47,7 +47,7 @@ object BuiltInPrompts {
     )
 
     val translate = PromptTemplate(
-        template = """
+        templateString = """
             Translate the following text from {sourceLang} to {targetLang}.
             Provide ONLY the translation, no explanations or additional text.
 
@@ -58,7 +58,7 @@ object BuiltInPrompts {
     )
 
     val rewrite = PromptTemplate(
-        template = """
+        templateString = """
             Rewrite the following text {styleInstruction}
             Return ONLY the rewritten text with no labels, headers, or alternatives.
 
@@ -69,7 +69,7 @@ object BuiltInPrompts {
     )
 
     val proofread = PromptTemplate(
-        template = """
+        templateString = """
             Proofread the following text for grammar, spelling, and punctuation errors.
             Return the corrected text.
 
@@ -107,7 +107,7 @@ object BuiltInPrompts {
     }
 
     val chat = PromptTemplate(
-        template = """
+        templateString = """
             {systemPrompt}
 
             {languageInstruction}

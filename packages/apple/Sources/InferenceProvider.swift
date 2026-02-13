@@ -4,19 +4,15 @@ import Foundation
 
 /// Protocol for inference providers that can execute AI features
 ///
-/// This protocol allows the Community tier to delegate inference execution
-/// to Pro tier implementations without compile-time dependencies.
-///
-/// **Usage:**
-/// - Community tier: Defines this protocol and checks for registered provider
-/// - Pro tier: Implements this protocol and registers with LocanaraClient
+/// This protocol allows the SDK to delegate inference execution
+/// to different engine implementations (Foundation Models, llama.cpp, etc.).
 ///
 /// **Example:**
 /// ```swift
-/// // Pro tier registers provider during initialization
-/// LocanaraClient.shared.inferenceProvider = ProInferenceProvider()
+/// // Register a custom inference provider
+/// LocanaraClient.shared.inferenceProvider = LocalModelInferenceProvider()
 ///
-/// // Community tier uses provider if available
+/// // SDK uses provider if available
 /// if let provider = LocanaraClient.shared.inferenceProvider {
 ///     return try await provider.summarize(input: text, params: params)
 /// }

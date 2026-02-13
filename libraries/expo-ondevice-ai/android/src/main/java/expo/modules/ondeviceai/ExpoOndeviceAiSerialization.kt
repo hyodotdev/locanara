@@ -4,7 +4,6 @@ import com.locanara.*
 
 /** Serializes Locanara SDK result types into JS-compatible maps */
 object ExpoOndeviceAiSerialization {
-
     // region Device Capability
 
     fun deviceCapability(capability: DeviceCapability): Map<String, Any> {
@@ -20,7 +19,7 @@ object ExpoOndeviceAiSerialization {
             "platform" to "ANDROID",
             "features" to features,
             "availableMemoryMB" to (capability.availableMemoryMB ?: 0),
-            "isLowPowerMode" to capability.isLowPowerMode
+            "isLowPowerMode" to capability.isLowPowerMode,
         )
     }
 
@@ -28,98 +27,107 @@ object ExpoOndeviceAiSerialization {
 
     // region Result Serializers
 
-    fun summarize(r: SummarizeResult): Map<String, Any> = mapOf(
-        "summary" to r.summary,
-        "originalLength" to r.originalLength,
-        "summaryLength" to r.summaryLength,
-        "confidence" to (r.confidence ?: 0.0)
-    )
+    fun summarize(r: SummarizeResult): Map<String, Any> =
+        mapOf(
+            "summary" to r.summary,
+            "originalLength" to r.originalLength,
+            "summaryLength" to r.summaryLength,
+            "confidence" to (r.confidence ?: 0.0),
+        )
 
     fun classify(r: ClassifyResult): Map<String, Any> {
-        val classifications = r.classifications.map { c ->
-            mapOf(
-                "label" to c.label,
-                "score" to c.score,
-                "metadata" to (c.metadata ?: "")
-            )
-        }
+        val classifications =
+            r.classifications.map { c ->
+                mapOf(
+                    "label" to c.label,
+                    "score" to c.score,
+                    "metadata" to (c.metadata ?: ""),
+                )
+            }
         return mapOf(
             "classifications" to classifications,
-            "topClassification" to mapOf(
-                "label" to r.topClassification.label,
-                "score" to r.topClassification.score
-            )
+            "topClassification" to
+                mapOf(
+                    "label" to r.topClassification.label,
+                    "score" to r.topClassification.score,
+                ),
         )
     }
 
     fun extract(r: ExtractResult): Map<String, Any> {
-        val entities = r.entities.map { e ->
-            mapOf(
-                "type" to e.type,
-                "value" to e.value,
-                "confidence" to e.confidence,
-                "startPos" to (e.startPos ?: 0),
-                "endPos" to (e.endPos ?: 0)
-            )
-        }
+        val entities =
+            r.entities.map { e ->
+                mapOf(
+                    "type" to e.type,
+                    "value" to e.value,
+                    "confidence" to e.confidence,
+                    "startPos" to (e.startPos ?: 0),
+                    "endPos" to (e.endPos ?: 0),
+                )
+            }
 
         val response = mutableMapOf<String, Any>("entities" to entities)
 
         r.keyValuePairs?.let { pairs ->
-            response["keyValuePairs"] = pairs.map { p ->
-                mapOf(
-                    "key" to p.key,
-                    "value" to p.value,
-                    "confidence" to (p.confidence ?: 0.0)
-                )
-            }
+            response["keyValuePairs"] =
+                pairs.map { p ->
+                    mapOf(
+                        "key" to p.key,
+                        "value" to p.value,
+                        "confidence" to (p.confidence ?: 0.0),
+                    )
+                }
         }
 
         return response
     }
 
     fun chat(r: ChatResult): Map<String, Any> {
-        val response = mutableMapOf<String, Any>(
-            "message" to r.message,
-            "canContinue" to r.canContinue
-        )
+        val response =
+            mutableMapOf<String, Any>(
+                "message" to r.message,
+                "canContinue" to r.canContinue,
+            )
         r.conversationId?.let { response["conversationId"] = it }
         r.suggestedPrompts?.let { response["suggestedPrompts"] = it }
         return response
     }
 
-    fun translate(r: TranslateResult): Map<String, Any> = mapOf(
-        "translatedText" to r.translatedText,
-        "sourceLanguage" to r.sourceLanguage,
-        "targetLanguage" to r.targetLanguage,
-        "confidence" to (r.confidence ?: 0.0)
-    )
+    fun translate(r: TranslateResult): Map<String, Any> =
+        mapOf(
+            "translatedText" to r.translatedText,
+            "sourceLanguage" to r.sourceLanguage,
+            "targetLanguage" to r.targetLanguage,
+            "confidence" to (r.confidence ?: 0.0),
+        )
 
     fun rewrite(r: RewriteResult): Map<String, Any> {
-        val response = mutableMapOf<String, Any>(
-            "rewrittenText" to r.rewrittenText,
-            "confidence" to (r.confidence ?: 0.0)
-        )
+        val response =
+            mutableMapOf<String, Any>(
+                "rewrittenText" to r.rewrittenText,
+                "confidence" to (r.confidence ?: 0.0),
+            )
         r.style?.let { response["style"] = it.name }
         r.alternatives?.let { response["alternatives"] = it }
         return response
     }
 
     fun proofread(r: ProofreadResult): Map<String, Any> {
-        val corrections = r.corrections.map { c ->
-            mapOf(
-                "original" to c.original,
-                "corrected" to c.corrected,
-                "type" to (c.type ?: ""),
-                "confidence" to (c.confidence ?: 0.0),
-                "startPos" to (c.startPos ?: 0),
-                "endPos" to (c.endPos ?: 0)
-            )
-        }
+        val corrections =
+            r.corrections.map { c ->
+                mapOf(
+                    "original" to c.original,
+                    "corrected" to c.corrected,
+                    "type" to (c.type ?: ""),
+                    "confidence" to (c.confidence ?: 0.0),
+                    "startPos" to (c.startPos ?: 0),
+                    "endPos" to (c.endPos ?: 0),
+                )
+            }
         return mapOf(
             "correctedText" to r.correctedText,
             "corrections" to corrections,
-            "hasCorrections" to r.hasCorrections
+            "hasCorrections" to r.hasCorrections,
         )
     }
 
@@ -128,11 +136,10 @@ object ExpoOndeviceAiSerialization {
     // region Helpers
 
     /** Convert FeatureType enum to camelCase key for JS */
-    private fun featureKey(feature: FeatureType): String {
-        return feature.name.lowercase().replace(Regex("_([a-z])")) { match ->
+    private fun featureKey(feature: FeatureType): String =
+        feature.name.lowercase().replace(Regex("_([a-z])")) { match ->
             match.groupValues[1].uppercase()
         }
-    }
 
     // endregion
 }

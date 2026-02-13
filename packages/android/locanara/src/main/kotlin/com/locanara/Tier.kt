@@ -1,21 +1,14 @@
 package com.locanara
 
 /**
- * Locanara SDK Tier
+ * Check if a feature is available
  *
- * Community Edition - Uses Gemini Nano and ML Kit GenAI for on-device AI.
+ * All features are available in the unified SDK.
+ *
+ * @param feature Feature type to check
+ * @return true (all features available)
  */
-enum class LocanaraTier(val value: String) {
-    COMMUNITY("community")
+@Suppress("UNUSED_PARAMETER")
+fun isFeatureAvailable(feature: FeatureType): Boolean {
+    return true
 }
-
-/**
- * Current SDK tier
- */
-val currentTier: LocanaraTier = LocanaraTier.COMMUNITY
-
-/**
- * Check if current tier is Community (always true for this SDK)
- */
-val isCommunityTier: Boolean
-    get() = true

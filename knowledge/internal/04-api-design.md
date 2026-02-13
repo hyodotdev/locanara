@@ -80,10 +80,8 @@ Locanara.chat(messages).collect { chunk ->
 public static func getDeviceCapability() async -> DeviceCapability
 
 struct DeviceCapability {
-    let tier: Tier                    // .community or .pro
     let isAppleIntelligenceAvailable: Bool
     let isFoundationModelsAvailable: Bool
-    let isProModelDownloaded: Bool
     let supportedFeatures: [Feature]
     let memoryLimitMB: Int
     let recommendedContextSize: Int
@@ -162,69 +160,6 @@ public static func describeImage(
 ) async throws -> String
 ```
 
-## Pro Tier API
-
-Pro tier extends Community with model management:
-
-### Model Management
-
-```swift
-// Download model
-public func downloadModel(
-    modelId: String,
-    progress: ((Double) -> Void)? = nil
-) async throws
-
-// List downloaded models
-public func listDownloadedModels() -> [ModelInfo]
-
-// Delete model
-public func deleteModel(modelId: String) async throws
-
-// Get model info
-public func getModelInfo(modelId: String) -> ModelInfo?
-
-struct ModelInfo {
-    let id: String
-    let name: String
-    let sizeBytes: Int64
-    let downloadedAt: Date
-    let path: URL
-}
-```
-
-### Capability Detection
-
-```swift
-// Detect Pro capabilities
-public func detectCapability() async -> ProCapability
-
-struct ProCapability {
-    let availableMemoryMB: Int
-    let isMetalSupported: Bool
-    let recommendedModel: String
-    let maxContextSize: Int
-    let canRunPro: Bool
-}
-```
-
-### Engine Management
-
-```swift
-// Get active engine
-public func getActiveEngine() -> InferenceEngineType
-
-// Set preferred engine
-public func setPreferredEngine(_ engine: InferenceEngineType)
-
-enum InferenceEngineType {
-    case foundationModels  // Apple Intelligence
-    case llamaCpp          // llama.cpp via LocalLLMClient
-    case mlx               // MLX (future)
-    case coreML            // CoreML (future)
-}
-```
-
 ## Error Design
 
 All errors MUST be:
@@ -253,7 +188,7 @@ public enum LocanaraError: Error {
     /// Invalid input provided
     case invalidInput(String)
 
-    /// Feature not supported on this tier/device
+    /// Feature not supported on this device
     case featureNotAvailable
 
     /// Network error during download

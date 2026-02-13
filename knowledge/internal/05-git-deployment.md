@@ -48,7 +48,7 @@ main                    # Production-ready code
 # CORRECT
 feat: add streaming support for chat API
 fix: resolve memory leak in LlamaCppEngine
-docs: update API documentation for Pro tier
+docs: update API documentation
 refactor: simplify model loading logic
 test: add unit tests for ModelManager
 chore: update dependencies
@@ -182,19 +182,6 @@ Packages are distributed via GitHub:
 dependencies: [
     .package(url: "https://github.com/locanara/locanara", from: "1.0.0")
 ]
-```
-
-### Binary XCFramework
-
-For Pro tier, pre-built XCFramework is provided via SPM binary target:
-
-```swift
-// Binary target in root Package.swift (locanara/locanara repo)
-.binaryTarget(
-    name: "Locanara",
-    url: "https://r2-url/Locanara.xcframework.zip",
-    checksum: "..."
-)
 ```
 
 ## CI/CD

@@ -118,6 +118,19 @@ enum ExpoOndeviceAiSerialization {
         return response
     }
 
+    static func modelInfo(_ m: DownloadableModelInfo) -> [String: Any] {
+        [
+            "modelId": m.modelId,
+            "name": m.name,
+            "version": m.version,
+            "sizeMB": m.sizeMB,
+            "quantization": m.quantization.rawValue,
+            "contextLength": m.contextLength,
+            "minMemoryMB": m.minMemoryMB,
+            "isMultimodal": m.isMultimodal
+        ]
+    }
+
     static func proofread(_ r: ProofreadResult) -> [String: Any] {
         let corrections = r.corrections.map { c in
             [

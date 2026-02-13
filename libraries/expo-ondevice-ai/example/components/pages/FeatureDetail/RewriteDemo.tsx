@@ -8,7 +8,12 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import {rewrite, type RewriteResult, type RewriteOutputType, ExpoOndeviceAiLog} from 'expo-ondevice-ai';
+import {
+  rewrite,
+  type RewriteResult,
+  type RewriteOutputType,
+  ExpoOndeviceAiLog,
+} from 'expo-ondevice-ai';
 import {useAppState} from '../../AppState';
 import {AIModelRequiredBanner} from './AIModelRequiredBanner';
 
@@ -30,7 +35,8 @@ const ROW2_STYLES: {value: RewriteOutputType; label: string}[] = [
 export function RewriteDemo() {
   const {isModelReady} = useAppState();
   const [inputText, setInputText] = useState(DEFAULT_INPUT);
-  const [selectedStyle, setSelectedStyle] = useState<RewriteOutputType>('ELABORATE');
+  const [selectedStyle, setSelectedStyle] =
+    useState<RewriteOutputType>('ELABORATE');
   const [result, setResult] = useState<RewriteResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,7 +59,9 @@ export function RewriteDemo() {
       ExpoOndeviceAiLog.json('[RewriteDemo] RewriteResult', rewriteResult);
       setResult(rewriteResult);
     } catch (error: any) {
-      ExpoOndeviceAiLog.error('[RewriteDemo] Error: ' + (error.message || 'Unknown error'));
+      ExpoOndeviceAiLog.error(
+        '[RewriteDemo] Error: ' + (error.message || 'Unknown error'),
+      );
       setErrorMessage(error.message || 'Failed to rewrite');
     } finally {
       setIsLoading(false);
@@ -104,7 +112,9 @@ export function RewriteDemo() {
               </TouchableOpacity>
             ))}
           </View>
-          <View style={[styles.segmentedControl, styles.segmentedControlMargin]}>
+          <View
+            style={[styles.segmentedControl, styles.segmentedControlMargin]}
+          >
             {ROW2_STYLES.map((style) => (
               <TouchableOpacity
                 key={style.value}
@@ -136,9 +146,7 @@ export function RewriteDemo() {
           onPress={executeRewrite}
           disabled={isLoading || !inputText.trim() || !isModelReady}
         >
-          {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : null}
+          {isLoading ? <ActivityIndicator color="white" size="small" /> : null}
           <Text style={styles.buttonText}>
             {isLoading ? 'Processing...' : 'Rewrite'}
           </Text>

@@ -30,6 +30,21 @@ The SDK exposes consistent high-level functions across platforms:
 | `classify()`  | Text classification           |
 | `extract()`   | Entity/information extraction |
 | `chat()`      | Conversational AI             |
+| `translate()` | Language translation          |
+| `rewrite()`   | Text rewriting (tone/style)   |
+| `proofread()` | Grammar correction            |
+
+### Model Management API (iOS)
+
+| Function                | Purpose                                |
+| ----------------------- | -------------------------------------- |
+| `getAvailableModels()`  | List downloadable GGUF models          |
+| `getDownloadedModels()` | List locally stored models             |
+| `downloadModel()`       | Download a model with progress         |
+| `loadModel()`           | Load model into memory for inference   |
+| `deleteModel()`         | Remove model from disk                 |
+| `getLoadedModel()`      | Get currently loaded model ID          |
+| `getCurrentEngine()`    | Get active inference engine type       |
 
 ## Type Naming
 

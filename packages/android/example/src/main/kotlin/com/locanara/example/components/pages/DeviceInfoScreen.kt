@@ -18,12 +18,10 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,7 +41,6 @@ import com.locanara.example.viewmodel.LocanaraViewModel
  *
  * Shows device information and AI capabilities, matching the Mac Device Info view.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceInfoScreen(
     modifier: Modifier = Modifier,
@@ -53,21 +50,26 @@ fun DeviceInfoScreen(
     val geminiNanoInfo by viewModel.geminiNanoInfo.collectAsState()
     val aiStatus by viewModel.aiStatus.collectAsState()
 
-    Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text("Device Info") }
-        )
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Title
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Device Info",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Device Section
-            item {
-                SectionHeader(title = "Device")
-            }
+        // Device Section
+        item {
+            SectionHeader(title = "Device")
+        }
 
             item {
                 InfoCard {
@@ -157,7 +159,6 @@ fun DeviceInfoScreen(
 
             item { Spacer(modifier = Modifier.height(16.dp)) }
         }
-    }
 }
 
 @Composable

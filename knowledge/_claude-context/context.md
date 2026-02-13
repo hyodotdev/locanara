@@ -188,21 +188,6 @@ static let DEFAULT_CONTEXT_SIZE = 4096  // No ALL_CAPS
 static let k = 4096                      // Too short
 ```
 
-## Pro Tier Specific
-
-Pro tier classes use `Pro` suffix or `Pro` in name:
-
-```swift
-// CORRECT
-LocanaraPro           // Main Pro module
-ProCapabilityDetector // Pro-specific capability
-ModelManager          // Shared (no suffix needed)
-
-// INCORRECT
-LocanaraProTier       // Too verbose
-ProLocanara           // Pro should be suffix
-```
-
 
 ---
 
@@ -221,85 +206,50 @@ ProLocanara           // Pro should be suffix
 - No network calls for AI inference
 - No telemetry or analytics on user content
 
-## Product Tiers
-
-### Community Tier
+## Platform Support
 
 ```
 ┌─────────────────────────────────────────────┐
-│              COMMUNITY TIER                 │
+│              LOCANARA SDK                   │
 ├─────────────────────────────────────────────┤
-│  Engine: Foundation Models (Apple)          │
+│  iOS/macOS: Foundation Models (Apple)       │
+│  Android: Gemini Nano (ML Kit GenAI)        │
 │  Requirements: iOS 26+ / macOS 26+          │
-│  NPU: Required (Apple Intelligence)         │
-│  Device Coverage: ~20% (flagships only)     │
+│               Android 14+                   │
+│  NPU: Required                              │
 │  App Size Impact: < 5MB                     │
 │  External Dependencies: None                │
 └─────────────────────────────────────────────┘
 ```
 
-**Use Case**: Apps that only need to support latest devices with Apple Intelligence.
-
-### Pro Tier
-
-```
-┌─────────────────────────────────────────────┐
-│                PRO TIER                     │
-├─────────────────────────────────────────────┤
-│  Engine: llama.cpp (via LocalLLMClient)     │
-│  Fallback: Foundation Models (if available) │
-│  Requirements: iOS 17+ / macOS 14+          │
-│  NPU: Not required (CPU/GPU inference)      │
-│  Device Coverage: ~99% (universal)          │
-│  App Size Impact: +50MB~                    │
-│  External Dependencies: LocalLLMClient      │
-└─────────────────────────────────────────────┘
-```
-
-**Use Case**: Apps needing universal device support with offline AI.
-
 ## Package Structure
 
 ```
-locanara/locanara/
-├── Package.swift              # Swift Package definition
-├── SourcesCommunity/          # Community tier (no dependencies)
-│   ├── Locanara.swift         # Main entry point
-│   ├── Types.swift            # Shared types
-│   ├── Errors.swift           # LocanaraError definitions
-│   ├── Extensions.swift       # Swift extensions
-│   ├── Tier.swift             # Tier enum
-│   └── Features/              # Feature implementations
-│       ├── Summarize.swift
-│       ├── Classify.swift
-│       ├── Extract.swift
-│       ├── Translate.swift
-│       ├── Rewrite.swift
-│       ├── Proofread.swift
-│       ├── Chat.swift
-│       └── DescribeImage.swift
+locanara/
+├── packages/
+│   ├── apple/              # Swift SDK (SPM + CocoaPods)
+│   │   ├── Sources/        # SDK source
+│   │   │   ├── Core/       # LocanaraModel, PromptTemplate, OutputParser, Schema
+│   │   │   ├── Composable/ # Chain, Tool, Memory, Guardrail
+│   │   │   ├── BuiltIn/    # SummarizeChain, ClassifyChain, etc.
+│   │   │   ├── DSL/        # Pipeline, PipelineStep, ModelExtensions
+│   │   │   ├── Runtime/    # Agent, Session, ChainExecutor
+│   │   │   ├── Platform/   # FoundationLanguageModel
+│   │   │   └── Features/   # Legacy feature executors
+│   │   ├── Tests/
+│   │   └── Example/        # Example app
+│   │
+│   ├── android/            # Kotlin SDK (Maven Central)
+│   │   ├── locanara/       # SDK
+│   │   └── example/        # Example app
+│   │
+│   ├── gql/                # GraphQL schema definitions
+│   └── docs/               # Documentation website
 │
-├── SourcesPro/                # Pro tier (depends on Community + LocalLLMClient)
-│   ├── LocanaraPro.swift      # Pro entry point
-│   ├── ProTypes.swift         # Pro-specific types
-│   ├── ProCapabilityDetector.swift
-│   ├── InferenceRouter.swift  # Routes to best available engine
-│   ├── Engine/                # Inference engines
-│   │   ├── InferenceEngine.swift      # Protocol
-│   │   ├── LlamaCppEngine.swift       # llama.cpp implementation
-│   │   ├── MLXEngine.swift            # MLX (placeholder)
-│   │   ├── CoreMLEngine.swift         # CoreML (placeholder)
-│   │   ├── MemoryManager.swift        # Memory management
-│   │   └── StreamingGenerator.swift   # Streaming support
-│   └── ModelManager/          # Model download/storage
-│       ├── ModelManager.swift
-│       ├── ModelDownloader.swift
-│       ├── ModelStorage.swift
-│       └── ModelRegistry.swift
-│
-├── Tests/                     # Unit tests
-├── knowledge/                 # Knowledge base (this)
-└── scripts/agent/             # RAG agent scripts
+├── knowledge/              # Shared knowledge base
+└── .claude/
+    ├── commands/           # Slash commands
+    └── guides/             # Project guides
 ```
 
 ## Dependency Graph
@@ -309,26 +259,22 @@ locanara/locanara/
 │                      APPLICATION                            │
 └─────────────────────────────────────────────────────────────┘
                               │
-              ┌───────────────┼───────────────┐
-              │               │               │
-              ▼               ▼               ▼
-       ┌──────────┐    ┌──────────┐    ┌──────────┐
-       │ Locanara │    │Locanara  │    │   Both   │
-       │(Community)│   │   Pro    │    │          │
-       └──────────┘    └──────────┘    └──────────┘
-              │               │               │
-              │               │               │
-              ▼               ▼               ▼
-       ┌──────────┐    ┌──────────┐    ┌──────────┐
-       │Foundation│    │LocalLLM  │    │Foundation│
-       │ Models   │    │ Client   │    │+ LocalLLM│
-       │  (OS)    │    │(llama.cpp│    │          │
-       └──────────┘    └──────────┘    └──────────┘
+              ┌───────────────┴───────────────┐
+              │                               │
+              ▼                               ▼
+       ┌──────────────┐              ┌──────────────┐
+       │   Locanara   │              │   Locanara   │
+       │  (Apple SDK) │              │ (Android SDK)│
+       └──────────────┘              └──────────────┘
+              │                               │
+              ▼                               ▼
+       ┌──────────────┐              ┌──────────────┐
+       │  Foundation   │              │  ML Kit      │
+       │  Models (OS)  │              │  GenAI (OS)  │
+       └──────────────┘              └──────────────┘
 ```
 
 ## Inference Flow
-
-### Community Tier Flow
 
 ```
 User Request
@@ -341,15 +287,14 @@ User Request
          │
          ▼
 ┌─────────────────┐     No    ┌─────────────────┐
-│ Foundation      │──────────▶│ Return Error    │
-│ Models Ready?   │           │ .notAvailable   │
+│ Platform Model  │──────────▶│ Return Error    │
+│ Ready?          │           │ .notAvailable   │
 └────────┬────────┘           └─────────────────┘
          │ Yes
          ▼
 ┌─────────────────┐
 │ Execute via     │
-│ Foundation      │
-│ Models API      │
+│ Platform AI API │
 └────────┬────────┘
          │
          ▼
@@ -357,89 +302,6 @@ User Request
 │ Return Result   │
 └─────────────────┘
 ```
-
-### Pro Tier Flow
-
-```
-User Request
-     │
-     ▼
-┌─────────────────┐
-│ InferenceRouter │
-│ .route()        │
-└────────┬────────┘
-         │
-         ├──────────────────────────────────┐
-         │                                  │
-         ▼                                  ▼
-┌─────────────────┐              ┌─────────────────┐
-│ Foundation      │              │ LlamaCpp        │
-│ Models Ready?   │              │ Model Ready?    │
-└────────┬────────┘              └────────┬────────┘
-         │ Yes                            │ Yes
-         ▼                                ▼
-┌─────────────────┐              ┌─────────────────┐
-│ Use Foundation  │              │ Use LlamaCpp    │
-│ Models          │              │ Engine          │
-└────────┬────────┘              └────────┬────────┘
-         │                                │
-         └──────────────┬─────────────────┘
-                        │
-                        ▼
-               ┌─────────────────┐
-               │ Return Result   │
-               └─────────────────┘
-```
-
-## Memory Management
-
-### Memory Thresholds
-
-| Device RAM | Recommended Action |
-|------------|--------------------|
-| < 4GB      | Use Community tier only |
-| 4-6GB      | Pro tier with lowMemory config |
-| 6-8GB      | Pro tier with default config |
-| > 8GB      | Pro tier with high context |
-
-### LlamaCpp Configuration Profiles
-
-```swift
-// Default (6GB+ devices)
-Configuration.default = Configuration(
-    numThreads: ProcessorCount - 2,
-    contextSize: 4096,
-    batchSize: 512,
-    useMetal: true,
-    gpuLayers: 99
-)
-
-// Low Memory (4GB devices)
-Configuration.lowMemory = Configuration(
-    numThreads: 2,
-    contextSize: 512,
-    batchSize: 128,
-    useMetal: true,
-    gpuLayers: 20
-)
-```
-
-## Model Storage
-
-Models are stored in the app's Documents directory for better mmap support:
-
-```
-Documents/
-└── Locanara/
-    └── models/
-        └── gemma-2-2b-it-q4/
-            └── model.gguf
-```
-
-**Why Documents?**
-- Better mmap support on iOS devices
-- User can manage storage in Files app
-- Survives app updates
 
 ## Error Handling Strategy
 
@@ -743,7 +605,7 @@ fun chat(messages: List<ChatMessage>): Flow<String> = flow {
 ```swift
 /// Summarizes the given text using on-device AI.
 ///
-/// This method uses Foundation Models (Community tier) or llama.cpp (Pro tier)
+/// This method uses the platform's on-device AI model
 /// to generate a concise summary of the input text.
 ///
 /// - Parameters:
@@ -871,10 +733,8 @@ Locanara.chat(messages).collect { chunk ->
 public static func getDeviceCapability() async -> DeviceCapability
 
 struct DeviceCapability {
-    let tier: Tier                    // .community or .pro
     let isAppleIntelligenceAvailable: Bool
     let isFoundationModelsAvailable: Bool
-    let isProModelDownloaded: Bool
     let supportedFeatures: [Feature]
     let memoryLimitMB: Int
     let recommendedContextSize: Int
@@ -953,69 +813,6 @@ public static func describeImage(
 ) async throws -> String
 ```
 
-## Pro Tier API
-
-Pro tier extends Community with model management:
-
-### Model Management
-
-```swift
-// Download model
-public func downloadModel(
-    modelId: String,
-    progress: ((Double) -> Void)? = nil
-) async throws
-
-// List downloaded models
-public func listDownloadedModels() -> [ModelInfo]
-
-// Delete model
-public func deleteModel(modelId: String) async throws
-
-// Get model info
-public func getModelInfo(modelId: String) -> ModelInfo?
-
-struct ModelInfo {
-    let id: String
-    let name: String
-    let sizeBytes: Int64
-    let downloadedAt: Date
-    let path: URL
-}
-```
-
-### Capability Detection
-
-```swift
-// Detect Pro capabilities
-public func detectCapability() async -> ProCapability
-
-struct ProCapability {
-    let availableMemoryMB: Int
-    let isMetalSupported: Bool
-    let recommendedModel: String
-    let maxContextSize: Int
-    let canRunPro: Bool
-}
-```
-
-### Engine Management
-
-```swift
-// Get active engine
-public func getActiveEngine() -> InferenceEngineType
-
-// Set preferred engine
-public func setPreferredEngine(_ engine: InferenceEngineType)
-
-enum InferenceEngineType {
-    case foundationModels  // Apple Intelligence
-    case llamaCpp          // llama.cpp via LocalLLMClient
-    case mlx               // MLX (future)
-    case coreML            // CoreML (future)
-}
-```
-
 ## Error Design
 
 All errors MUST be:
@@ -1044,7 +841,7 @@ public enum LocanaraError: Error {
     /// Invalid input provided
     case invalidInput(String)
 
-    /// Feature not supported on this tier/device
+    /// Feature not supported on this device
     case featureNotAvailable
 
     /// Network error during download
@@ -1165,7 +962,7 @@ main                    # Production-ready code
 # CORRECT
 feat: add streaming support for chat API
 fix: resolve memory leak in LlamaCppEngine
-docs: update API documentation for Pro tier
+docs: update API documentation
 refactor: simplify model loading logic
 test: add unit tests for ModelManager
 chore: update dependencies
@@ -1299,19 +1096,6 @@ Packages are distributed via GitHub:
 dependencies: [
     .package(url: "https://github.com/locanara/locanara", from: "1.0.0")
 ]
-```
-
-### Binary XCFramework
-
-For Pro tier, pre-built XCFramework is provided via SPM binary target:
-
-```swift
-// Binary target in root Package.swift (locanara/locanara repo)
-.binaryTarget(
-    name: "Locanara",
-    url: "https://r2-url/Locanara.xcframework.zip",
-    checksum: "..."
-)
 ```
 
 ## CI/CD
@@ -1589,7 +1373,7 @@ let prompt = "Summarize: \(articleText)"
 
 ## Integration with Locanara
 
-Locanara's Community tier wraps Foundation Models:
+Locanara wraps Foundation Models:
 
 ```swift
 // Locanara abstracts Foundation Models
@@ -2111,7 +1895,7 @@ task.cancel()
 
 ## Integration with Locanara
 
-Locanara Pro uses LocalLLMClient for llama.cpp integration:
+Locanara can use LocalLLMClient for llama.cpp integration:
 
 ```swift
 // LlamaCppEngine wraps LocalLLMClient

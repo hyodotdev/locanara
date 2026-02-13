@@ -169,18 +169,3 @@ static let minimumMemoryMB = 500
 static let DEFAULT_CONTEXT_SIZE = 4096  // No ALL_CAPS
 static let k = 4096                      // Too short
 ```
-
-## Pro Tier Specific
-
-Pro tier classes use `Pro` suffix or `Pro` in name:
-
-```swift
-// CORRECT
-LocanaraPro           // Main Pro module
-ProCapabilityDetector // Pro-specific capability
-ModelManager          // Shared (no suffix needed)
-
-// INCORRECT
-LocanaraProTier       // Too verbose
-ProLocanara           // Pro should be suffix
-```

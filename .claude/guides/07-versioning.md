@@ -33,4 +33,4 @@ bun run version:bump
 
 ## Current Version
 
-Check `package.json` for the current version (currently `0.1.0`).
+Check `locanara-versions.json` for the current version. Versions may differ per platform (e.g., apple: `1.0.1`, android: `1.0.2`).
