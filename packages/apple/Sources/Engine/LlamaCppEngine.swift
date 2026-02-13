@@ -431,13 +431,14 @@ extension LlamaCppEngine {
     }
 
     public func getStatistics() async -> Statistics {
+        let hasSession = lock.withLock { llmSession != nil }
         return Statistics(
             modelPath: modelPath.path,
             isLoaded: lock.withLock { _isLoaded },
             contextSize: config.contextSize,
             numThreads: config.numThreads,
             useMetal: config.useMetal,
-            modelInfo: llmSession != nil ? "LocalLLMClient (llama.cpp)" : nil
+            modelInfo: hasSession ? "LocalLLMClient (llama.cpp)" : nil
         )
     }
 }

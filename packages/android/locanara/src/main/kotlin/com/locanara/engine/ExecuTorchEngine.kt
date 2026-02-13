@@ -8,6 +8,7 @@ import com.locanara.LocanaraException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -118,6 +119,11 @@ class ExecuTorchEngine private constructor(
                 Log.d(TAG, "Extracted response length: ${extractedResponse.length}")
 
                 extractedResponse
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: LocanaraException) {
+                Log.e(TAG, "Generation failed", e)
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Generation failed", e)
                 throw LocanaraException.ExecutionFailed("ExecuTorch generation failed: ${e.message}")
@@ -183,6 +189,11 @@ class ExecuTorchEngine private constructor(
             }
 
             Log.d(TAG, "Streaming complete")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: LocanaraException) {
+            Log.e(TAG, "Streaming generation failed", e)
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Streaming generation failed", e)
             throw LocanaraException.ExecutionFailed("ExecuTorch streaming failed: ${e.message}")

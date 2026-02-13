@@ -47,6 +47,7 @@ extension LocanaraClient {
 
     /// Shutdown the personalization system
     public func shutdownPersonalization() async {
+        guard Self._personalizationLock.withLock({ Self._personalizationInitialized }) else { return }
         await personalizationManager.shutdown()
         Self._personalizationLock.withLock {
             Self._personalizationManager = nil

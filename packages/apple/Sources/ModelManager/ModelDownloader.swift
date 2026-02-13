@@ -9,7 +9,6 @@ private let logger = Logger(subsystem: "com.locanara", category: "ModelDownloade
 /// - Background download support
 /// - Progress reporting via AsyncStream
 /// - Resume capability
-/// - Automatic retry on failure
 @available(iOS 15.0, macOS 14.0, *)
 public final class ModelDownloader: NSObject, @unchecked Sendable {
 
@@ -213,27 +212,31 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
 
     /// Cancel a download in progress
     ///
+    /// Also cancels the companion mmproj download for multimodal models.
     /// - Parameter modelId: Model identifier
     public func cancelDownload(_ modelId: String) {
         queue.async { [weak self] in
             guard let self = self else { return }
 
-            if let task = self.activeTasks[modelId] {
+            // Cancel both the main model and its mmproj companion (if any)
+            let idsToCancel = [modelId, "\(modelId)-mmproj"]
+            for id in idsToCancel {
+                guard let task = self.activeTasks[id] else { continue }
                 task.cancel()
-                self.activeTasks.removeValue(forKey: modelId)
-                self.taskInfo.removeValue(forKey: modelId)
+                self.activeTasks.removeValue(forKey: id)
+                self.taskInfo.removeValue(forKey: id)
 
                 // Notify cancellation
-                self.progressContinuations[modelId]?.yield(ModelDownloadProgress(
-                    modelId: modelId,
+                self.progressContinuations[id]?.yield(ModelDownloadProgress(
+                    modelId: id,
                     bytesDownloaded: 0,
                     totalBytes: 0,
                     state: .cancelled
                 ))
-                self.progressContinuations[modelId]?.finish()
-                self.progressContinuations.removeValue(forKey: modelId)
+                self.progressContinuations[id]?.finish()
+                self.progressContinuations.removeValue(forKey: id)
 
-                logger.info("Cancelled download for: \(modelId)")
+                logger.info("Cancelled download for: \(id)")
             }
         }
     }
@@ -418,8 +421,11 @@ extension ModelDownloader: URLSessionDownloadDelegate {
                 logger.info("Download completed for: \(modelId)")
             }
 
-            // Cleanup task (but keep continuation for multimodal multi-file downloads)
+            // Cleanup task and per-file state.
+            // The shared continuation is managed by the outer downloadModel() scope.
             self.activeTasks.removeValue(forKey: modelId)
+            self.taskInfo.removeValue(forKey: modelId)
+            self.progressContinuations.removeValue(forKey: modelId)
         }
     }
 
