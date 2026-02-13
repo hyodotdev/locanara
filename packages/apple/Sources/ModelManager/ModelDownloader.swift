@@ -50,6 +50,9 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
     /// Progress continuations for streaming updates
     private var progressContinuations: [String: AsyncStream<ModelDownloadProgress>.Continuation] = [:]
 
+    /// Per-file download results (true = success, false = failure)
+    private var downloadResults: [String: Bool] = [:]
+
     /// URLSession for downloads
     private lazy var urlSession: URLSession = {
         let config = URLSessionConfiguration.default
@@ -109,7 +112,7 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
 
             Task {
                 // Download main model first
-                await self.downloadSingleFile(
+                let mainSuccess = await self.downloadSingleFile(
                     id: modelId,
                     url: modelInfo.downloadURL,
                     sizeMB: modelInfo.sizeMB,
@@ -118,8 +121,9 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
                     continuation: continuation
                 )
 
-                // Download mmproj if multimodal
-                if let mmprojURL = modelInfo.mmprojURL,
+                // Download mmproj only if main model succeeded
+                if mainSuccess,
+                   let mmprojURL = modelInfo.mmprojURL,
                    let mmprojSizeMB = modelInfo.mmprojSizeMB {
                     await self.downloadSingleFile(
                         id: mmprojId,
@@ -137,6 +141,8 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
     }
 
     /// Download a single file
+    /// - Returns: true if download succeeded, false if it failed
+    @discardableResult
     private func downloadSingleFile(
         id: String,
         url: URL,
@@ -144,13 +150,13 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
         totalSizeMB: Int,
         useBackground: Bool,
         continuation: AsyncStream<ModelDownloadProgress>.Continuation
-    ) async {
-        await withCheckedContinuation { (fileContinuation: CheckedContinuation<Void, Never>) in
+    ) async -> Bool {
+        await withCheckedContinuation { (fileContinuation: CheckedContinuation<Bool, Never>) in
             self.queue.async {
                 // Check if already downloading
                 if self.activeTasks[id] != nil {
                     logger.warning("Download already in progress for: \(id)")
-                    fileContinuation.resume()
+                    fileContinuation.resume(returning: true)
                     return
                 }
 
@@ -187,7 +193,8 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
 
                 // Wait for download to complete
                 self.waitForDownload(id: id) {
-                    fileContinuation.resume()
+                    let success = self.queue.sync { self.downloadResults[id] ?? false }
+                    fileContinuation.resume(returning: success)
                 }
             }
         }
@@ -394,6 +401,7 @@ extension ModelDownloader: URLSessionDownloadDelegate {
             guard let self = self else { return }
 
             if let error = capturedError {
+                self.downloadResults[modelId] = false
                 self.progressContinuations[modelId]?.yield(ModelDownloadProgress(
                     modelId: modelId,
                     bytesDownloaded: 0,
@@ -402,6 +410,8 @@ extension ModelDownloader: URLSessionDownloadDelegate {
                 ))
                 logger.error("Download failed for \(modelId): \(error.localizedDescription)")
             } else {
+                self.downloadResults[modelId] = true
+
                 // Update state
                 if var info = self.taskInfo[modelId] {
                     info.state = .completed(self.storage.getModelPath(modelId))
@@ -494,6 +504,7 @@ extension ModelDownloader: URLSessionDownloadDelegate {
             if nsError.code == NSURLErrorCancelled {
                 logger.debug("Download cancelled for: \(modelId)")
             } else {
+                self.downloadResults[modelId] = false
                 logger.error("Download failed for \(modelId): \(error.localizedDescription)")
 
                 // Notify failure
@@ -505,8 +516,10 @@ extension ModelDownloader: URLSessionDownloadDelegate {
                 ))
             }
 
-            self.progressContinuations[modelId]?.finish()
+            // Don't finish the stream here — let downloadModel() handle
+            // stream termination after all files, same as the success path.
             self.activeTasks.removeValue(forKey: modelId)
+            self.taskInfo.removeValue(forKey: modelId)
             self.progressContinuations.removeValue(forKey: modelId)
         }
     }

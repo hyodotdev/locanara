@@ -126,7 +126,7 @@ class ExecuTorchEngine private constructor(
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Generation failed", e)
-                throw LocanaraException.ExecutionFailed("ExecuTorch generation failed: ${e.message}")
+                throw LocanaraException.ExecutionFailed("ExecuTorch generation failed: ${e.message}", e)
             } finally {
                 isGenerating.set(false)
             }
@@ -196,7 +196,7 @@ class ExecuTorchEngine private constructor(
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "Streaming generation failed", e)
-            throw LocanaraException.ExecutionFailed("ExecuTorch streaming failed: ${e.message}")
+            throw LocanaraException.ExecutionFailed("ExecuTorch streaming failed: ${e.message}", e)
         } finally {
             isGenerating.set(false)
         }

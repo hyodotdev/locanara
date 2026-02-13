@@ -34,9 +34,10 @@ sealed class LocanaraException(
         ErrorCode.INTERNAL_ERROR
     )
 
-    data class ExecutionFailed(val reason: String) : LocanaraException(
+    data class ExecutionFailed(val reason: String, override val cause: Throwable? = null) : LocanaraException(
         "Execution failed: $reason",
-        ErrorCode.EXECUTION_FAILED
+        ErrorCode.EXECUTION_FAILED,
+        cause
     )
 
     data class InvalidInput(val reason: String) : LocanaraException(

@@ -186,19 +186,20 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
             mmprojURL: mmprojPath,
             parameter: llamaParameter
         )
-        llmSession = LLMSession(model: localModel)
+        let session = LLMSession(model: localModel)
+        lock.withLock { llmSession = session }
 
         if let mmproj = mmprojPath {
             logger.info("Multimodal projector loaded: \(mmproj.lastPathComponent)")
         }
 
         do {
-            try await llmSession?.prewarm()
+            try await session.prewarm()
             lock.withLock { _isLoaded = true }
             logger.info("Model loaded successfully: \(modelName)")
         } catch {
             logger.error("Failed to load model: \(error.localizedDescription)")
-            llmSession = nil
+            lock.withLock { llmSession = nil }
             throw LocanaraError.modelLoadFailed("Failed to load model: \(error.localizedDescription)")
         }
     }
@@ -260,6 +261,8 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
                 }
             }
 
+            // Brief delay to allow llama.cpp native memory cleanup after image inference,
+            // preventing use-after-free when the caller immediately starts a new inference.
             try await Task.sleep(nanoseconds: 50_000_000)
             return result.trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {

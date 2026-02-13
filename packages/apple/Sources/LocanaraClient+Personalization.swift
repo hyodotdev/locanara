@@ -33,16 +33,26 @@ extension LocanaraClient {
     /// Must be called before using any personalization features.
     /// - Throws: PersonalizationError if initialization fails
     public func initializePersonalization() async throws {
-        guard !Self._personalizationLock.withLock({ Self._personalizationInitialized }) else { return }
+        // Atomically check-and-set to prevent double initialization (TOCTOU)
+        let alreadyInitialized: Bool = Self._personalizationLock.withLock {
+            if Self._personalizationInitialized { return true }
+            Self._personalizationInitialized = true  // Claim initialization
+            return false
+        }
+        guard !alreadyInitialized else { return }
 
-        try await personalizationManager.initialize()
+        do {
+            try await personalizationManager.initialize()
+        } catch {
+            // Roll back on failure so retry is possible
+            Self._personalizationLock.withLock { Self._personalizationInitialized = false }
+            throw error
+        }
 
         // Connect inference router if available
         if InferenceRouter.shared.isModelReady() {
             await personalizationManager.setInferenceRouter(InferenceRouter.shared)
         }
-
-        Self._personalizationLock.withLock { Self._personalizationInitialized = true }
     }
 
     /// Shutdown the personalization system
