@@ -15,8 +15,11 @@ extension LocanaraClient {
 
     nonisolated(unsafe) private static var _personalizationManager: PersonalizationManager?
     nonisolated(unsafe) private static var _personalizationInitialized = false
+    private static let _personalizationLock = NSLock()
 
     private var personalizationManager: PersonalizationManager {
+        Self._personalizationLock.lock()
+        defer { Self._personalizationLock.unlock() }
         if Self._personalizationManager == nil {
             Self._personalizationManager = PersonalizationManager()
         }

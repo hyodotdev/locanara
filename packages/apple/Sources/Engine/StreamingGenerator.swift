@@ -103,7 +103,7 @@ public final class StreamingGenerator: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
-        guard state == .generating else { return }
+        guard state == .generating || state == .paused else { return }
 
         isCancelled = true
         state = .cancelled

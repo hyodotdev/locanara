@@ -23,7 +23,7 @@ object ModelRegistry {
             name = "Llama 3.2 3B",
             version = "3.2",
             sizeMB = 2560,
-            quantization = QuantizationType.INT4,
+            quantization = QuantizationType.INT8,
             contextLength = 8192,
             downloadURL = "https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct-ExecuTorch/resolve/main/llama3_2-3b-it-pte-q8.pte",
             checksum = "sha256:auto",

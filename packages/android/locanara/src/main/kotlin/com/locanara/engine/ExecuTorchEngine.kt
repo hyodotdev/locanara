@@ -81,6 +81,11 @@ class ExecuTorchEngine private constructor(
                 val result = StringBuilder()
 
                 suspendCancellableCoroutine { continuation ->
+                    continuation.invokeOnCancellation {
+                        Log.d(TAG, "Generation cancelled via coroutine cancellation")
+                        try { llmModule.stop() } catch (_: Exception) {}
+                    }
+
                     val callback = object : LlmCallback {
                         override fun onResult(token: String) {
                             result.append(token)
@@ -94,7 +99,14 @@ class ExecuTorchEngine private constructor(
                         }
                     }
 
-                    llmModule.generate(prompt, config.maxTokens, callback)
+                    try {
+                        llmModule.generate(prompt, config.maxTokens, callback)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Native generate() threw: ${e.message}", e)
+                        if (continuation.isActive) {
+                            continuation.resume(Unit)
+                        }
+                    }
                 }
 
                 val fullOutput = result.toString()
@@ -149,7 +161,12 @@ class ExecuTorchEngine private constructor(
 
             // Start generation in background using engine-scoped coroutine
             engineScope.launch {
-                llmModule.generate(prompt, config.maxTokens, callback)
+                try {
+                    llmModule.generate(prompt, config.maxTokens, callback)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Native generate() threw in streaming: ${e.message}", e)
+                    tokenChannel.close(e)
+                }
             }
 
             // Emit tokens as they arrive

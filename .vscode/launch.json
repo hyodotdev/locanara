@@ -53,14 +53,14 @@
             "request": "launch",
             "name": "🌐 Web SDK: Dev Server",
             "command": "bash -lc 'bun run dev'",
-            "cwd": "/Users/hyo/Github/locanara/locanara/packages/web"
+            "cwd": "${workspaceFolder}/packages/web"
         },
         {
             "type": "node-terminal",
             "request": "launch",
             "name": "🧪 Test: Web SDK",
             "command": "bun test",
-            "cwd": "/Users/hyo/Github/locanara/locanara/packages/web"
+            "cwd": "${workspaceFolder}/packages/web"
         },
         {
             "type": "node-terminal",

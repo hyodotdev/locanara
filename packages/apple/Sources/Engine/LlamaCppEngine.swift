@@ -81,7 +81,11 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
 
     // MARK: - Properties
 
-    public private(set) var isLoaded: Bool = false
+    /// All mutable state is protected by `lock`
+    public var isLoaded: Bool {
+        lock.withLock { _isLoaded }
+    }
+    private var _isLoaded: Bool = false
     private let modelPath: URL
     private let mmprojPath: URL?
     private let config: Configuration
@@ -89,7 +93,7 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
     private let lock = NSLock()
     private let memoryManager = MemoryManager.shared
 
-    /// LocalLLMClient session for inference
+    /// LocalLLMClient session for inference (protected by `lock`)
     private var llmSession: LLMSession?
 
     /// Serialization queue for inference calls to prevent concurrent access
@@ -132,7 +136,7 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
     // MARK: - Model Loading
 
     private func loadModel() async throws {
-        guard !isLoaded else { return }
+        guard !lock.withLock({ _isLoaded }) else { return }
 
         guard FileManager.default.fileExists(atPath: modelPath.path) else {
             logger.error("Model path not found: \(self.modelPath.path)")
@@ -190,7 +194,7 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
 
         do {
             try await llmSession?.prewarm()
-            isLoaded = true
+            lock.withLock { _isLoaded = true }
             logger.info("Model loaded successfully: \(modelName)")
         } catch {
             logger.error("Failed to load model: \(error.localizedDescription)")
@@ -200,9 +204,11 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
     }
 
     private func unloadModel() {
-        guard isLoaded else { return }
+        lock.lock()
+        guard _isLoaded else { lock.unlock(); return }
         llmSession = nil
-        isLoaded = false
+        _isLoaded = false
+        lock.unlock()
         logger.info("Model unloaded")
     }
 
@@ -222,8 +228,11 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
             lock.withLock { isInferencing = false }
         }
 
-        guard isLoaded, let session = llmSession else {
-            throw LocanaraError.custom(.modelNotLoaded, "Model not loaded")
+        let session: LLMSession = try lock.withLock {
+            guard _isLoaded, let s = llmSession else {
+                throw LocanaraError.custom(.modelNotLoaded, "Model not loaded")
+            }
+            return s
         }
 
         logger.debug("Generating response for prompt (\(prompt.count) chars), maxTokens: \(config.maxTokens)")
@@ -260,7 +269,7 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
                error.localizedDescription.contains("fatal") {
                 logger.warning("Attempting to recover from potential crash state...")
                 lock.withLock {
-                    isLoaded = false
+                    _isLoaded = false
                     llmSession = nil
                 }
             }
@@ -280,7 +289,8 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
                     return
                 }
 
-                guard self.isLoaded, let session = self.llmSession else {
+                let session: LLMSession? = self.lock.withLock { self._isLoaded ? self.llmSession : nil }
+                guard let session = session else {
                     continuation.finish(throwing: LocanaraError.custom(.modelNotLoaded, "Model not loaded"))
                     return
                 }
@@ -337,8 +347,11 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
             lock.withLock { isInferencing = false }
         }
 
-        guard isLoaded, let session = llmSession else {
-            throw LocanaraError.custom(.modelNotLoaded, "Model not loaded")
+        let session: LLMSession = try lock.withLock {
+            guard _isLoaded, let s = llmSession else {
+                throw LocanaraError.custom(.modelNotLoaded, "Model not loaded")
+            }
+            return s
         }
 
         logger.info("Generating image description for prompt: \(prompt.prefix(50))...")
@@ -407,7 +420,7 @@ extension LlamaCppEngine {
     public func getStatistics() async -> Statistics {
         return Statistics(
             modelPath: modelPath.path,
-            isLoaded: isLoaded,
+            isLoaded: lock.withLock { _isLoaded },
             contextSize: config.contextSize,
             numThreads: config.numThreads,
             useMetal: config.useMetal,

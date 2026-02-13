@@ -252,17 +252,28 @@ public final class InferenceRouter: @unchecked Sendable {
                 if self.activeEngine == nil || ModelManager.shared.getLoadedModel() != modelId {
                     logger.warning("Reloading llama.cpp engine for model: \(modelId)")
 
-                    Task {
-                        do {
-                            try await ModelManager.shared.loadModel(modelId)
-                            self.engineSelectionMode = .externalModel(modelId)
-                            self.currentEngineType = .llamaCpp
-                            logger.info("Switched to external model: \(modelId)")
-                            continuation.resume()
-                        } catch {
-                            logger.error("Failed to reload model \(modelId): \(error.localizedDescription)")
-                            continuation.resume(throwing: error)
+                    // Resume continuation first, then load model outside the queue
+                    // to avoid breaking serialization with Task{}
+                    let needsLoad = true
+                    if needsLoad {
+                        // Exit queue block, do the async load outside
+                        DispatchQueue.global().async {
+                            Task {
+                                do {
+                                    try await ModelManager.shared.loadModel(modelId)
+                                    self.engineSwitchQueue.async {
+                                        self.engineSelectionMode = .externalModel(modelId)
+                                        self.currentEngineType = .llamaCpp
+                                        logger.info("Switched to external model: \(modelId)")
+                                        continuation.resume()
+                                    }
+                                } catch {
+                                    logger.error("Failed to reload model \(modelId): \(error.localizedDescription)")
+                                    continuation.resume(throwing: error)
+                                }
+                            }
                         }
+                        return
                     }
                 } else {
                     self.engineSelectionMode = .externalModel(modelId)

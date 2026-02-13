@@ -24,8 +24,9 @@ public final class LocalModelInferenceProvider: InferenceProvider, @unchecked Se
     private var router: InferenceRouter { InferenceRouter.shared }
     private var modelManager: ModelManager { ModelManager.shared }
 
-    /// Conversation storage for chat context
+    /// Conversation storage for chat context (protected by conversationsLock)
     private var conversations: [String: [ChatMessageInput]] = [:]
+    private let conversationsLock = NSLock()
 
     // MARK: - Initialization
 
@@ -758,7 +759,7 @@ public final class LocalModelInferenceProvider: InferenceProvider, @unchecked Se
         let conversationId = params?.conversationId ?? UUID().uuidString
 
         // Get or create conversation history
-        var history = conversations[conversationId] ?? []
+        var history = conversationsLock.withLock { conversations[conversationId] ?? [] }
 
         // Detect input language dynamically (no hardcoding)
         let detectedLangCode = detectLanguage(input)
@@ -834,7 +835,7 @@ public final class LocalModelInferenceProvider: InferenceProvider, @unchecked Se
 
         // Store updated history
         history.append(ChatMessageInput(role: "assistant", content: response))
-        conversations[conversationId] = history
+        conversationsLock.withLock { conversations[conversationId] = history }
 
         // Generate suggested prompts
         let suggestedPrompts = [
@@ -1531,7 +1532,7 @@ public final class LocalModelInferenceProvider: InferenceProvider, @unchecked Se
         try await ensureRouterInitialized()
 
         let conversationId = params?.conversationId ?? UUID().uuidString
-        var history = conversations[conversationId] ?? []
+        var history = conversationsLock.withLock { conversations[conversationId] ?? [] }
 
         // Detect input language dynamically (no hardcoding)
         let detectedLangCode = detectLanguage(input)
@@ -1586,7 +1587,7 @@ public final class LocalModelInferenceProvider: InferenceProvider, @unchecked Se
         let response = cleanChatResponse(rawResponse)
 
         history.append(ChatMessageInput(role: "assistant", content: response))
-        conversations[conversationId] = history
+        conversationsLock.withLock { conversations[conversationId] = history }
 
         return ChatResult(
             message: response,

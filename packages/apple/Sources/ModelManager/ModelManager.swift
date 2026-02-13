@@ -62,6 +62,9 @@ public final class ModelManager: @unchecked Sendable {
     /// Serial queue for state management
     private let stateQueue = DispatchQueue(label: "com.locanara.modelmanager.state")
 
+    /// Lock for loadedModelId and currentEngine access
+    private let engineLock = NSLock()
+
     // MARK: - Initialization
 
     private init() {
@@ -158,7 +161,7 @@ public final class ModelManager: @unchecked Sendable {
     /// - Parameter modelId: Model identifier
     /// - Returns: true if model is currently loaded
     public func isModelLoaded(_ modelId: String) -> Bool {
-        return loadedModelId == modelId
+        return engineLock.withLock { loadedModelId == modelId }
     }
 
     // MARK: - Download Operations
@@ -303,7 +306,10 @@ public final class ModelManager: @unchecked Sendable {
     /// - Throws: LocanaraError if load fails
     public func loadModel(_ modelId: String) async throws {
         // Check if already loaded
-        if loadedModelId == modelId {
+        let (alreadyLoaded, currentId) = engineLock.withLock {
+            (loadedModelId == modelId, loadedModelId)
+        }
+        if alreadyLoaded {
             logger.debug("Model already loaded: \(modelId)")
             return
         }
@@ -314,7 +320,7 @@ public final class ModelManager: @unchecked Sendable {
         }
 
         // Unload current model if any
-        if let currentId = loadedModelId {
+        if let currentId = currentId {
             unloadModel(currentId)
         }
 
@@ -352,7 +358,7 @@ public final class ModelManager: @unchecked Sendable {
                         }
                     }
                 }
-                loadedModelId = modelId
+                engineLock.withLock { loadedModelId = modelId }
                 updateState(modelId, to: .loaded)
                 let multimodalStatus = mmprojPath != nil ? " (multimodal enabled)" : ""
                 logger.info("Model loaded via bridge: \(modelId)\(multimodalStatus)")
@@ -369,8 +375,10 @@ public final class ModelManager: @unchecked Sendable {
             )
 
             // Store references
-            currentEngine = engine
-            loadedModelId = modelId
+            engineLock.withLock {
+                currentEngine = engine
+                loadedModelId = modelId
+            }
 
             // Register with inference router (using InferenceEngine protocol)
             InferenceRouter.shared.registerEngine(engine as any InferenceEngine)
@@ -389,7 +397,8 @@ public final class ModelManager: @unchecked Sendable {
     ///
     /// - Parameter modelId: Model identifier to unload
     public func unloadModel(_ modelId: String) {
-        guard loadedModelId == modelId else {
+        let isLoaded = engineLock.withLock { loadedModelId == modelId }
+        guard isLoaded else {
             logger.debug("Model not loaded, nothing to unload: \(modelId)")
             return
         }
@@ -404,8 +413,10 @@ public final class ModelManager: @unchecked Sendable {
         }
 
         // Release engine
-        currentEngine = nil
-        loadedModelId = nil
+        engineLock.withLock {
+            currentEngine = nil
+            loadedModelId = nil
+        }
 
         updateState(modelId, to: .downloaded)
         logger.info("Model unloaded: \(modelId)")
@@ -415,14 +426,14 @@ public final class ModelManager: @unchecked Sendable {
     ///
     /// - Returns: Model ID if a model is loaded
     public func getLoadedModel() -> String? {
-        return loadedModelId
+        return engineLock.withLock { loadedModelId }
     }
 
     /// Get the current engine
     ///
     /// - Returns: Engine instance if model is loaded
     public func getEngine() -> LlamaCppEngineProtocol? {
-        return currentEngine
+        return engineLock.withLock { currentEngine }
     }
 
     // MARK: - Delete Operations
@@ -433,7 +444,7 @@ public final class ModelManager: @unchecked Sendable {
     /// - Throws: Error if deletion fails
     public func deleteModel(_ modelId: String) throws {
         // Unload if loaded
-        if loadedModelId == modelId {
+        if engineLock.withLock({ loadedModelId == modelId }) {
             unloadModel(modelId)
         }
 
@@ -449,7 +460,7 @@ public final class ModelManager: @unchecked Sendable {
     /// - Throws: Error if deletion fails
     public func deleteAllModels() throws {
         // Unload current model
-        if let currentId = loadedModelId {
+        if let currentId = engineLock.withLock({ loadedModelId }) {
             unloadModel(currentId)
         }
 

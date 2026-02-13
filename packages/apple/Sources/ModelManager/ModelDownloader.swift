@@ -391,7 +391,6 @@ extension ModelDownloader: URLSessionDownloadDelegate {
                     totalBytes: 0,
                     state: .failed
                 ))
-                self.progressContinuations[modelId]?.finish()
                 logger.error("Download failed for \(modelId): \(error.localizedDescription)")
             } else {
                 // Update state
@@ -400,7 +399,8 @@ extension ModelDownloader: URLSessionDownloadDelegate {
                     self.taskInfo[modelId] = info
                 }
 
-                // Notify completion
+                // Notify completion (don't finish the stream here — the outer
+                // downloadModel() handles stream termination after all files)
                 let totalBytes = self.taskInfo[modelId]?.totalBytes ?? 0
                 self.progressContinuations[modelId]?.yield(ModelDownloadProgress(
                     modelId: modelId,
@@ -408,14 +408,12 @@ extension ModelDownloader: URLSessionDownloadDelegate {
                     totalBytes: totalBytes,
                     state: .completed
                 ))
-                self.progressContinuations[modelId]?.finish()
 
                 logger.info("Download completed for: \(modelId)")
             }
 
-            // Cleanup
+            // Cleanup task (but keep continuation for multimodal multi-file downloads)
             self.activeTasks.removeValue(forKey: modelId)
-            self.progressContinuations.removeValue(forKey: modelId)
         }
     }
 

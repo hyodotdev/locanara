@@ -137,26 +137,29 @@ class DocumentChunker(
         // Add remaining text as final chunk
         if (currentChunkText.isNotEmpty()) {
             val chunkContent = currentChunkText.toString().trim()
-            if (chunkContent.length < config.minChunkSize && chunks.isNotEmpty()) {
-                // Merge with previous chunk
-                val lastChunk = chunks.removeAt(chunks.size - 1)
-                val mergedContent = lastChunk.content + " " + chunkContent
-                chunks.add(
-                    lastChunk.copy(
-                        content = mergedContent,
-                        endOffset = chunkStartOffset + currentChunkText.length
+            if (chunkContent.isNotEmpty()) {
+                if (chunkContent.length < config.minChunkSize && chunks.isNotEmpty()) {
+                    // Merge with previous chunk
+                    val lastChunk = chunks.removeAt(chunks.size - 1)
+                    val mergedContent = lastChunk.content + " " + chunkContent
+                    chunks.add(
+                        lastChunk.copy(
+                            content = mergedContent,
+                            endOffset = chunkStartOffset + currentChunkText.length
+                        )
                     )
-                )
-            } else if (chunkContent.length >= config.minChunkSize) {
-                chunks.add(
-                    DocumentChunk(
-                        content = chunkContent,
-                        index = chunks.size,
-                        startOffset = chunkStartOffset,
-                        endOffset = minOf(chunkStartOffset + currentChunkText.length, text.length),
-                        metadata = metadata
+                } else {
+                    // Always emit remaining content (even if below minChunkSize when no previous chunk exists)
+                    chunks.add(
+                        DocumentChunk(
+                            content = chunkContent,
+                            index = chunks.size,
+                            startOffset = chunkStartOffset,
+                            endOffset = minOf(chunkStartOffset + currentChunkText.length, text.length),
+                            metadata = metadata
+                        )
                     )
-                )
+                }
             }
         }
 
@@ -187,6 +190,25 @@ class DocumentChunker(
                         metadata = metadata
                     )
                 )
+            } else if (chunkText.isNotEmpty() && currentIndex + chunkSize >= text.length) {
+                // Always emit final chunk even if below minChunkSize to avoid data loss
+                if (chunks.isNotEmpty()) {
+                    val lastChunk = chunks.removeAt(chunks.size - 1)
+                    chunks.add(lastChunk.copy(
+                        content = lastChunk.content + " " + chunkText,
+                        endOffset = currentIndex + chunkSize
+                    ))
+                } else {
+                    chunks.add(
+                        DocumentChunk(
+                            content = chunkText,
+                            index = 0,
+                            startOffset = currentIndex,
+                            endOffset = currentIndex + chunkSize,
+                            metadata = metadata
+                        )
+                    )
+                }
             }
 
             // Move forward with overlap
