@@ -33,7 +33,7 @@ extension LocanaraClient {
     /// Must be called before using any personalization features.
     /// - Throws: PersonalizationError if initialization fails
     public func initializePersonalization() async throws {
-        guard !Self._personalizationInitialized else { return }
+        guard !Self._personalizationLock.withLock({ Self._personalizationInitialized }) else { return }
 
         try await personalizationManager.initialize()
 
@@ -42,19 +42,21 @@ extension LocanaraClient {
             await personalizationManager.setInferenceRouter(InferenceRouter.shared)
         }
 
-        Self._personalizationInitialized = true
+        Self._personalizationLock.withLock { Self._personalizationInitialized = true }
     }
 
     /// Shutdown the personalization system
     public func shutdownPersonalization() async {
         await personalizationManager.shutdown()
-        Self._personalizationManager = nil
-        Self._personalizationInitialized = false
+        Self._personalizationLock.withLock {
+            Self._personalizationManager = nil
+            Self._personalizationInitialized = false
+        }
     }
 
     /// Check if personalization is initialized
     public var isPersonalizationInitialized: Bool {
-        Self._personalizationInitialized
+        Self._personalizationLock.withLock { Self._personalizationInitialized }
     }
 
     // MARK: - Profile Management
@@ -224,7 +226,7 @@ extension LocanaraClient {
     // MARK: - Private Helpers
 
     private func ensurePersonalizationInitialized() throws {
-        guard Self._personalizationInitialized else {
+        guard Self._personalizationLock.withLock({ Self._personalizationInitialized }) else {
             throw PersonalizationError.notInitialized
         }
     }

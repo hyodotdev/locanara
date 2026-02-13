@@ -955,9 +955,9 @@ public final class LocalModelInferenceProvider: InferenceProvider, @unchecked Se
             let value = scalar.value
             var shouldKeep = true
 
-            // CJK characters (Chinese) - only keep if target is Chinese
+            // CJK characters (Chinese/Japanese kanji) - keep if target is Chinese or Japanese
             if (0x4E00...0x9FFF).contains(value) {
-                shouldKeep = (targetLanguage == "zh")
+                shouldKeep = (targetLanguage == "zh" || targetLanguage == "ja")
             }
             // Korean characters (Hangul) - only keep if target is Korean
             else if (0xAC00...0xD7AF).contains(value) ||
@@ -1398,7 +1398,9 @@ public final class LocalModelInferenceProvider: InferenceProvider, @unchecked Se
     ///
     /// - Parameter conversationId: Conversation to clear
     public func clearConversation(_ conversationId: String) {
+        conversationsLock.lock()
         conversations.removeValue(forKey: conversationId)
+        conversationsLock.unlock()
     }
 
     // MARK: - Advanced Options Methods

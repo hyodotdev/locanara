@@ -160,7 +160,7 @@ class ExecuTorchEngine private constructor(
             }
 
             // Start generation in background using engine-scoped coroutine
-            engineScope.launch {
+            val genJob = engineScope.launch {
                 try {
                     llmModule.generate(prompt, config.maxTokens, callback)
                 } catch (e: Exception) {
@@ -169,9 +169,17 @@ class ExecuTorchEngine private constructor(
                 }
             }
 
-            // Emit tokens as they arrive
-            for (token in tokenChannel) {
-                emit(token)
+            try {
+                // Emit tokens as they arrive
+                for (token in tokenChannel) {
+                    emit(token)
+                }
+            } finally {
+                // Stop native generation when flow collector cancels
+                if (genJob.isActive) {
+                    try { llmModule.stop() } catch (_: Exception) {}
+                    genJob.cancel()
+                }
             }
 
             Log.d(TAG, "Streaming complete")
@@ -188,7 +196,11 @@ class ExecuTorchEngine private constructor(
      */
     override fun cancel(): Boolean {
         if (isGenerating.get()) {
-            llmModule.stop()
+            try {
+                llmModule.stop()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping generation: ${e.message}", e)
+            }
             return true
         }
         return false

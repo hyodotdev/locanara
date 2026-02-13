@@ -289,6 +289,19 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
                     return
                 }
 
+                // Wait for any ongoing inference to complete
+                while self.lock.withLock({ self.isInferencing }) {
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                }
+                self.lock.withLock {
+                    self.isInferencing = true
+                    self.isCancelled = false
+                }
+
+                defer {
+                    self.lock.withLock { self.isInferencing = false }
+                }
+
                 let session: LLMSession? = self.lock.withLock { self._isLoaded ? self.llmSession : nil }
                 guard let session = session else {
                     continuation.finish(throwing: LocanaraError.custom(.modelNotLoaded, "Model not loaded"))

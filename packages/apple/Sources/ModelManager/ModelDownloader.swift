@@ -21,7 +21,7 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
         case downloading(progress: Double)
         case paused
         case completed(URL)
-        case failed(Error)
+        case failed(String)
         case cancelled
     }
 
@@ -332,6 +332,12 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
 
             for (modelId, task) in self.activeTasks {
                 task.cancel()
+                self.progressContinuations[modelId]?.yield(ModelDownloadProgress(
+                    modelId: modelId,
+                    bytesDownloaded: 0,
+                    totalBytes: 0,
+                    state: .cancelled
+                ))
                 self.progressContinuations[modelId]?.finish()
             }
 

@@ -208,13 +208,14 @@ public final class InferenceRouter: @unchecked Sendable {
                     self.activeEngine = nil
 
                     // Brief delay to allow native memory cleanup before switching engines.
-                    // Using DispatchQueue.asyncAfter for async-safe delay within the sync context
-                    let semaphore = DispatchSemaphore(value: 0)
-                    DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(Self.engineSwitchCleanupDelayMs)) {
-                        semaphore.signal()
+                    self.engineSwitchQueue.asyncAfter(deadline: .now() + .milliseconds(Self.engineSwitchCleanupDelayMs)) {
+                        logger.warning("llama.cpp engine unloaded")
+                        self.engineSelectionMode = .deviceAI
+                        self.currentEngineType = .foundationModels
+                        logger.info("Switched to device AI (Apple Intelligence)")
+                        continuation.resume()
                     }
-                    semaphore.wait()
-                    logger.warning("llama.cpp engine unloaded")
+                    return
                 }
 
                 self.engineSelectionMode = .deviceAI

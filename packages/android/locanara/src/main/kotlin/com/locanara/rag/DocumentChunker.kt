@@ -17,6 +17,12 @@ data class ChunkingConfig(
     /** Minimum chunk size (smaller chunks will be merged) */
     val minChunkSize: Int = 100
 ) {
+    init {
+        require(targetChunkSize > 0) { "targetChunkSize must be positive" }
+        require(chunkOverlap >= 0) { "chunkOverlap must be non-negative" }
+        require(chunkOverlap < targetChunkSize) { "chunkOverlap must be less than targetChunkSize" }
+        require(minChunkSize >= 0) { "minChunkSize must be non-negative" }
+    }
     companion object {
         /** Default configuration optimized for on-device embedding */
         val DEFAULT = ChunkingConfig()
@@ -254,6 +260,7 @@ class DocumentChunker(
     fun estimateChunkCount(text: String): Int {
         if (text.isEmpty()) return 0
         val effectiveChunkSize = config.targetChunkSize - config.chunkOverlap
+        if (effectiveChunkSize <= 0) return 1
         return maxOf(1, (text.length + effectiveChunkSize - 1) / effectiveChunkSize)
     }
 
