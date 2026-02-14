@@ -130,5 +130,8 @@ extension LocanaraModel {
 @available(iOS 15.0, macOS 14.0, *)
 public enum LocanaraDefaults {
     /// The default model used by all built-in chains when no model is specified.
-    public nonisolated(unsafe) static var model: any LocanaraModel = FoundationLanguageModel()
+    ///
+    /// By default, this is a `RouterModel` that automatically routes inference
+    /// to the currently active engine (Foundation Models or llama.cpp).
+    public nonisolated(unsafe) static var model: any LocanaraModel = RouterModel()
 }

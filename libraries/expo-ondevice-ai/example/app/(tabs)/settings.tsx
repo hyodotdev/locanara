@@ -74,7 +74,10 @@ export default function SettingsScreen() {
     Linking.openURL('https://github.com/hyodotdev/locanara');
   };
 
-  const showSetupGuide = Platform.OS === 'ios' && capability?.supportsAppleIntelligence && !capability?.isModelReady;
+  const showSetupGuide =
+    Platform.OS === 'ios' &&
+    capability?.supportsAppleIntelligence &&
+    !capability?.isModelReady;
 
   return (
     <ScrollView style={styles.container}>
@@ -92,7 +95,9 @@ export default function SettingsScreen() {
                   </View>
                   <View style={styles.stepContent}>
                     <Text style={styles.stepTitle}>{step.title}</Text>
-                    <Text style={styles.stepDescription}>{step.description}</Text>
+                    <Text style={styles.stepDescription}>
+                      {step.description}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -156,7 +161,7 @@ export default function SettingsScreen() {
           <View style={styles.separator} />
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>Locanara SDK</Text>
-            <Text style={styles.aboutValue}>Community Edition</Text>
+            <Text style={styles.aboutValue}>Open Source</Text>
           </View>
         </View>
       </View>

@@ -1,9 +1,6 @@
 import SwiftUI
 import Locanara
 
-/// Current SDK tier - Community
-let currentTier: LocanaraTier = .community
-
 /// Device info view - Tab 2
 struct DeviceInfo: View {
     @EnvironmentObject var appState: AppState
@@ -44,7 +41,6 @@ struct DeviceInfo: View {
 
                 Section("SDK") {
                     InfoRow(label: "Locanara Version", value: LocanaraClient.version)
-                    InfoRow(label: "Tier", value: currentTier.rawValue.capitalized)
                     InfoRow(
                         label: "Package Source",
                         value: ExamplePackageSource.current.rawValue,

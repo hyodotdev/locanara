@@ -134,7 +134,7 @@ fun ChatScreen(onNavigateBack: () -> Unit) {
                     }
                 }
 
-                items(messages, key = { it.id }) { message ->
+                items(messages.asReversed(), key = { it.id }) { message ->
                     ChatBubble(message)
                 }
 

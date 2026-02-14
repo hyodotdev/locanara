@@ -277,7 +277,7 @@ fun chat(messages: List<ChatMessage>): Flow<String> = flow {
 ```swift
 /// Summarizes the given text using on-device AI.
 ///
-/// This method uses Foundation Models (Community tier) or llama.cpp (Pro tier)
+/// This method uses the platform's on-device AI model
 /// to generate a concise summary of the input text.
 ///
 /// - Parameters:

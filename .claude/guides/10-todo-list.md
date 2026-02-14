@@ -94,21 +94,13 @@ Locanara.configure(
 - [ ] Add background sync
 - [ ] Privacy documentation
 
-### SaaS Pricing (Draft)
-
-| Tier | Events/month | Price |
-| ---- | ------------ | ----- |
-| Free | 10,000 | $0 |
-| Indie | 100,000 | $29/mo |
-| Team | 1,000,000 | $99/mo |
-
 ---
 
-## Server API Fallback (Pro Only)
+## Server API Fallback (Planned)
 
 **Status**: 📋 Planning
 
-Optional server-side model inference for Pro tier users.
+Optional server-side model inference.
 
 ### Concept
 
@@ -145,7 +137,7 @@ Developers can optionally use server-hosted models instead of on-device inferenc
 ### Inference Mode Configuration
 
 ```swift
-// iOS - Pro Only
+// iOS
 Locanara.configure(
     inferenceMode: .serverAPI(
         endpoint: "https://api.locanara.dev/v1",
@@ -162,12 +154,12 @@ Locanara.configure(
     )
 )
 
-// Default: on-device only (same as Community)
+// Default: on-device only
 Locanara.configure(inferenceMode: .onDevice)
 ```
 
 ```kotlin
-// Android - Pro Only
+// Android
 Locanara.configure(
     inferenceMode = InferenceMode.ServerAPI(
         endpoint = "https://api.locanara.dev/v1",
@@ -187,22 +179,13 @@ let result = try await locanara.summarize(text: article)
 // Only configuration determines where inference happens
 ```
 
-### Pricing Model (Draft)
-
-| Plan | Requests/month | Price |
-| ---- | -------------- | ----- |
-| Pay-as-you-go | Unlimited | $0.01/request |
-| Starter | 10,000 | $49/mo |
-| Growth | 100,000 | $299/mo |
-| Enterprise | Unlimited | Custom |
-
 ### Server API Tasks
 
 - [ ] Design unified API gateway
 - [ ] Implement server-side inference routing
 - [ ] Add provider integrations (OpenAI, Anthropic, Google)
 - [ ] Build usage metering system
-- [ ] Add configuration API to SDK (Pro only)
+- [ ] Add configuration API to SDK
 - [ ] Rate limiting and quota management
 - [ ] Billing integration
 
@@ -218,18 +201,18 @@ let result = try await locanara.summarize(text: article)
 
 **Status**: 📋 Planning
 
-Premium model distribution for Pro tier users.
+Model distribution platform.
 
 ### Marketplace Structure
 
 ```text
 locanara.dev/models
-├── Official Models (Free with Pro)
+├── Official Models
 │   ├── gemma-2b-chat
 │   └── tinyllama-1.1b
-├── Partner Models (Paid)
+├── Partner Models
 │   └── phi-3-mini, mistral-7b-q4
-└── Custom Models (Enterprise)
+└── Custom Models
 ```
 
 ### Marketplace Tasks
@@ -242,38 +225,17 @@ locanara.dev/models
 
 ---
 
-## Support Tiers
-
-**Status**: 📋 Planning
-
-Paid support plans for Community and Pro users.
-
-| Tier | Price | Response Time | Channel |
-| ---- | ----- | ------------- | ------- |
-| Community | $0 | Best effort | GitHub Issues |
-| Developer | $49/mo | 48h | Private Slack |
-| Enterprise | Custom | 4h SLA | Dedicated |
-
-### Support Tasks
-
-- [ ] Set up Slack workspace
-- [ ] Define SLA terms
-- [ ] Build ticketing system integration
-- [ ] Pricing page on website
-
----
-
 ## Developer Certification
 
 **Status**: 📋 Planning
 
 Locanara Certified Developer program.
 
-| Level | Price | Content |
-| ----- | ----- | ------- |
-| Basic | Free | Online course + quiz |
-| Pro | $99 | Hands-on project + badge |
-| Expert | $299 | 1:1 mentoring + certificate |
+| Level | Content |
+| ----- | ------- |
+| Basic | Online course + quiz |
+| Advanced | Hands-on project + badge |
+| Expert | 1:1 mentoring + certificate |
 
 ### Certification Tasks
 

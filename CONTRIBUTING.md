@@ -130,7 +130,7 @@ Releases are automated via GitHub Actions:
 - **Apple SDK**: `release-apple.yml` workflow
 - **Android SDK**: `release-android.yml` workflow
 
-Community tier packages are distributed via:
+Packages are distributed via:
 
 - Swift Package Manager (locanara-swift repo)
 - CocoaPods

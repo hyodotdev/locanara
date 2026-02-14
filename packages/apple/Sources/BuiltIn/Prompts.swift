@@ -3,7 +3,7 @@ import Foundation
 /// Pre-built prompt templates for common on-device AI tasks
 public enum BuiltInPrompts {
     public static let summarize = PromptTemplate(
-        template: """
+        templateString: """
         Summarize the following text into exactly {bulletCount} concise bullet point(s), each capturing a key point.
 
         Text to summarize:
@@ -13,7 +13,7 @@ public enum BuiltInPrompts {
     )
 
     public static let classify = PromptTemplate(
-        template: """
+        templateString: """
         Classify the following text into one or more of these categories: {categories}
 
         Return ONLY the matching categories with confidence scores, one per line, in this exact format:
@@ -29,7 +29,7 @@ public enum BuiltInPrompts {
     )
 
     public static let extract = PromptTemplate(
-        template: """
+        templateString: """
         Extract entities from the following text.
         Entity types to find: {entityTypes}
 
@@ -45,7 +45,7 @@ public enum BuiltInPrompts {
     )
 
     public static let translate = PromptTemplate(
-        template: """
+        templateString: """
         Translate the following text from {sourceLang} to {targetLang}.
         Provide ONLY the translation, no explanations or additional text.
 
@@ -56,7 +56,7 @@ public enum BuiltInPrompts {
     )
 
     public static let rewrite = PromptTemplate(
-        template: """
+        templateString: """
         Rewrite the following text {styleInstruction}
         Return ONLY the rewritten text with no labels, headers, or alternatives.
 
@@ -67,7 +67,7 @@ public enum BuiltInPrompts {
     )
 
     public static let proofread = PromptTemplate(
-        template: """
+        templateString: """
         Proofread the following text for grammar, spelling, and punctuation errors.
         Return the corrected text.
 
@@ -105,7 +105,7 @@ public enum BuiltInPrompts {
     }
 
     public static let chat = PromptTemplate(
-        template: """
+        templateString: """
         {systemPrompt}
 
         {languageInstruction}

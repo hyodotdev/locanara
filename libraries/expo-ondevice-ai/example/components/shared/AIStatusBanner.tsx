@@ -1,10 +1,25 @@
-import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Linking, Platform} from 'react-native';
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Linking,
+  Platform,
+} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useAppState} from '../AppState';
+import {ModelSelectionSheet} from './ModelSelectionSheet';
+
+const ENGINE_LABELS: Record<string, string> = {
+  foundation_models: 'Apple Intelligence',
+  llama_cpp: 'llama.cpp Model',
+  prompt_api: 'Gemini Nano',
+};
 
 export function AIStatusBanner() {
-  const {isModelReady, capability, sdkState} = useAppState();
+  const {isModelReady, capability, sdkState, modelState} = useAppState();
+  const [showModelSheet, setShowModelSheet] = useState(false);
 
   const openSettings = async () => {
     if (Platform.OS === 'ios') {
@@ -36,7 +51,9 @@ export function AIStatusBanner() {
         <Ionicons name="hourglass" size={20} color="#007AFF" />
         <View style={styles.content}>
           <Text style={styles.title}>Checking Apple Intelligence...</Text>
-          <Text style={styles.subtitle}>Please wait while checking device capabilities</Text>
+          <Text style={styles.subtitle}>
+            Please wait while checking device capabilities
+          </Text>
         </View>
       </View>
     );
@@ -44,19 +61,29 @@ export function AIStatusBanner() {
 
   // Model is ready - show success (tappable to manage models)
   if (isModelReady) {
+    const engineLabel =
+      ENGINE_LABELS[modelState.currentEngine] ??
+      (Platform.OS === 'ios' ? 'Apple Intelligence' : 'Gemini Nano');
+
     return (
-      <TouchableOpacity
-        style={[styles.container, styles.ready]}
-        onPress={openSettings}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="sparkles" size={20} color="#007AFF" />
-        <View style={styles.content}>
-          <Text style={styles.title}>Apple Intelligence Active</Text>
-          <Text style={styles.subtitle}>Using Apple's on-device AI • Tap to manage models</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
-      </TouchableOpacity>
+      <>
+        <TouchableOpacity
+          style={[styles.container, styles.ready]}
+          onPress={() => setShowModelSheet(true)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="sparkles" size={20} color="#007AFF" />
+          <View style={styles.content}>
+            <Text style={styles.title}>{engineLabel} Active</Text>
+            <Text style={styles.subtitle}>Tap to manage models</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+        </TouchableOpacity>
+        <ModelSelectionSheet
+          visible={showModelSheet}
+          onClose={() => setShowModelSheet(false)}
+        />
+      </>
     );
   }
 
@@ -85,7 +112,8 @@ export function AIStatusBanner() {
       <View style={styles.content}>
         <Text style={styles.title}>Device Not Supported</Text>
         <Text style={styles.subtitle}>
-          This device does not support Apple Intelligence. Requires iPhone 15 Pro or newer with iOS 18.1+
+          This device does not support Apple Intelligence. Requires iPhone 15
+          Pro or newer with iOS 18.1+
         </Text>
       </View>
     </View>

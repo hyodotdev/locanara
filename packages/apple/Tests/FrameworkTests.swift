@@ -33,7 +33,7 @@ final class PromptTemplateTests: XCTestCase {
 
     func testBasicFormatting() throws {
         let template = PromptTemplate(
-            template: "Summarize this: {text}",
+            templateString: "Summarize this: {text}",
             inputVariables: ["text"]
         )
         let result = try template.format(["text": "Hello world"])
@@ -42,7 +42,7 @@ final class PromptTemplateTests: XCTestCase {
 
     func testMultipleVariables() throws {
         let template = PromptTemplate(
-            template: "Translate from {source} to {target}: {text}",
+            templateString: "Translate from {source} to {target}: {text}",
             inputVariables: ["source", "target", "text"]
         )
         let result = try template.format([
@@ -55,7 +55,7 @@ final class PromptTemplateTests: XCTestCase {
 
     func testMissingVariableThrows() {
         let template = PromptTemplate(
-            template: "Hello {name}",
+            templateString: "Hello {name}",
             inputVariables: ["name"]
         )
         XCTAssertThrowsError(try template.format([:]))

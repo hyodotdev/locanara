@@ -1,12 +1,12 @@
-# Locanara Community - AI Agent Guidelines
+# Locanara - AI Agent Guidelines
 
 > **Repository: hyodotdev/locanara**
 >
-> This is the open-source Community SDK for on-device AI.
+> This is the open-source SDK for on-device AI.
 
 ## Project Overview
 
-Locanara Community is an on-device AI **framework** for iOS and Android, inspired by LangChain. It provides composable chains, memory management, guardrails, and a pipeline DSL for building production AI features using platform-native models.
+Locanara is an on-device AI **framework** for iOS and Android, inspired by LangChain. It provides composable chains, memory management, guardrails, and a pipeline DSL for building production AI features using platform-native models.
 
 ### Core Principles
 
@@ -19,14 +19,6 @@ Locanara Community is an on-device AI **framework** for iOS and Android, inspire
 
 - **iOS/macOS**: Apple Intelligence (Foundation Models) - iOS 26+, macOS 26+
 - **Android**: Gemini Nano (ML Kit GenAI) - Android 14+
-
-### Community Edition
-
-This is the Community (open-source) edition of Locanara SDK.
-
-- Uses OS-level AI capabilities only
-- Requires NPU-enabled devices (Apple Silicon, Gemini Nano supported devices)
-- Lightweight: < 5MB added to app size
 
 ### Distribution
 

@@ -211,7 +211,7 @@ let prompt = "Summarize: \(articleText)"
 
 ## Integration with Locanara
 
-Locanara's Community tier wraps Foundation Models:
+Locanara wraps Foundation Models:
 
 ```swift
 // Locanara abstracts Foundation Models

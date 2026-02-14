@@ -8,7 +8,11 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import {translate, type TranslateResult, ExpoOndeviceAiLog} from 'expo-ondevice-ai';
+import {
+  translate,
+  type TranslateResult,
+  ExpoOndeviceAiLog,
+} from 'expo-ondevice-ai';
 import {useAppState} from '../../AppState';
 import {AIModelRequiredBanner} from './AIModelRequiredBanner';
 
@@ -47,10 +51,15 @@ export function TranslateDemo() {
       });
 
       ExpoOndeviceAiLog.d('[TranslateDemo] Result received');
-      ExpoOndeviceAiLog.json('[TranslateDemo] TranslateResult', translateResult);
+      ExpoOndeviceAiLog.json(
+        '[TranslateDemo] TranslateResult',
+        translateResult,
+      );
       setResult(translateResult);
     } catch (error: any) {
-      ExpoOndeviceAiLog.error('[TranslateDemo] Error: ' + (error.message || 'Unknown error'));
+      ExpoOndeviceAiLog.error(
+        '[TranslateDemo] Error: ' + (error.message || 'Unknown error'),
+      );
       setErrorMessage(error.message || 'Failed to translate');
     } finally {
       setIsLoading(false);
@@ -93,7 +102,8 @@ export function TranslateDemo() {
                 <Text
                   style={[
                     styles.languageChipText,
-                    targetLanguage === lang.code && styles.languageChipTextActive,
+                    targetLanguage === lang.code &&
+                      styles.languageChipTextActive,
                   ]}
                 >
                   {lang.name}
@@ -112,9 +122,7 @@ export function TranslateDemo() {
           onPress={executeTranslate}
           disabled={isLoading || !inputText.trim() || !isModelReady}
         >
-          {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : null}
+          {isLoading ? <ActivityIndicator color="white" size="small" /> : null}
           <Text style={styles.buttonText}>
             {isLoading ? 'Processing...' : 'Translate'}
           </Text>

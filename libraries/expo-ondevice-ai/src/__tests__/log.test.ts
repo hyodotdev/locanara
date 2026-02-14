@@ -22,22 +22,39 @@ describe('ExpoOndeviceAiLog', () => {
 
     it('should log debug messages', () => {
       ExpoOndeviceAiLog.d('test message');
-      expect(consoleSpy).toHaveBeenCalledWith('[ExpoOndeviceAi]', 'test message');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[ExpoOndeviceAi]',
+        'test message',
+      );
     });
 
     it('should log debug messages with args', () => {
       ExpoOndeviceAiLog.d('test', 'arg1', 42);
-      expect(consoleSpy).toHaveBeenCalledWith('[ExpoOndeviceAi]', 'test', 'arg1', 42);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[ExpoOndeviceAi]',
+        'test',
+        'arg1',
+        42,
+      );
     });
 
     it('should log error messages', () => {
       ExpoOndeviceAiLog.error('error message');
-      expect(errorSpy).toHaveBeenCalledWith('[ExpoOndeviceAi]', 'ERROR:', 'error message');
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ExpoOndeviceAi]',
+        'ERROR:',
+        'error message',
+      );
     });
 
     it('should log error messages with args', () => {
       ExpoOndeviceAiLog.error('error', {detail: 'info'});
-      expect(errorSpy).toHaveBeenCalledWith('[ExpoOndeviceAi]', 'ERROR:', 'error', {detail: 'info'});
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ExpoOndeviceAi]',
+        'ERROR:',
+        'error',
+        {detail: 'info'},
+      );
     });
 
     it('should log JSON objects', () => {

@@ -194,13 +194,12 @@ dependencies {
 The Example app demonstrates SDK features and is used for testing.
 
 ```bash
-# Build variants
-./gradlew :example:assembleProDebug      # Pro variant (with bundled models)
-./gradlew :example:assembleCommunityDebug # Community variant (OS-level AI only)
+# Build example app
+./gradlew :example:assembleDebug
 
 # Install and launch
-adb install -r example/build/outputs/apk/pro/debug/example-pro-debug.apk
-adb shell monkey -p com.locanara.example.pro -c android.intent.category.LAUNCHER 1
+adb install -r example/build/outputs/apk/debug/example-debug.apk
+adb shell monkey -p com.locanara.example -c android.intent.category.LAUNCHER 1
 
 # Check logs
 adb logcat -s "Locanara" "MLKitPromptClient"

@@ -26,8 +26,9 @@ export function DescribeImageDemo() {
         </View>
 
         <Text style={styles.description}>
-          This feature will allow you to select an image and generate descriptive
-          text using Apple Intelligence or Gemini Nano, depending on your device.
+          This feature will allow you to select an image and generate
+          descriptive text using Apple Intelligence or Gemini Nano, depending on
+          your device.
         </Text>
       </View>
     </View>

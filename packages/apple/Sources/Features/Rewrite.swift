@@ -33,7 +33,7 @@ internal final class RewriteExecutor {
             throw LocanaraError.invalidInput("outputType is required for rewriting")
         }
 
-        // Try Pro tier inference provider first (if registered)
+        // Try custom inference provider first (if registered)
         if let provider = LocanaraClient.shared.inferenceProvider, provider.isReady() {
             return try await provider.rewrite(input: input, params: params)
         }

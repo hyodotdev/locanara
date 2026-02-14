@@ -23,12 +23,10 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -49,7 +47,6 @@ import com.locanara.example.viewmodel.LocanaraViewModel
  * Provides access to Gemini Nano settings and configuration,
  * matching the Mac Settings view.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -59,21 +56,26 @@ fun SettingsScreen(
     val uriHandler = LocalUriHandler.current
     val geminiNanoInfo by viewModel.geminiNanoInfo.collectAsState()
 
-    Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text("Settings") }
-        )
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Title
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Setup Guide Section (at top)
-            item {
-                SectionHeader(title = "Setup Guide")
-            }
+        // Setup Guide Section (at top)
+        item {
+            SectionHeader(title = "Setup Guide")
+        }
 
             item {
                 SettingsCard {
@@ -209,7 +211,6 @@ fun SettingsScreen(
 
             item { Spacer(modifier = Modifier.height(16.dp)) }
         }
-    }
 }
 
 @Composable

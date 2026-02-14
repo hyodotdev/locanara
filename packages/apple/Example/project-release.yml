@@ -18,9 +18,9 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
   configs:
     Debug:
-      INFOPLIST_KEY_CFBundleDisplayName: "Locanara for Community"
+      INFOPLIST_KEY_CFBundleDisplayName: "Locanara"
     Release:
-      INFOPLIST_KEY_CFBundleDisplayName: "Locanara for Community"
+      INFOPLIST_KEY_CFBundleDisplayName: "Locanara"
 
 # Use published SPM package
 packages:
@@ -29,7 +29,6 @@ packages:
     from: "1.0.0"
 
 targets:
-  # Community tier targets - use Locanara (Foundation Models only)
   LocanaraExample:
     type: application
     platform: iOS
@@ -81,7 +80,6 @@ targets:
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
 
 schemes:
-  # Community tier schemes - Foundation Models only
   LocanaraExample:
     build:
       targets:

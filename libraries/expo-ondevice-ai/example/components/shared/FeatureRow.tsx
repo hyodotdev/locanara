@@ -10,7 +10,12 @@ interface FeatureRowProps {
 export function FeatureRow({feature}: FeatureRowProps) {
   return (
     <View style={styles.container}>
-      <View style={[styles.iconContainer, !feature.isAvailable && styles.iconDisabled]}>
+      <View
+        style={[
+          styles.iconContainer,
+          !feature.isAvailable && styles.iconDisabled,
+        ]}
+      >
         <Ionicons
           name={feature.icon as any}
           size={24}
@@ -18,7 +23,9 @@ export function FeatureRow({feature}: FeatureRowProps) {
         />
       </View>
       <View style={styles.content}>
-        <Text style={[styles.name, !feature.isAvailable && styles.textDisabled]}>
+        <Text
+          style={[styles.name, !feature.isAvailable && styles.textDisabled]}
+        >
           {feature.name}
         </Text>
         <Text style={styles.description} numberOfLines={2}>

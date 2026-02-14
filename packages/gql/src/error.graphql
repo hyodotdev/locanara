@@ -35,9 +35,6 @@ enum ErrorCode {
   NETWORK_UNAVAILABLE
   API_ERROR
 
-  # Tier/licensing errors
-  PRO_TIER_REQUIRED
-
   # Generic errors
   UNKNOWN_ERROR
   INTERNAL_ERROR

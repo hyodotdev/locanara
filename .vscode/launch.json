@@ -47,6 +47,48 @@
             "name": "🧪 Test: Gemini (Android)",
             "command": "./gradlew :locanara:test",
             "cwd": "${workspaceFolder}/packages/android"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "🌐 Web SDK: Dev Server",
+            "command": "bash -lc 'bun run dev'",
+            "cwd": "${workspaceFolder}/packages/web"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "🧪 Test: Web SDK",
+            "command": "bun test",
+            "cwd": "${workspaceFolder}/packages/web"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "📱 Expo Example: Web",
+            "command": "bunx expo start --web",
+            "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "📱 Expo Example: Dev Server",
+            "command": "bunx expo start",
+            "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "📱 Expo Example: iOS Device",
+            "command": "bun ios --device",
+            "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "📱 Expo Example: Android",
+            "command": "bun android",
+            "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
         }
     ]
 }

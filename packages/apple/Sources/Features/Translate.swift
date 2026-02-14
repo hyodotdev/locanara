@@ -36,7 +36,7 @@ internal final class TranslateExecutor {
             throw LocanaraError.invalidInput("Target language is required for translation")
         }
 
-        // Try Pro tier inference provider first (if registered)
+        // Try custom inference provider first (if registered)
         if let provider = LocanaraClient.shared.inferenceProvider, provider.isReady() {
             return try await provider.translate(input: input, params: params)
         }

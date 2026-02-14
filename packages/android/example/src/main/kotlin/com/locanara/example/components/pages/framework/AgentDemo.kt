@@ -44,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -226,40 +225,43 @@ val result = agent.run("Find info about privacy")
                     result.steps.forEachIndexed { i, step ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            ),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFFFF9800))
+                                        .background(MaterialTheme.colorScheme.tertiary)
                                         .padding(horizontal = 10.dp, vertical = 2.dp)
                                 ) {
-                                    Text("Step ${i + 1}", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                                    Text("Step ${i + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiary, fontWeight = FontWeight.Bold)
                                 }
 
                                 if (step.thought.isNotEmpty()) {
                                     Row(verticalAlignment = Alignment.Top) {
-                                        Icon(Icons.Default.Psychology, contentDescription = null, tint = Color(0xFF9C27B0), modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.Psychology, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(step.thought, style = MaterialTheme.typography.bodySmall)
+                                        Text(step.thought, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
                                     }
                                 }
 
                                 if (step.action.isNotEmpty()) {
                                     Row(verticalAlignment = Alignment.Top) {
-                                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color(0xFF2196F3), modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("${step.action}(${step.input})", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                                        Text("${step.action}(${step.input})", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onTertiaryContainer)
                                     }
                                 }
 
                                 step.observation?.takeIf { it.isNotEmpty() }?.let { obs ->
                                     Row(verticalAlignment = Alignment.Top) {
-                                        Icon(Icons.Default.RemoveRedEye, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.RemoveRedEye, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(obs, style = MaterialTheme.typography.bodySmall, maxLines = 3)
+                                        Text(obs, style = MaterialTheme.typography.bodySmall, maxLines = 3, color = MaterialTheme.colorScheme.onTertiaryContainer)
                                     }
                                 }
                             }
@@ -274,7 +276,7 @@ val result = agent.run("Find info about privacy")
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50))
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Final Answer", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
                         }

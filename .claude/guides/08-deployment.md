@@ -1,8 +1,8 @@
-# Deployment (Community)
+# Deployment
 
 ## Overview
 
-This is the **Community** repository. Distribution is via public package registries.
+Distribution is via public package registries.
 
 ## Package Distribution
 
@@ -62,8 +62,10 @@ This repository uses **standard GitHub-hosted runners**.
 
 ### iOS
 
-- Minimum deployment target: iOS 26
-- Requires Apple Intelligence (Apple Silicon)
+- SPM minimum deployment target: iOS 17 (Package.swift)
+- Foundation Models (Apple Intelligence) require iOS 26+
+- llama.cpp engine requires iOS 17+ with Apple Silicon
+- Devices without Apple Intelligence can use llama.cpp with downloaded GGUF models
 
 ### Android
 

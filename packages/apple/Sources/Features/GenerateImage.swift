@@ -33,7 +33,7 @@ internal final class GenerateImageExecutor {
             throw LocanaraError.invalidInput("Image generation parameters are required")
         }
 
-        // Try Pro tier inference provider first (if registered)
+        // Try custom inference provider first (if registered)
         if let provider = LocanaraClient.shared.inferenceProvider, provider.isReady() {
             return try await provider.generateImage(input: input, params: params)
         }

@@ -10,10 +10,7 @@ On-Device AI Framework for iOS and Android
 
 ## Overview
 
-Locanara is an on-device AI framework inspired by LangChain, purpose-built for mobile. Build, compose, and extend AI features using platform-native models - all processing happens locally on the device.
-
-- **iOS/macOS**: Apple Intelligence (Foundation Models)
-- **Android**: Gemini Nano (ML Kit GenAI)
+Locanara is an on-device AI framework inspired by LangChain, purpose-built for mobile. Build, compose, and extend AI features using platform-native models — all processing happens locally on the device.
 
 No cloud. No data leaves. Privacy by design.
 
@@ -21,9 +18,39 @@ No cloud. No data leaves. Privacy by design.
 
 ---
 
+## Supported Platforms
+
+### iOS / macOS
+
+| Engine | Description | Requirements |
+|--------|-------------|--------------|
+| Apple Intelligence | OS-level Foundation Models | iOS 26+ / macOS 26+, Apple Silicon |
+| llama.cpp | GGUF models with Metal GPU acceleration | iOS 17+ / macOS 14+, Apple Silicon |
+| CoreML | Neural Engine accelerated inference | iOS 17+ / macOS 14+, Apple Silicon |
+| MLX | Apple Silicon optimized inference | macOS 14+, Apple Silicon |
+
+### Android
+
+| Engine | Description | Requirements |
+|--------|-------------|--------------|
+| Gemini Nano | ML Kit GenAI (Prompt API) | Android 14+ (API 34+) |
+| ExecuTorch | Meta's on-device inference runtime | Android 12+ (API 31+) |
+
+> Locanara automatically detects device capabilities and routes inference to the best available engine.
+
+---
+
 ## Why Locanara?
 
-Most on-device AI SDKs give you raw model access. Locanara gives you a **framework** - composable chains, memory management, guardrails, and a pipeline DSL - so you can build production AI features, not just call a model.
+Most on-device AI SDKs give you raw model access. Locanara gives you a **framework** — composable chains, memory management, guardrails, and a pipeline DSL — so you can build production AI features, not just call a model.
+
+### Three Levels of API
+
+1. **Simple** — One-liner convenience methods for common tasks
+2. **Chain** — Configurable built-in chains with typed results
+3. **Custom** — Implement the Chain protocol for app-specific AI features
+
+### Architecture
 
 ```text
 ┌─────────────────────────────────────────────┐
@@ -41,207 +68,127 @@ Most on-device AI SDKs give you raw model access. Locanara gives you a **framewo
 │  LocanaraModel · PromptTemplate ·           │
 │  OutputParser · Schema                      │
 ├─────────────────────────────────────────────┤
+│  Engine Layer                               │
+│  InferenceRouter · DeviceCapabilityDetector │
+├─────────────────────────────────────────────┤
 │  Platform Layer                             │
-│  Apple Intelligence │ Gemini Nano           │
+│  Apple Intelligence · llama.cpp · CoreML ·  │
+│  MLX · Gemini Nano · ExecuTorch             │
 └─────────────────────────────────────────────┘
 ```
 
 ---
 
-## Quick Start
-
-### Installation
+## Installation
 
 **iOS (Swift Package Manager)**
 
-```swift
-dependencies: [
-    .package(url: "https://github.com/hyodotdev/locanara", from: "1.0.0")
-]
+```text
+https://github.com/hyodotdev/locanara
 ```
 
 **Android (Gradle)**
 
-```kotlin
-dependencies {
-    implementation("com.locanara:locanara:1.0.0")
-}
-```
-
-### Simple Usage
-
-One-liner convenience methods for common tasks:
-
-```swift
-// iOS
-let model = FoundationLanguageModel()
-
-let summary = try await model.summarize("Long article text...")
-print(summary.summary)
-
-let translated = try await model.translate("Hello", to: "ko")
-print(translated.translatedText)  // "안녕하세요"
-```
-
-```kotlin
-// Android
-val model = PromptApiModel(context)
-
-val summary = model.summarize("Long article text...")
-println(summary.summary)
-
-val translated = model.translate("Hello", to = "ko")
-println(translated.translatedText)  // "안녕하세요"
-```
-
-### Chain Composition
-
-Chain multiple AI operations with compile-time type safety:
-
-```swift
-// iOS - Pipeline DSL
-let result = try await model.pipeline {
-    Proofread()
-    Translate(to: "ko")
-}.run("Ths is a tset sentece")
-// result: TranslateResult (proofread text translated to Korean)
-```
-
-```kotlin
-// Android - Fluent Builder
-val result = model.pipeline()
-    .proofread()
-    .translate(to = "ko")
-    .run("Ths is a tset sentece")
-// result: TranslateResult
-```
-
-### Build Your Own Chain
-
-Implement the `Chain` protocol to create custom AI features:
-
-```swift
-// iOS
-struct SentimentChain: Chain {
-    let name = "SentimentChain"
-    let model: any LocanaraModel
-
-    func invoke(_ input: ChainInput) async throws -> ChainOutput {
-        let prompt = PromptTemplate.from(
-            "Classify sentiment as positive, negative, or neutral: {text}"
-        ).format(["text": input.text])
-
-        let response = try await model.generate(prompt: prompt, config: .structured)
-        let result = SentimentResult(sentiment: response.text.trimmed())
-        return ChainOutput(value: result, text: response.text)
-    }
-}
-
-// Use it
-let result = try await SentimentChain(model: model).run("I love this!")
-```
-
-```kotlin
-// Android
-class SentimentChain(private val model: LocanaraModel) : Chain {
-    override val name = "SentimentChain"
-
-    override suspend fun invoke(input: ChainInput): ChainOutput {
-        val prompt = PromptTemplate.from(
-            "Classify sentiment as positive, negative, or neutral: {text}"
-        ).format(mapOf("text" to input.text))
-
-        val response = model.generate(prompt, GenerationConfig.STRUCTURED)
-        val result = SentimentResult(sentiment = response.text.trim())
-        return ChainOutput(value = result, text = response.text)
-    }
-}
+```groovy
+implementation("com.locanara:locanara:1.0.0")
 ```
 
 ---
 
-## Framework Features
+## Key Features
 
-### Core Layer
+### Framework Layer
 
-- `LocanaraModel` - Unified model protocol for on-device AI backends
-- `PromptTemplate` - Type-safe prompt composition with `{variable}` placeholders
-- `OutputParser` - Text, JSON, and List output parsing
-- `ChainInput/Output` - Type-safe data flow between chains
-
-### Composable Layer
-
-- `Chain` - Composable unit of AI logic
-- `SequentialChain` - Run chains in sequence, passing output to next input
-- `Memory` - `BufferMemory` (last N turns) and `SummaryMemory` (compressed history)
-- `Guardrail` - Input/output validation and filtering
-- `Tool` - External capability integration
+- **Chain** — Composable unit of AI logic with typed input/output
+- **Pipeline DSL** — Compose chains with compile-time type safety
+- **Memory** — BufferMemory (last N turns) and SummaryMemory (compressed history)
+- **Guardrail** — Input/output validation and content filtering
+- **Tool** — External capability integration for agents
 
 ### Built-in Chains
 
-7 ready-to-use chains with typed results:
+7 ready-to-use chains, each returning typed results:
 
-- `SummarizeChain` → `SummarizeResult` - Text summarization
-- `ClassifyChain` → `ClassifyResult` - Text classification
-- `ExtractChain` → `ExtractResult` - Entity extraction
-- `ChatChain` → `ChatResult` - Conversational AI with memory
-- `TranslateChain` → `TranslateResult` - Language translation
-- `RewriteChain` → `RewriteResult` - Text rewriting by style
-- `ProofreadChain` → `ProofreadResult` - Grammar correction
+| Chain | Result Type | Description |
+|-------|-------------|-------------|
+| SummarizeChain | SummarizeResult | Text summarization |
+| ClassifyChain | ClassifyResult | Text classification |
+| ExtractChain | ExtractResult | Entity extraction |
+| ChatChain | ChatResult | Conversational AI with memory |
+| TranslateChain | TranslateResult | Language translation |
+| RewriteChain | RewriteResult | Text rewriting by style |
+| ProofreadChain | ProofreadResult | Grammar correction |
+
+### Engine System
+
+- **InferenceEngine** — Unified protocol for all inference backends
+- **InferenceRouter** — Automatic engine selection based on device capabilities
+- **DeviceCapabilityDetector** — Hardware detection (NPU, memory, chipset)
+- **MemoryManager** — Intelligent memory allocation for model loading
+
+### Model Management
+
+- **ModelManager** — Download, load, and manage on-device models
+- **ModelRegistry** — Available model catalog with metadata
+- **ModelDownloader** — Background download with progress tracking
+- **ModelStorage** — Local storage and cache management
+
+### RAG (Retrieval-Augmented Generation)
+
+- **VectorStore** — Local vector storage for embeddings
+- **DocumentChunker** — Text splitting with configurable strategies
+- **EmbeddingEngine** — On-device embedding generation
+- **RAGQueryEngine** — Similarity search and context retrieval
+
+### Personalization
+
+- **FeedbackCollector** — Collect user feedback on AI outputs
+- **PreferenceAnalyzer** — Learn user preferences over time
+- **PromptOptimizer** — Adapt prompts based on user behavior
 
 ### Runtime Layer
 
-- `ChainExecutor` - Instrumented execution with retry and history
-- `Session` - Stateful conversation management
-- `Agent` - ReAct-lite autonomous agent with tools
-
-### Pipeline DSL
-
-Compose chains with compile-time type safety:
-
-```swift
-// The return type is inferred from the last step
-let result: TranslateResult = try await model.pipeline {
-    Summarize(bulletCount: 3)
-    Translate(to: "ja")
-}.run("Long English article...")
-```
+- **ChainExecutor** — Instrumented execution with retry and history
+- **Session** — Stateful conversation management
+- **Agent** — ReAct-lite autonomous agent with tools
 
 ---
 
 ## Packages
 
-- [**android**](packages/android) - Android SDK
-  [![Maven Central](https://img.shields.io/maven-central/v/com.locanara/locanara?label=Maven%20Central)](https://central.sonatype.com/artifact/com.locanara/locanara)
-  [![CI Android](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml/badge.svg)](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml)
-
-- [**apple**](packages/apple) - iOS/macOS SDK
+- [**apple**](packages/apple) — iOS/macOS SDK
   [![GitHub Release](https://img.shields.io/github/v/release/hyodotdev/locanara?filter=apple-*&label=SPM)](https://github.com/hyodotdev/locanara/releases?q=apple&expanded=true)
   [![CocoaPods](https://img.shields.io/cocoapods/v/Locanara?label=CocoaPods)](https://cocoapods.org/pods/Locanara)
   [![CI iOS](https://github.com/hyodotdev/locanara/actions/workflows/ci-ios.yml/badge.svg)](https://github.com/hyodotdev/locanara/actions/workflows/ci-ios.yml)
 
-- [**docs**](packages/docs) - Documentation → [locanara.dev](https://locanara.dev)
+- [**android**](packages/android) — Android SDK
+  [![Maven Central](https://img.shields.io/maven-central/v/com.locanara/locanara?label=Maven%20Central)](https://central.sonatype.com/artifact/com.locanara/locanara)
+  [![CI Android](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml/badge.svg)](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml)
+
+- [**docs**](packages/docs) — Documentation site → [locanara.dev](https://locanara.dev)
 
 ---
 
 ## Requirements
 
-### iOS/macOS
+**iOS / macOS**
 
-- iOS 26+ / macOS 26+
-- Device with Apple Intelligence support
+- **Minimum**: iOS 17+ / macOS 14+ (llama.cpp, CoreML engines)
+- **Full**: iOS 26+ / macOS 26+ (adds Apple Intelligence engine)
+- Apple Silicon device (A14+ for iPhone, M1+ for Mac)
 
-### Android
+**Android**
 
-- Android 14+ (API 34+)
-- Device with Gemini Nano support
+- **Minimum**: Android 12+ (API 31+) for ExecuTorch engine
+- **Full**: Android 14+ (API 34+) for Gemini Nano engine
+- Device with NPU support recommended
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](./LICENSE) for details.
+MIT License — see [LICENSE](./LICENSE) for details.
 
 ---
 
-*Built with conviction that AI should run where your data lives - on your device.*
+*Built with conviction that AI should run where your data lives — on your device.*

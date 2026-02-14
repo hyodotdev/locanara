@@ -59,7 +59,7 @@ class PromptTemplateTest {
     @Test
     fun `basic formatting`() {
         val template = PromptTemplate(
-            template = "Summarize this: {text}",
+            templateString = "Summarize this: {text}",
             inputVariables = listOf("text")
         )
         val result = template.format(mapOf("text" to "Hello world"))
@@ -69,7 +69,7 @@ class PromptTemplateTest {
     @Test
     fun `multiple variables`() {
         val template = PromptTemplate(
-            template = "Translate from {source} to {target}: {text}",
+            templateString = "Translate from {source} to {target}: {text}",
             inputVariables = listOf("source", "target", "text")
         )
         val result = template.format(
@@ -81,7 +81,7 @@ class PromptTemplateTest {
     @Test(expected = IllegalArgumentException::class)
     fun `missing variable throws`() {
         val template = PromptTemplate(
-            template = "Hello {name}",
+            templateString = "Hello {name}",
             inputVariables = listOf("name")
         )
         template.format(emptyMap())

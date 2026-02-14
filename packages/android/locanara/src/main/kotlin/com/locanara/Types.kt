@@ -150,6 +150,7 @@ enum class ProcessingLocation {
 enum class InferenceEngineType {
     FOUNDATION_MODELS,  // iOS: Apple Intelligence
     GEMINI_NANO,        // Android: ML Kit / AICore
+    EXECUTORCH,         // Android: ExecuTorch (PyTorch)
     NONE                // No engine available
 }
 
@@ -175,6 +176,8 @@ enum class ErrorCode {
     PERMISSION_NOT_GRANTED,
     NETWORK_UNAVAILABLE,
     API_ERROR,
+    MODEL_NOT_FOUND,
+    MODEL_LOAD_FAILED,
     UNKNOWN_ERROR,
     INTERNAL_ERROR
 }
@@ -617,6 +620,133 @@ data class ImageDescriptionParametersAndroid(
 )
 
 // ============================================
+// RAG TYPES
+// ============================================
+
+@Serializable
+enum class RAGDocumentStatus {
+    PENDING,
+    INDEXING,
+    INDEXED,
+    ERROR
+}
+
+@Serializable
+data class RAGCollection(
+    val collectionId: String,
+    val name: String,
+    val description: String? = null,
+    val documentCount: Int,
+    val totalChunks: Int,
+    val createdAt: Double,
+    val updatedAt: Double
+)
+
+@Serializable
+data class RAGDocument(
+    val documentId: String,
+    val collectionId: String,
+    val title: String,
+    val chunkCount: Int,
+    val status: RAGDocumentStatus,
+    val indexedAt: Double? = null,
+    val errorMessage: String? = null
+)
+
+@Serializable
+data class RAGQueryResult(
+    val answer: String,
+    val sources: List<RAGSourceChunk>,
+    val processingTimeMs: Int,
+    val confidence: Double,
+    val retrievedCount: Int
+)
+
+@Serializable
+data class RAGSourceChunk(
+    val documentId: String,
+    val documentTitle: String,
+    val content: String,
+    val relevanceScore: Double,
+    val chunkIndex: Int
+)
+
+// ============================================
+// PERSONALIZATION TYPES
+// ============================================
+
+@Serializable
+data class PersonalizationProfile(
+    val profileId: String,
+    val name: String,
+    val feedbackCount: Int,
+    val positiveFeedbackCount: Int,
+    val lastUpdated: Double,
+    val isActive: Boolean,
+    val createdAt: Double
+)
+
+@Serializable
+data class FeedbackRecord(
+    val feedbackId: String,
+    val profileId: String,
+    val feature: FeatureType,
+    val input: String,
+    val output: String,
+    val liked: Boolean,
+    val timestamp: Double
+)
+
+// ============================================
+// MODEL MANAGEMENT TYPES
+// ============================================
+
+@Serializable
+enum class QuantizationType {
+    INT4,
+    INT8,
+    FLOAT16,
+    FLOAT32
+}
+
+@Serializable
+enum class PromptFormat {
+    LLAMA,
+    GEMMA,
+    CHATML,
+    RAW
+}
+
+@Serializable
+data class DownloadableModelInfo(
+    val modelId: String,
+    val name: String,
+    val version: String,
+    val sizeMB: Int,
+    val quantization: QuantizationType,
+    val contextLength: Int,
+    val downloadURL: String,
+    val checksum: String,
+    val minMemoryMB: Int,
+    val supportedFeatures: List<FeatureType>,
+    val promptFormat: PromptFormat,
+    val tokenizerURL: String? = null
+)
+
+/**
+ * Display model for the UI (combines registry info + runtime state)
+ */
+data class ModelDisplayInfo(
+    val modelId: String,
+    val name: String,
+    val sizeMB: Int,
+    val isDownloaded: Boolean,
+    val isLoaded: Boolean,
+    val isRecommended: Boolean,
+    val downloadProgress: Float = 0f
+)
+
+// ============================================
 // UNION TYPES (Sealed Interfaces)
 // ============================================
 
@@ -625,6 +755,14 @@ sealed interface EventData
 
 @Serializable
 sealed interface ExecutionResultData
+
+@Serializable
+data class PersonalizedExecutionResult(
+    val result: ExecutionResult,
+    val feedbackId: String,
+    val personalizationApplied: Boolean,
+    val personalizationScore: Double? = null
+) : ExecutionResultData
 
 // ============================================
 // QUERY RESOLVER (Common)
@@ -710,7 +848,7 @@ interface MutationResolverAndroid : MutationResolver {
     suspend fun initializeGeminiNano(): VoidResult
 
     /** Describe image using Android ML Kit GenAI (Gemini Nano)
-    Community tier - uses on-device Gemini Nano vision model */
+    Uses on-device Gemini Nano vision model */
     suspend fun describeImageAndroid(parameters: ImageDescriptionParametersAndroid): ImageDescriptionResult
 }
 

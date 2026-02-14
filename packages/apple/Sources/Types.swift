@@ -153,7 +153,6 @@ public enum ErrorCode: String, Codable, CaseIterable, Sendable {
     case permissionNotGranted = "PERMISSION_NOT_GRANTED"
     case networkUnavailable = "NETWORK_UNAVAILABLE"
     case apiError = "API_ERROR"
-    case proTierRequired = "PRO_TIER_REQUIRED"
     case unknownError = "UNKNOWN_ERROR"
     case internalError = "INTERNAL_ERROR"
 }

@@ -260,7 +260,7 @@ task.cancel()
 
 ## Integration with Locanara
 
-Locanara Pro uses LocalLLMClient for llama.cpp integration:
+Locanara can use LocalLLMClient for llama.cpp integration:
 
 ```swift
 // LlamaCppEngine wraps LocalLLMClient

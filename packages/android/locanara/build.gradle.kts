@@ -38,7 +38,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
 
-        buildConfigField("String", "TIER", "\"community\"")
+        buildConfigField("String", "TIER", "\"unified\"")
         buildConfigField("String", "SDK_VERSION", "\"$locanaraVersion\"")
     }
 
@@ -71,6 +71,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
 }
 
 dependencies {
@@ -95,6 +101,12 @@ dependencies {
     implementation("com.google.mlkit:genai-rewriting:1.0.0-beta1")
     implementation("com.google.mlkit:genai-image-description:1.0.0-beta1")
     implementation("com.google.mlkit:genai-prompt:1.0.0-alpha1")  // Alpha: Gemini Nano Prompt API
+
+    // ExecuTorch (PyTorch on-device inference)
+    // v1.1.0: Gemma 3, Qwen3, SmolLM3 support + improved 16KB page size handling
+    implementation("org.pytorch:executorch-android:1.1.0")
+    implementation("com.facebook.soloader:soloader:0.12.1")
+    implementation("com.facebook.fbjni:fbjni:0.7.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

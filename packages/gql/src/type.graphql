@@ -781,3 +781,373 @@ input UpdateContextInput {
   """
   preferences: ContextPreferencesInput
 }
+
+# ========================================
+# RAG (On-Device Retrieval-Augmented Generation)
+# ========================================
+
+"""
+A collection of documents for RAG queries.
+All documents and vectors are stored locally on-device.
+"""
+type RAGCollection {
+  """
+  Unique collection identifier
+  """
+  collectionId: ID!
+  """
+  Human-readable collection name
+  """
+  name: String!
+  """
+  Optional description of the collection
+  """
+  description: String
+  """
+  Number of documents in the collection
+  """
+  documentCount: Int!
+  """
+  Total number of chunks across all documents
+  """
+  totalChunks: Int!
+  """
+  Timestamp when the collection was created
+  """
+  createdAt: Float!
+  """
+  Timestamp of last modification
+  """
+  updatedAt: Float!
+}
+
+"""
+Document status in the RAG pipeline
+"""
+enum RAGDocumentStatus {
+  """
+  Document added but not yet processed
+  """
+  PENDING
+  """
+  Document is being chunked and embedded
+  """
+  INDEXING
+  """
+  Document is fully indexed and searchable
+  """
+  INDEXED
+  """
+  An error occurred during indexing
+  """
+  ERROR
+}
+
+"""
+A document within a RAG collection.
+Documents are automatically chunked and embedded for semantic search.
+"""
+type RAGDocument {
+  """
+  Unique document identifier
+  """
+  documentId: ID!
+  """
+  Collection this document belongs to
+  """
+  collectionId: ID!
+  """
+  Document title for display
+  """
+  title: String!
+  """
+  Number of chunks this document was split into
+  """
+  chunkCount: Int!
+  """
+  Current processing status
+  """
+  status: RAGDocumentStatus!
+  """
+  Timestamp when the document was indexed
+  """
+  indexedAt: Float
+  """
+  Error message if status is ERROR
+  """
+  errorMessage: String
+}
+
+"""
+Result of a RAG query, combining retrieval and generation.
+"""
+type RAGQueryResult {
+  """
+  Generated answer based on retrieved context
+  """
+  answer: String!
+  """
+  Source chunks used to generate the answer
+  """
+  sources: [RAGSourceChunk!]!
+  """
+  Total processing time in milliseconds
+  """
+  processingTimeMs: Int!
+  """
+  Confidence score for the answer (0.0 - 1.0)
+  """
+  confidence: Float
+  """
+  Number of chunks retrieved before filtering
+  """
+  retrievedCount: Int!
+}
+
+"""
+A chunk of text from a source document used in RAG retrieval.
+"""
+type RAGSourceChunk {
+  """
+  Document ID this chunk belongs to
+  """
+  documentId: ID!
+  """
+  Document title for display
+  """
+  documentTitle: String!
+  """
+  The actual text content of the chunk
+  """
+  content: String!
+  """
+  Similarity score to the query (0.0 - 1.0)
+  """
+  relevanceScore: Float!
+  """
+  Position of this chunk within the document
+  """
+  chunkIndex: Int!
+}
+
+"""
+Input for creating a RAG collection
+"""
+input CreateRAGCollectionInput {
+  """
+  Human-readable name for the collection
+  """
+  name: String!
+  """
+  Optional description
+  """
+  description: String
+}
+
+"""
+Input for indexing a document into a RAG collection
+"""
+input IndexDocumentInput {
+  """
+  Target collection ID
+  """
+  collectionId: ID!
+  """
+  Document title for display
+  """
+  title: String!
+  """
+  Full text content to index
+  """
+  content: String!
+  """
+  Optional metadata as JSON string
+  """
+  metadata: String
+}
+
+"""
+Input for querying a RAG collection
+"""
+input RAGQueryInput {
+  """
+  Collection ID to query
+  """
+  collectionId: ID!
+  """
+  Natural language query
+  """
+  query: String!
+  """
+  Number of chunks to retrieve (default: 5)
+  """
+  topK: Int
+  """
+  Minimum relevance score threshold (0.0 - 1.0, default: 0.3)
+  """
+  minRelevance: Float
+  """
+  Optional system prompt override for answer generation
+  """
+  systemPrompt: String
+}
+
+# ========================================
+# Personalization (On-Device Prompt Tuning)
+# ========================================
+
+"""
+A personalization profile that stores user preferences and feedback patterns.
+"""
+type PersonalizationProfile {
+  """
+  Unique profile identifier
+  """
+  profileId: ID!
+  """
+  Human-readable profile name
+  """
+  name: String!
+  """
+  Total feedback entries collected
+  """
+  feedbackCount: Int!
+  """
+  Number of positive feedback entries
+  """
+  positiveFeedbackCount: Int!
+  """
+  Timestamp of last update
+  """
+  lastUpdated: Float!
+  """
+  Whether this profile is currently active
+  """
+  isActive: Boolean!
+  """
+  Timestamp when the profile was created
+  """
+  createdAt: Float!
+}
+
+"""
+A single feedback record for personalization learning.
+"""
+type FeedbackRecord {
+  """
+  Unique feedback identifier
+  """
+  feedbackId: ID!
+  """
+  Profile this feedback belongs to
+  """
+  profileId: ID!
+  """
+  Feature that generated the output
+  """
+  feature: FeatureType!
+  """
+  Original input text
+  """
+  input: String!
+  """
+  Generated output that received feedback
+  """
+  output: String!
+  """
+  Whether the user liked this output
+  """
+  liked: Boolean!
+  """
+  Timestamp when feedback was recorded
+  """
+  timestamp: Float!
+}
+
+"""
+Result of a personalized execution, with feedback tracking.
+"""
+type PersonalizedExecutionResult {
+  """
+  The execution result
+  """
+  result: ExecutionResult!
+  """
+  ID for providing feedback on this execution
+  """
+  feedbackId: ID!
+  """
+  Whether personalization was applied
+  """
+  personalizationApplied: Boolean!
+  """
+  Personalization confidence score
+  """
+  personalizationScore: Float
+}
+
+"""
+Input for creating a personalization profile
+"""
+input CreatePersonalizationProfileInput {
+  """
+  Human-readable name for the profile
+  """
+  name: String!
+}
+
+"""
+Input for recording feedback
+"""
+input RecordFeedbackInput {
+  """
+  The execution ID that generated the output
+  """
+  executionId: ID!
+  """
+  Whether the user liked this output
+  """
+  liked: Boolean!
+  """
+  Optional feedback text or reason
+  """
+  comment: String
+}
+
+"""
+Input for personalized execution
+"""
+input ExecutePersonalizedInput {
+  """
+  Standard feature execution input
+  """
+  featureInput: ExecuteFeatureInput!
+  """
+  Profile ID to use (uses active profile if not specified)
+  """
+  profileId: ID
+}
+
+# ========================================
+# External Models
+# ========================================
+#
+# Available models for devices without native AI:
+#
+# NAME              SIZE     VISION  MIN RAM  CONTEXT  ENGINE
+# ──────────────────────────────────────────────────────────────
+# gemma-3-4b        3.4 GB   Yes     6 GB     128K     llama.cpp (iOS)
+# llama-3.2-3b      2.5 GB   No      6 GB     128K     ExecuTorch (Android)
+#
+
+"""
+External model for on-device inference (llama.cpp on iOS, ExecuTorch on Android)
+"""
+type ExternalModel {
+  id: ID!
+  name: String!
+  sizeMB: Int!
+  isMultimodal: Boolean!
+  minMemoryMB: Int!
+  contextLength: Int!
+}

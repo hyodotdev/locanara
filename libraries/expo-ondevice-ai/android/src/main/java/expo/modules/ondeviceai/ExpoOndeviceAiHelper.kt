@@ -8,7 +8,6 @@ import com.locanara.core.ChainOutput
 
 /** Decodes JS options maps into chain constructor parameters */
 object ExpoOndeviceAiHelper {
-
     // region Summarize
 
     fun bulletCount(options: Map<String, Any>?): Int {
@@ -26,8 +25,9 @@ object ExpoOndeviceAiHelper {
 
     fun classifyOptions(options: Map<String, Any>?): Pair<List<String>, Int> {
         @Suppress("UNCHECKED_CAST")
-        val categories = (options?.get("categories") as? List<String>)
-            ?: listOf("positive", "negative", "neutral")
+        val categories =
+            (options?.get("categories") as? List<String>)
+                ?: listOf("positive", "negative", "neutral")
         val maxResults = (options?.get("maxResults") as? Number)?.toInt() ?: 3
         return Pair(categories, maxResults)
     }
@@ -48,13 +48,17 @@ object ExpoOndeviceAiHelper {
 
     @Suppress("UNCHECKED_CAST")
     fun chatOptions(options: Map<String, Any>?): Pair<String, Memory?> {
-        val systemPrompt = (options?.get("systemPrompt") as? String)
-            ?: "You are a friendly, helpful assistant."
+        val systemPrompt =
+            (options?.get("systemPrompt") as? String)
+                ?: "You are a friendly, helpful assistant."
 
         val historyArray = options?.get("history") as? List<Map<String, String>>
-        val memory: Memory? = if (!historyArray.isNullOrEmpty()) {
-            PrefilledMemory(historyArray)
-        } else null
+        val memory: Memory? =
+            if (!historyArray.isNullOrEmpty()) {
+                PrefilledMemory(historyArray)
+            } else {
+                null
+            }
 
         return Pair(systemPrompt, memory)
     }
@@ -87,16 +91,22 @@ object ExpoOndeviceAiHelper {
  * Memory adapter that provides pre-filled chat history from JS.
  */
 private class PrefilledMemory(
-    history: List<Map<String, String>>
+    history: List<Map<String, String>>,
 ) : Memory {
-    private val entries: List<MemoryEntry> = history.mapNotNull { msg ->
-        val role = msg["role"] ?: return@mapNotNull null
-        val content = msg["content"] ?: return@mapNotNull null
-        MemoryEntry(role = role, content = content)
-    }
+    private val entries: List<MemoryEntry> =
+        history.mapNotNull { msg ->
+            val role = msg["role"] ?: return@mapNotNull null
+            val content = msg["content"] ?: return@mapNotNull null
+            MemoryEntry(role = role, content = content)
+        }
 
     override suspend fun load(input: ChainInput): List<MemoryEntry> = entries
-    override suspend fun save(input: ChainInput, output: ChainOutput) { }
+
+    override suspend fun save(
+        input: ChainInput,
+        output: ChainOutput,
+    ) { }
+
     override suspend fun clear() { }
 
     override val estimatedTokenCount: Int

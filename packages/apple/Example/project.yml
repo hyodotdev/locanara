@@ -16,11 +16,14 @@ settings:
     SWIFT_VERSION: "5.9"
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
+    SWIFT_OBJC_INTEROP_MODE: objcxx
+    CLANG_CXX_LANGUAGE_STANDARD: "c++17"
+    CLANG_CXX_LIBRARY: "libc++"
   configs:
     Debug:
-      INFOPLIST_KEY_CFBundleDisplayName: "Locanara for Community"
+      INFOPLIST_KEY_CFBundleDisplayName: "Locanara"
     Release:
-      INFOPLIST_KEY_CFBundleDisplayName: "Locanara for Community"
+      INFOPLIST_KEY_CFBundleDisplayName: "Locanara"
 
 packages:
   Locanara:

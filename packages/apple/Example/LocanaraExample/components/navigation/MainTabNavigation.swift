@@ -14,21 +14,21 @@ struct MainTabNavigation: View {
                 }
                 .tag(0)
 
+            FrameworkShowcase()
+                .tabItem {
+                    Label("Framework", systemImage: "cube.transparent")
+                }
+                .tag(1)
+
             DeviceInfo()
                 .tabItem {
                     Label("Device", systemImage: "iphone")
                 }
-                .tag(1)
+                .tag(2)
 
             Settings()
                 .tabItem {
                     Label("Settings", systemImage: "gear")
-                }
-                .tag(2)
-
-            FrameworkShowcase()
-                .tabItem {
-                    Label("Framework", systemImage: "cube.transparent")
                 }
                 .tag(3)
         }
