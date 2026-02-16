@@ -63,7 +63,7 @@ locanara/
 │   ├── gql/          # GraphQL schema and type generation
 │   ├── apple/        # iOS SDK (Swift) - Apple Intelligence
 │   ├── android/      # Android SDK (Kotlin) - Gemini Nano
-│   └── docs/         # Documentation website
+│   └── site/         # Website (landing + docs + community)
 ├── libraries/        # Third-party framework integrations
 └── .claude/
     ├── commands/     # Slash commands

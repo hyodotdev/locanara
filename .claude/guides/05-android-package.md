@@ -48,6 +48,12 @@ packages/android/
 │       ├── dsl/                  # Pipeline, ModelExtensions
 │       ├── runtime/              # Agent, Session, ChainExecutor
 │       ├── platform/             # PromptApiModel
+│       ├── engine/               # InferenceEngine, ExecuTorchEngine, InferenceConfig,
+│       │                         #   ModelRegistry, MemoryManager, PromptBuilder
+│       ├── rag/                  # VectorStore, DocumentChunker, EmbeddingEngine,
+│       │                         #   RAGManager, RAGQueryEngine
+│       ├── personalization/      # PersonalizationManager, FeedbackCollector,
+│       │                         #   PreferenceAnalyzer, PromptOptimizer
 │       ├── mlkit/
 │       │   ├── MLKitClients.kt   # ML Kit GenAI clients
 │       │   └── MLKitPromptClient.kt  # Prompt API client
@@ -217,16 +223,53 @@ dependencies {
 
 ## Key Files
 
+### Entry Points & Configuration
+
 - `locanara/src/main/kotlin/com/locanara/Locanara.kt` - Main SDK entry point
+- `locanara/src/main/kotlin/com/locanara/Types.kt` - Generated types from GQL (do not edit)
+- `locanara/src/main/kotlin/com/locanara/Errors.kt` - LocanaraException definitions
+
+### Core & Composable
+
 - `locanara/src/main/kotlin/com/locanara/core/Model.kt` - LocanaraModel interface
 - `locanara/src/main/kotlin/com/locanara/composable/Chain.kt` - Chain interface + SequentialChain
+- `locanara/src/main/kotlin/com/locanara/composable/Memory.kt` - BufferMemory, SummaryMemory
 - `locanara/src/main/kotlin/com/locanara/builtin/` - 7 built-in chain implementations
+
+### Platform & Engine
+
+- `locanara/src/main/kotlin/com/locanara/platform/PromptApiModel.kt` - Gemini Nano Prompt API wrapper
+- `locanara/src/main/kotlin/com/locanara/engine/InferenceEngine.kt` - Unified engine protocol
+- `locanara/src/main/kotlin/com/locanara/engine/ExecuTorchEngine.kt` - ExecuTorch engine (GGUF models)
+- `locanara/src/main/kotlin/com/locanara/engine/InferenceConfig.kt` - Engine configuration types
+- `locanara/src/main/kotlin/com/locanara/engine/ModelRegistry.kt` - Available model catalog
+- `locanara/src/main/kotlin/com/locanara/engine/MemoryManager.kt` - Memory optimization
+- `locanara/src/main/kotlin/com/locanara/engine/PromptBuilder.kt` - Prompt formatting
+
+### RAG & Personalization
+
+- `locanara/src/main/kotlin/com/locanara/rag/RAGManager.kt` - RAG orchestration
+- `locanara/src/main/kotlin/com/locanara/rag/VectorStore.kt` - Vector storage and similarity search
+- `locanara/src/main/kotlin/com/locanara/rag/DocumentChunker.kt` - Document chunking strategies
+- `locanara/src/main/kotlin/com/locanara/rag/EmbeddingEngine.kt` - Text embedding generation
+- `locanara/src/main/kotlin/com/locanara/rag/RAGQueryEngine.kt` - Query execution
+- `locanara/src/main/kotlin/com/locanara/personalization/PersonalizationManager.kt` - User preference learning
+- `locanara/src/main/kotlin/com/locanara/personalization/FeedbackCollector.kt` - User feedback collection
+- `locanara/src/main/kotlin/com/locanara/personalization/PreferenceAnalyzer.kt` - Preference analysis
+- `locanara/src/main/kotlin/com/locanara/personalization/PromptOptimizer.kt` - Adaptive prompt optimization
+
+### DSL & Runtime
+
 - `locanara/src/main/kotlin/com/locanara/dsl/Pipeline.kt` - Pipeline DSL
 - `locanara/src/main/kotlin/com/locanara/dsl/ModelExtensions.kt` - Convenience methods
-- `locanara/src/main/kotlin/com/locanara/runtime/` - Agent, Session, ChainExecutor
+- `locanara/src/main/kotlin/com/locanara/runtime/Agent.kt` - ReAct-lite autonomous agent
+- `locanara/src/main/kotlin/com/locanara/runtime/Session.kt` - Stateful conversation management
+- `locanara/src/main/kotlin/com/locanara/runtime/ChainExecutor.kt` - Instrumented chain execution
+
+### ML Kit GenAI
+
 - `locanara/src/main/kotlin/com/locanara/mlkit/MLKitClients.kt` - ML Kit GenAI clients
 - `locanara/src/main/kotlin/com/locanara/mlkit/MLKitPromptClient.kt` - Prompt API client
-- `locanara/src/main/kotlin/com/locanara/Types.kt` - Generated types from GQL
 
 ## Framework Architecture
 
@@ -237,6 +280,10 @@ The SDK is a layered framework:
 3. **Built-in** - `SummarizeChain`, `ClassifyChain`, `ExtractChain`, `ChatChain`, `TranslateChain`, `RewriteChain`, `ProofreadChain`
 4. **DSL** - Pipeline composition, Model extensions
 5. **Runtime** - `Agent`, `Session`, `ChainExecutor`
+6. **Platform** - `PromptApiModel` (Gemini Nano via ML Kit)
+7. **Engine** - `InferenceEngine`, `ExecuTorchEngine`, `ModelRegistry`, `InferenceConfig`
+8. **RAG** - `VectorStore`, `DocumentChunker`, `EmbeddingEngine`, `RAGManager`, `RAGQueryEngine`
+9. **Personalization** - `PersonalizationManager`, `FeedbackCollector`, `PreferenceAnalyzer`, `PromptOptimizer`
 
 ### Three Levels of API
 
@@ -267,6 +314,88 @@ class MyChain(private val model: LocanaraModel) : Chain {
         return ChainOutput(value = result, text = response.text)
     }
 }
+```
+
+## Engine System
+
+The Engine layer enables running external GGUF models via ExecuTorch alongside Gemini Nano.
+
+### Engine Components
+
+- **InferenceEngine** - Unified engine protocol for model inference
+- **ExecuTorchEngine** - ExecuTorch-based engine for GGUF models
+- **InferenceConfig** - Engine configuration (temperature, topK, etc.)
+- **ModelRegistry** - Catalog of available models
+- **MemoryManager** - Memory optimization and KV cache management
+- **PromptBuilder** - Prompt formatting and tokenization
+
+### Engine Usage
+
+```kotlin
+// Initialize ExecuTorch engine with a GGUF model
+val engine = ExecuTorchEngine()
+engine.loadModel("gemma-3-4b-it-q4.gguf")
+
+// Use with chains
+val model = EngineModel(engine)
+val result = SummarizeChain(model).run("text")
+```
+
+## RAG (Retrieval-Augmented Generation)
+
+The RAG layer provides document indexing and semantic search for context-aware generation.
+
+### RAG Components
+
+- **VectorStore** - Vector storage with similarity search
+- **DocumentChunker** - Document chunking strategies (fixed-size, semantic, recursive)
+- **EmbeddingEngine** - Text embedding generation
+- **RAGManager** - RAG orchestration and collection management
+- **RAGQueryEngine** - Query execution with retrieved context
+
+### RAG Usage
+
+```kotlin
+// Initialize RAG
+val ragManager = RAGManager(embeddingEngine)
+
+// Add documents
+ragManager.addDocuments(listOf(
+    Document("doc1", "On-device AI is privacy-preserving."),
+    Document("doc2", "Gemini Nano runs on Pixel devices.")
+))
+
+// Query with context
+val context = ragManager.query("What is on-device AI?", topK = 3)
+val response = model.generate("Answer: ${context.joinToString()}", config)
+```
+
+## Personalization
+
+The Personalization layer learns user preferences and optimizes prompts over time.
+
+### Personalization Components
+
+- **PersonalizationManager** - User preference learning orchestration
+- **FeedbackCollector** - Collects user feedback (thumbs up/down, edits)
+- **PreferenceAnalyzer** - Analyzes patterns in user feedback
+- **PromptOptimizer** - Adapts prompts based on learned preferences
+
+### Personalization Usage
+
+```kotlin
+// Initialize personalization
+val personalization = PersonalizationManager()
+
+// Submit feedback
+personalization.submitFeedback(
+    prompt = "Summarize this article",
+    response = "Brief summary...",
+    feedback = Feedback.POSITIVE
+)
+
+// Get optimized prompt
+val optimizedPrompt = personalization.optimizePrompt("Summarize", context)
 ```
 
 ## Troubleshooting

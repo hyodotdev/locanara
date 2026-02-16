@@ -6,7 +6,10 @@ This is a SwiftUI example app demonstrating all features of the Locanara SDK.
 
 - iOS 18.0+ / macOS 15.0+
 - Xcode 16.0+
-- Device with Apple Intelligence support (iPhone 15 Pro or later, iOS 26.0+)
+- Device with Apple Intelligence support (iPhone 15 Pro or later)
+  - **Minimum**: iOS 18.1+ for Apple Intelligence
+  - **Recommended**: iOS 26+ for full feature support
+  - **Storage**: At least 7GB free space
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) for project generation
 
 ## Setup
@@ -111,4 +114,4 @@ All processing is done on-device using Apple Intelligence. No data is sent to ex
 
 ## License
 
-MIT License - see main project LICENSE file.
+AGPL-3.0 License - see main project LICENSE file.

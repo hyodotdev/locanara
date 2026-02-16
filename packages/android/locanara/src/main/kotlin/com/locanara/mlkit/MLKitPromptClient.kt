@@ -8,6 +8,7 @@ import com.google.mlkit.genai.prompt.Generation
 import com.google.mlkit.genai.prompt.TextPart
 import com.google.mlkit.genai.prompt.generateContentRequest
 import com.locanara.ChatMessageInput
+import com.locanara.LocanaraException
 import com.locanara.ChatResult
 import com.locanara.ChatStreamChunk
 import com.locanara.Classification
@@ -174,46 +175,50 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         systemPrompt: String? = null,
         history: List<ChatMessageInput>? = null
     ): ChatResult = withContext(Dispatchers.IO) {
-        val model = getModel()
+        try {
+            val model = getModel()
 
-        // Build conversation context
-        val promptBuilder = StringBuilder()
+            // Build conversation context
+            val promptBuilder = StringBuilder()
 
-        if (systemPrompt != null) {
-            promptBuilder.appendLine("System: $systemPrompt")
-            promptBuilder.appendLine()
-        }
-
-        history?.forEach { msg ->
-            val role = when (msg.role.lowercase()) {
-                "user" -> "User"
-                "assistant" -> "Assistant"
-                "system" -> "System"
-                else -> msg.role
+            if (systemPrompt != null) {
+                promptBuilder.appendLine("System: $systemPrompt")
+                promptBuilder.appendLine()
             }
-            promptBuilder.appendLine("$role: ${msg.content}")
+
+            history?.forEach { msg ->
+                val role = when (msg.role.lowercase()) {
+                    "user" -> "User"
+                    "assistant" -> "Assistant"
+                    "system" -> "System"
+                    else -> msg.role
+                }
+                promptBuilder.appendLine("$role: ${msg.content}")
+            }
+
+            promptBuilder.appendLine("User: $message")
+            promptBuilder.appendLine("Assistant:")
+
+            Log.d(TAG, "Sending chat request...")
+            val request = generateContentRequest(TextPart(promptBuilder.toString())) {
+                temperature = 0.7f
+                topK = 40
+                candidateCount = 1
+            }
+            val response = model.generateContent(request)
+            val responseText = response.candidates.firstOrNull()?.text?.trim() ?: ""
+
+            Log.d(TAG, "Chat response received: ${responseText.take(50)}...")
+
+            ChatResult(
+                message = responseText,
+                conversationId = null,
+                canContinue = true,
+                suggestedPrompts = listOf("Tell me more", "Can you explain?", "What else?")
+            )
+        } catch (e: Exception) {
+            throw mapGenAiException(e)
         }
-
-        promptBuilder.appendLine("User: $message")
-        promptBuilder.appendLine("Assistant:")
-
-        Log.d(TAG, "Sending chat request...")
-        val request = generateContentRequest(TextPart(promptBuilder.toString())) {
-            temperature = 0.7f
-            topK = 40
-            candidateCount = 1
-        }
-        val response = model.generateContent(request)
-        val responseText = response.candidates.firstOrNull()?.text?.trim() ?: ""
-
-        Log.d(TAG, "Chat response received: ${responseText.take(50)}...")
-
-        ChatResult(
-            message = responseText,
-            conversationId = null,
-            canContinue = true,
-            suggestedPrompts = listOf("Tell me more", "Can you explain?", "What else?")
-        )
     }
 
     /**
@@ -293,44 +298,48 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         categories: List<String>,
         maxResults: Int = 3
     ): ClassifyResult = withContext(Dispatchers.IO) {
-        val model = getModel()
+        try {
+            val model = getModel()
 
-        val categoriesList = categories.joinToString(", ")
-        val prompt = """
-            Classify the following text into these categories: $categoriesList
+            val categoriesList = categories.joinToString(", ")
+            val prompt = """
+                Classify the following text into these categories: $categoriesList
 
-            For each applicable category, provide a confidence score between 0.0 and 1.0.
-            The scores should sum to 1.0.
+                For each applicable category, provide a confidence score between 0.0 and 1.0.
+                The scores should sum to 1.0.
 
-            Respond ONLY in this exact format (one per line):
-            category_name: score
+                Respond ONLY in this exact format (one per line):
+                category_name: score
 
-            Text to classify:
-            $text
-        """.trimIndent()
+                Text to classify:
+                $text
+            """.trimIndent()
 
-        Log.d(TAG, "Sending classify request...")
-        val request = generateContentRequest(TextPart(prompt)) {
-            temperature = 0.2f
-            topK = 16
-            candidateCount = 1
+            Log.d(TAG, "Sending classify request...")
+            val request = generateContentRequest(TextPart(prompt)) {
+                temperature = 0.2f
+                topK = 16
+                candidateCount = 1
+            }
+            val response = model.generateContent(request)
+            val responseText = response.candidates.firstOrNull()?.text ?: ""
+
+            Log.d(TAG, "Classify response: $responseText")
+
+            val classifications = parseClassifyResponse(responseText, categories)
+
+            // Sort by score descending and limit results
+            val sortedClassifications = classifications
+                .sortedByDescending { it.score }
+                .take(maxResults.coerceAtLeast(1))
+
+            ClassifyResult(
+                classifications = sortedClassifications,
+                topClassification = sortedClassifications.first()
+            )
+        } catch (e: Exception) {
+            throw mapGenAiException(e)
         }
-        val response = model.generateContent(request)
-        val responseText = response.candidates.firstOrNull()?.text ?: ""
-
-        Log.d(TAG, "Classify response: $responseText")
-
-        val classifications = parseClassifyResponse(responseText, categories)
-
-        // Sort by score descending and limit results
-        val sortedClassifications = classifications
-            .sortedByDescending { it.score }
-            .take(maxResults.coerceAtLeast(1))
-
-        ClassifyResult(
-            classifications = sortedClassifications,
-            topClassification = sortedClassifications.first()
-        )
     }
 
     /**
@@ -396,35 +405,39 @@ class MLKitPromptClient(private val context: Context) : Closeable {
         entityTypes: List<String> = listOf("person", "location", "date", "organization"),
         extractKeyValues: Boolean = false
     ): ExtractResult = withContext(Dispatchers.IO) {
-        val model = getModel()
+        try {
+            val model = getModel()
 
-        val entityTypesList = entityTypes.joinToString(", ")
-        var prompt = """
-            Extract entities from the following text.
-            Entity types to find: $entityTypesList
+            val entityTypesList = entityTypes.joinToString(", ")
+            var prompt = """
+                Extract entities from the following text.
+                Entity types to find: $entityTypesList
 
-            Return ONLY a JSON array of objects with "type", "value", "confidence" fields.
-            Example: [{"type":"person","value":"John","confidence":0.95}]
-        """.trimIndent()
+                Return ONLY a JSON array of objects with "type", "value", "confidence" fields.
+                Example: [{"type":"person","value":"John","confidence":0.95}]
+            """.trimIndent()
 
-        if (extractKeyValues) {
-            prompt += "\n\nAlso extract key-value pairs as: {\"kv\":[{\"key\":\"k\",\"value\":\"v\",\"confidence\":0.9}]}"
+            if (extractKeyValues) {
+                prompt += "\n\nAlso extract key-value pairs as: {\"kv\":[{\"key\":\"k\",\"value\":\"v\",\"confidence\":0.9}]}"
+            }
+
+            prompt += "\n\nText:\n<input>\n$text\n</input>"
+
+            Log.d(TAG, "Sending extract request...")
+            val request = generateContentRequest(TextPart(prompt)) {
+                temperature = 0.2f
+                topK = 16
+                candidateCount = 1
+            }
+            val response = model.generateContent(request)
+            val responseText = response.candidates.firstOrNull()?.text ?: ""
+
+            Log.d(TAG, "Extract response: $responseText")
+
+            parseExtractResponse(responseText, extractKeyValues)
+        } catch (e: Exception) {
+            throw mapGenAiException(e)
         }
-
-        prompt += "\n\nText:\n<input>\n$text\n</input>"
-
-        Log.d(TAG, "Sending extract request...")
-        val request = generateContentRequest(TextPart(prompt)) {
-            temperature = 0.2f
-            topK = 16
-            candidateCount = 1
-        }
-        val response = model.generateContent(request)
-        val responseText = response.candidates.firstOrNull()?.text ?: ""
-
-        Log.d(TAG, "Extract response: $responseText")
-
-        parseExtractResponse(responseText, extractKeyValues)
     }
 
     private fun parseExtractResponse(
@@ -563,36 +576,40 @@ class MLKitPromptClient(private val context: Context) : Closeable {
             )
         }
 
-        val model = getModel()
+        try {
+            val model = getModel()
 
-        val sourceLangName = languageName(sourceLanguage)
-        val targetLangName = languageName(targetLanguage)
+            val sourceLangName = languageName(sourceLanguage)
+            val targetLangName = languageName(targetLanguage)
 
-        val prompt = """
-            Translate the following text from $sourceLangName to $targetLangName.
-            Provide ONLY the translation, no explanations or additional text.
+            val prompt = """
+                Translate the following text from $sourceLangName to $targetLangName.
+                Provide ONLY the translation, no explanations or additional text.
 
-            Text to translate:
-            $text
-        """.trimIndent()
+                Text to translate:
+                $text
+            """.trimIndent()
 
-        Log.d(TAG, "Sending translate request...")
-        val request = generateContentRequest(TextPart(prompt)) {
-            temperature = 0.3f
-            topK = 20
-            candidateCount = 1
+            Log.d(TAG, "Sending translate request...")
+            val request = generateContentRequest(TextPart(prompt)) {
+                temperature = 0.3f
+                topK = 20
+                candidateCount = 1
+            }
+            val response = model.generateContent(request)
+            val translatedText = response.candidates.firstOrNull()?.text?.trim() ?: text
+
+            Log.d(TAG, "Translate response: ${translatedText.take(50)}...")
+
+            TranslateResult(
+                translatedText = translatedText,
+                sourceLanguage = sourceLanguage,
+                targetLanguage = targetLanguage,
+                confidence = 0.90
+            )
+        } catch (e: Exception) {
+            throw mapGenAiException(e)
         }
-        val response = model.generateContent(request)
-        val translatedText = response.candidates.firstOrNull()?.text?.trim() ?: text
-
-        Log.d(TAG, "Translate response: ${translatedText.take(50)}...")
-
-        TranslateResult(
-            translatedText = translatedText,
-            sourceLanguage = sourceLanguage,
-            targetLanguage = targetLanguage,
-            confidence = 0.90
-        )
     }
 
     // ============================================

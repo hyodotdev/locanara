@@ -55,7 +55,7 @@ Run the following validation before commit based on changed files:
 | Package             | Command                                                 |
 | ------------------- | ------------------------------------------------------- |
 | `packages/gql/`     | `cd packages/gql && bun run lint && bun run typecheck`  |
-| `packages/docs/`    | `cd packages/docs && bun run lint && bun run typecheck` |
+| `packages/site/`    | `cd packages/site && bun run lint && bun run typecheck` |
 | `packages/apple/`   | `cd packages/apple && swift build`                      |
 | `packages/android/` | `cd packages/android && ./gradlew :locanara:build`      |
 

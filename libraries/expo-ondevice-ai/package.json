@@ -47,7 +47,7 @@
     "url": "https://github.com/hyodotdev/locanara/issues"
   },
   "author": "hyochan <hyochan.dev@gmail.com> (https://github.com/hyochan)",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "homepage": "https://github.com/hyodotdev/locanara#readme",
   "devDependencies": {
     "@jest/globals": "^29.7.0",

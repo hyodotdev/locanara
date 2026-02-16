@@ -26,6 +26,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
       - name: Calculate version
         id: version
         run: |
@@ -57,11 +65,14 @@ jobs:
         run: |
           jq --arg version "$VERSION" '.apple = $version' locanara-versions.json > tmp.json
           mv tmp.json locanara-versions.json
-          cp locanara-versions.json packages/docs/locanara-versions.json
+          cp locanara-versions.json packages/site/locanara-versions.json
+
+          # Sync versions to all package.json files
+          bun run version:sync
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add locanara-versions.json packages/docs/locanara-versions.json
+          git add locanara-versions.json packages/site/locanara-versions.json package.json packages/gql/package.json packages/android/package.json
 
           if ! git diff --staged --quiet; then
             git commit -m "chore: bump apple SDK to $VERSION"
@@ -125,7 +136,7 @@ jobs:
             DESC
 
             s.homepage         = 'https://github.com/hyodotdev/locanara'
-            s.license          = { :type => 'MIT' }
+            s.license          = { :type => 'AGPL-3.0' }
             s.author           = { 'Locanara' => 'hyo@hyo.dev' }
             s.source           = { :git => 'https://github.com/hyodotdev/locanara.git', :tag => "apple-#{s.version}" }
 

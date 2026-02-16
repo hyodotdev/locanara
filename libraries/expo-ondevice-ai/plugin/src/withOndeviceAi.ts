@@ -177,7 +177,7 @@ const BRIDGE_PODSPEC = `Pod::Spec.new do |s|
   s.version      = "1.0.0"
   s.summary      = "llama.cpp bridge with isolated C++ interop"
   s.homepage     = "https://github.com/hyodotdev/locanara"
-  s.license      = "MIT"
+  s.license      = "AGPL-3.0"
   s.author       = "Locanara"
   s.platform     = :ios, "15.1"
   s.source       = { :path => "." }

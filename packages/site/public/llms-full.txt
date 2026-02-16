@@ -1,0 +1,447 @@
+# Locanara - Complete Documentation for AI Systems
+
+> Free and open-source on-device AI SDK for iOS and Android Mobile Development
+
+## Overview
+
+Locanara is a privacy-first, on-device AI SDK that enables mobile developers to build AI-powered applications without sending user data to the cloud. All AI processing happens locally on the device using Apple Intelligence (Foundation Models) on iOS and Gemini Nano on Android. Locanara is completely free and open-source under the AGPL-3.0 license.
+
+## Project Information
+
+- **Name**: Locanara
+- **Website**: https://locanara.com
+- **Documentation**: https://locanara.com/docs
+- **Community Forum**: https://locanara.com/community
+- **GitHub Repository**: https://github.com/hyodotdev/locanara
+- **License**: AGPL-3.0 (free and open-source)
+
+## Product Details
+
+### What Problem Does Locanara Solve?
+
+Mobile developers face a dilemma: they want to add AI features to their apps, but cloud-based AI services raise privacy concerns, require internet connectivity, and incur ongoing costs. Locanara solves this by providing a unified API that leverages on-device AI capabilities built into modern smartphones.
+
+### Key Value Propositions
+
+1. **Free and Open-Source**: AGPL-3.0 licensed, no paid tiers, no API keys required.
+2. **Complete Privacy**: Zero data leaves the device. No cloud processing, no data collection.
+3. **Offline Capability**: Works without internet connection since all processing is local.
+4. **No Per-Request Costs**: Free forever with unlimited usage.
+5. **Native Performance**: Uses hardware-accelerated AI engines optimized by Apple and Google.
+6. **Cross-Platform Consistency**: Same API concepts across iOS and Android.
+
+## Platform Support
+
+### iOS (packages/apple)
+- **Minimum iOS Version**: iOS 17+ (with llama.cpp and GGUF models) / iOS 26+ (with Apple Intelligence)
+- **AI Engine**: Apple Intelligence & Foundation Models + llama.cpp (GGUF)
+- **Source**: https://github.com/hyodotdev/locanara/tree/main/packages/apple
+- **Installation**: Swift Package Manager
+
+```swift
+// Package.swift
+dependencies: [
+    .package(url: "https://github.com/hyodotdev/locanara.git", from: "1.0.0")
+]
+```
+
+### Android (packages/android)
+- **Minimum Android Version**: Android 14+ (with Gemini Nano support)
+- **AI Engine**: Gemini Nano & ML Kit GenAI
+- **Source**: https://github.com/hyodotdev/locanara/tree/main/packages/android
+- **Installation**: Gradle
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("com.locanara:locanara:1.0.0")
+}
+```
+
+### Web (packages/web)
+- **Browser Support**: Chrome with Built-in AI enabled
+- **AI Engine**: Chrome Built-in AI (Gemini Nano)
+- **Source**: https://github.com/hyodotdev/locanara/tree/main/packages/web
+- **Installation**: npm
+
+```bash
+npm install @locanara/web
+```
+
+## API Reference
+
+### 1. Summarize
+
+Condense long text into key points.
+
+**iOS (Swift)**:
+```swift
+let result = try await Locanara.summarize(
+    text: articleContent,
+    options: SummarizeOptions(
+        style: .brief,      // .brief, .detailed, .bullets
+        maxLength: 100
+    )
+)
+print(result.summary)
+```
+
+**Android (Kotlin)**:
+```kotlin
+val result = Locanara.summarize(
+    text = articleContent,
+    options = SummarizeOptions(
+        style = SummarizeStyle.BRIEF,
+        maxLength = 100
+    )
+)
+println(result.summary)
+```
+
+### 2. Classify
+
+Categorize text into predefined labels.
+
+**iOS (Swift)**:
+```swift
+let result = try await Locanara.classify(
+    text: userMessage,
+    labels: ["positive", "negative", "neutral"]
+)
+print(result.label)      // "positive"
+print(result.confidence) // 0.92
+```
+
+**Android (Kotlin)**:
+```kotlin
+val result = Locanara.classify(
+    text = userMessage,
+    labels = listOf("positive", "negative", "neutral")
+)
+println(result.label)      // "positive"
+println(result.confidence) // 0.92
+```
+
+### 3. Extract
+
+Extract entities and key-value pairs from text.
+
+**iOS (Swift)**:
+```swift
+let result = try await Locanara.extract(
+    text: emailContent,
+    schema: ExtractSchema(
+        fields: [
+            .field("sender_name", type: .string),
+            .field("meeting_date", type: .date),
+            .field("location", type: .string)
+        ]
+    )
+)
+print(result["sender_name"]) // "John Smith"
+print(result["meeting_date"]) // "2024-03-15"
+```
+
+**Android (Kotlin)**:
+```kotlin
+val result = Locanara.extract(
+    text = emailContent,
+    schema = ExtractSchema(
+        fields = listOf(
+            Field("sender_name", FieldType.STRING),
+            Field("meeting_date", FieldType.DATE),
+            Field("location", FieldType.STRING)
+        )
+    )
+)
+println(result["sender_name"]) // "John Smith"
+println(result["meeting_date"]) // "2024-03-15"
+```
+
+### 4. Chat
+
+Conversational AI interactions with context management.
+
+**iOS (Swift)**:
+```swift
+let chat = Locanara.createChat(
+    systemPrompt: "You are a helpful cooking assistant."
+)
+
+let response1 = try await chat.send("How do I make pasta?")
+let response2 = try await chat.send("What sauce goes well with it?")
+// Context is maintained between messages
+```
+
+**Android (Kotlin)**:
+```kotlin
+val chat = Locanara.createChat(
+    systemPrompt = "You are a helpful cooking assistant."
+)
+
+val response1 = chat.send("How do I make pasta?")
+val response2 = chat.send("What sauce goes well with it?")
+// Context is maintained between messages
+```
+
+### 5. Translate
+
+Multi-language translation.
+
+**iOS (Swift)**:
+```swift
+let result = try await Locanara.translate(
+    text: "Hello, how are you?",
+    from: .english,
+    to: .korean
+)
+print(result.translatedText) // "안녕하세요, 어떻게 지내세요?"
+```
+
+**Android (Kotlin)**:
+```kotlin
+val result = Locanara.translate(
+    text = "Hello, how are you?",
+    from = Language.ENGLISH,
+    to = Language.KOREAN
+)
+println(result.translatedText) // "안녕하세요, 어떻게 지내세요?"
+```
+
+### 6. Rewrite
+
+Rephrase text with different styles or tones.
+
+**iOS (Swift)**:
+```swift
+let result = try await Locanara.rewrite(
+    text: "The meeting is tomorrow at 3pm",
+    style: .formal
+)
+print(result.rewrittenText)
+// "The scheduled meeting will convene tomorrow at 3:00 PM."
+```
+
+**Android (Kotlin)**:
+```kotlin
+val result = Locanara.rewrite(
+    text = "The meeting is tomorrow at 3pm",
+    style = RewriteStyle.FORMAL
+)
+println(result.rewrittenText)
+// "The scheduled meeting will convene tomorrow at 3:00 PM."
+```
+
+### 7. Proofread
+
+Grammar and spelling correction.
+
+**iOS (Swift)**:
+```swift
+let result = try await Locanara.proofread(
+    text: "Their going to the store tommorow"
+)
+print(result.correctedText)
+// "They're going to the store tomorrow"
+print(result.corrections)
+// [Correction(original: "Their", corrected: "They're"), ...]
+```
+
+**Android (Kotlin)**:
+```kotlin
+val result = Locanara.proofread(
+    text = "Their going to the store tommorow"
+)
+println(result.correctedText)
+// "They're going to the store tomorrow"
+println(result.corrections)
+// [Correction(original="Their", corrected="They're"), ...]
+```
+
+### 8. Describe Image
+
+Generate descriptions for images.
+
+**iOS (Swift)**:
+```swift
+let result = try await Locanara.describeImage(
+    image: uiImage,
+    options: DescribeOptions(
+        detail: .detailed,
+        includeColors: true
+    )
+)
+print(result.description)
+```
+
+**Android (Kotlin)**:
+```kotlin
+val result = Locanara.describeImage(
+    image = bitmap,
+    options = DescribeOptions(
+        detail = DetailLevel.DETAILED,
+        includeColors = true
+    )
+)
+println(result.description)
+```
+
+### 9. Private RAG
+
+Build document-based AI answers entirely on-device. Index user documents, search with semantic similarity, and generate context-aware responses.
+
+**iOS (Swift)**:
+```swift
+// Index documents
+let ragStore = try await Locanara.createRAGStore(name: "my-docs")
+try await ragStore.index(documents: [doc1, doc2, doc3])
+
+// Query with context
+let result = try await ragStore.query(
+    question: "What are the key points from the meeting notes?"
+)
+print(result.answer)
+print(result.sources) // Referenced document chunks
+```
+
+**Android (Kotlin)**:
+```kotlin
+// Index documents
+val ragStore = Locanara.createRAGStore(name = "my-docs")
+ragStore.index(documents = listOf(doc1, doc2, doc3))
+
+// Query with context
+val result = ragStore.query(
+    question = "What are the key points from the meeting notes?"
+)
+println(result.answer)
+println(result.sources) // Referenced document chunks
+```
+
+**Features**:
+- 100% on-device - documents never leave the device
+- SQLite vector store (~100KB per 1000 chunks)
+- Multilingual embedding support
+
+### 10. Personalization
+
+AI that adapts to individual user preferences through automatic prompt tuning.
+
+**iOS (Swift)**:
+```swift
+let personalizer = try await Locanara.createPersonalizer(userId: "user-123")
+
+// Record feedback
+personalizer.recordFeedback(
+    response: aiResponse,
+    feedback: .positive  // or .negative
+)
+
+// Get personalized responses
+let result = try await personalizer.generate(
+    prompt: "Summarize this article",
+    context: articleText
+)
+// Response style adapts based on learned preferences
+```
+
+**Android (Kotlin)**:
+```kotlin
+val personalizer = Locanara.createPersonalizer(userId = "user-123")
+
+// Record feedback
+personalizer.recordFeedback(
+    response = aiResponse,
+    feedback = Feedback.POSITIVE  // or NEGATIVE
+)
+
+// Get personalized responses
+val result = personalizer.generate(
+    prompt = "Summarize this article",
+    context = articleText
+)
+// Response style adapts based on learned preferences
+```
+
+**Features**:
+- Feedback-based learning (thumbs up/down)
+- Lightweight storage (<100KB)
+- Per-user preference profiles
+
+## Pricing
+
+Locanara is completely free and open-source under the AGPL-3.0 license.
+
+- No paid tiers
+- No API keys required
+- No per-request fees
+- No usage limits
+- All features included
+
+## Frequently Asked Questions
+
+**Q: Does Locanara require an internet connection?**
+A: No. All AI processing happens on-device, so Locanara works completely offline.
+
+**Q: What devices support Locanara?**
+A: iOS devices with iOS 17+ (using llama.cpp with downloadable GGUF models) or iOS 26+ (using Apple Intelligence). Android devices with Gemini Nano support (Android 14+). The RouterModel auto-selects the best available engine.
+
+**Q: Is my data sent to any servers?**
+A: Absolutely not. Locanara is designed with privacy as the core principle. All processing happens locally on the user's device. No data is ever transmitted to external servers.
+
+**Q: Can I use Locanara in production apps?**
+A: Yes. Locanara is designed for production use under the AGPL-3.0 license.
+
+**Q: How much does Locanara cost?**
+A: Locanara is completely free and open-source. There are no paid tiers, no API keys, and no usage limits.
+
+**Q: What's the difference between Locanara and cloud AI APIs?**
+A: Cloud AI APIs (like OpenAI, Google Cloud AI) process data on remote servers and charge per request. Locanara processes everything on-device, ensuring privacy and eliminating ongoing costs.
+
+**Q: Does Locanara support real-time streaming responses?**
+A: Yes. The Chat API supports streaming responses for real-time UI updates.
+
+**Q: Can I customize the AI models?**
+A: On iOS, Locanara supports both Apple Intelligence (Foundation Models) and downloadable GGUF models via the llama.cpp engine. You can download and run open-source models like Gemma 3 4B. On Android, it uses Gemini Nano. You can customize behavior through system prompts and API parameters.
+
+## Use Cases
+
+1. **Note-taking Apps**: Summarize long notes, extract action items
+2. **Email Clients**: Classify emails, extract meeting details, suggest replies
+3. **Social Media Apps**: Content moderation, sentiment analysis
+4. **Language Learning**: Translation, grammar correction
+5. **Accessibility Apps**: Image descriptions for visually impaired users
+6. **Customer Support**: Chatbots that work offline
+7. **Healthcare Apps**: Process sensitive data without privacy concerns
+8. **Enterprise Apps**: Keep corporate data on-device
+
+## Technical Requirements
+
+### iOS
+- Xcode 16+
+- Swift 5.9+
+- iOS 17+ deployment target (llama.cpp with GGUF models) / iOS 26+ (Apple Intelligence)
+- Any iOS device for llama.cpp; Apple Neural Engine recommended for best performance
+
+### Android
+- Android Studio Hedgehog+
+- Kotlin 1.9+
+- Android 14+ (API 34+)
+- Device with Gemini Nano support
+
+## Support & Community
+
+- **Documentation**: https://locanara.com/docs
+- **Community Forum**: https://locanara.com/community
+- **GitHub Issues**: https://github.com/hyodotdev/locanara/issues
+- **Email**: support@locanara.com
+
+## Legal
+
+- License: AGPL-3.0 (https://github.com/hyodotdev/locanara/blob/main/LICENSE)
+- Privacy Policy: https://locanara.com/privacy-policy
+- Terms of Service: https://locanara.com/terms-of-service
+
+---
+
+Last updated: 2026

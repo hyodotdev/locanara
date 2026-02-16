@@ -30,9 +30,9 @@
         {
             "type": "node-terminal",
             "request": "launch",
-            "name": "📚 Docs: Dev Server",
-            "command": "bun run dev",
-            "cwd": "${workspaceFolder}/packages/docs"
+            "name": "🌍 Run Site",
+            "command": "bunx convex dev & bun run dev",
+            "cwd": "${workspaceFolder}/packages/site"
         },
         {
             "type": "node-terminal",
@@ -47,20 +47,6 @@
             "name": "🧪 Test: Gemini (Android)",
             "command": "./gradlew :locanara:test",
             "cwd": "${workspaceFolder}/packages/android"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "🌐 Web SDK: Dev Server",
-            "command": "bash -lc 'bun run dev'",
-            "cwd": "${workspaceFolder}/packages/web"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "🧪 Test: Web SDK",
-            "command": "bun test",
-            "cwd": "${workspaceFolder}/packages/web"
         },
         {
             "type": "node-terminal",

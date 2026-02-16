@@ -46,12 +46,12 @@ cd packages/android
 ./gradlew test
 ```
 
-### Documentation
+### Site (Website + Docs)
 
 ```bash
-cd packages/docs
+cd packages/site
 bun install
-bun dev
+bunx convex dev & bun dev
 ```
 
 ## Testing Local vs Released Packages

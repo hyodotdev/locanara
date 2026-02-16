@@ -67,7 +67,7 @@ export default function SettingsScreen() {
   };
 
   const handleOpenDocs = () => {
-    Linking.openURL('https://docs.locanara.com');
+    Linking.openURL('https://locanara.com/docs');
   };
 
   const handleOpenGitHub = () => {

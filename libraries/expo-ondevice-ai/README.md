@@ -33,8 +33,8 @@ npx expo install expo-ondevice-ai
 
 ## Documentation
 
-Full API documentation and guides are available at **[docs.locanara.com/docs/libraries/expo](https://docs.locanara.com/docs/libraries/expo)**.
+Full API documentation and guides are available at **[locanara.com/docs/libraries/expo](https://locanara.com/docs/libraries/expo)**.
 
 ## License
 
-MIT
+AGPL-3.0

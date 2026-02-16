@@ -60,6 +60,16 @@ sealed class LocanaraException(
         ErrorCode.PERMISSION_DENIED
     )
 
+    object ModelBusy : LocanaraException(
+        "Model is busy processing another request. Try again with exponential backoff.",
+        ErrorCode.MODEL_BUSY
+    )
+
+    object BackgroundUseBlocked : LocanaraException(
+        "On-device AI is only available in the foreground. Move the app to the foreground and retry.",
+        ErrorCode.BACKGROUND_USE_BLOCKED
+    )
+
     data class Custom(
         val errorCode: ErrorCode,
         val errorMessage: String

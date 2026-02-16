@@ -4,6 +4,15 @@ apply plugin: 'kotlin-android'
 group = 'expo.modules.ondeviceai'
 version = '0.1.0'
 
+// Read Locanara version from locanara-versions.json (Single Source of Truth)
+def getLocanaraVersion() {
+  def versionsFile = new File(rootProject.projectDir, "../../../locanara-versions.json")
+  def versionJson = versionsFile.text
+  // Extract android version using regex: "android": "1.0.2"
+  def matcher = (versionJson =~ /"android"\s*:\s*"([^"]+)"/)
+  return matcher ? matcher[0][1] : "1.0.2"
+}
+
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
 applyKotlinExpoModulesCorePlugin()
@@ -50,5 +59,6 @@ android {
 
 dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7"
-  implementation "com.locanara:locanara:1.0.2"
+  // Version is read from locanara-versions.json via getLocanaraVersion()
+  implementation "com.locanara:locanara:${getLocanaraVersion()}"
 }

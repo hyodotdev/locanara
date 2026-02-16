@@ -29,22 +29,22 @@ Locanara is an on-device AI **framework** for mobile apps, inspired by LangChain
 │  Pipeline · PipelineStep · ModelExtensions           │
 ├─────────────────────────────────────────────────────┤
 │  Platform Layer                                     │
-│  RouterModel · FoundationLanguageModel (iOS) ·      │
+│  FoundationLanguageModel (iOS) ·                    │
 │  PromptApiModel (Android)                           │
 ├─────────────────────────────────────────────────────┤
-│  Engine Layer (iOS)                                 │
-│  InferenceRouter · InferenceEngine · LlamaCppEngine ·│
-│  LlamaCppBridge · DeviceCapabilityDetector          │
+│  Engine Layer                                       │
+│  InferenceRouter · InferenceEngine ·                │
+│  LlamaCppEngine (iOS) · ExecuTorchEngine (Android)  │
 ├─────────────────────────────────────────────────────┤
-│  ModelManager Layer (iOS)                           │
+│  ModelManager Layer                                 │
 │  ModelManager · ModelDownloader ·                   │
 │  ModelRegistry · ModelStorage                       │
 ├─────────────────────────────────────────────────────┤
-│  RAG Layer (iOS)                                    │
+│  RAG Layer                                          │
 │  VectorStore · DocumentChunker ·                    │
 │  EmbeddingEngine · RAGQueryEngine                   │
 ├─────────────────────────────────────────────────────┤
-│  Personalization Layer (iOS)                        │
+│  Personalization Layer                              │
 │  PersonalizationManager · FeedbackCollector ·       │
 │  PreferenceAnalyzer · PromptOptimizer               │
 └─────────────────────────────────────────────────────┘
@@ -90,43 +90,42 @@ Locanara is an on-device AI **framework** for mobile apps, inspired by LangChain
 
 ### Platform Layer
 
-- `RouterModel` - Default model that auto-routes inference to the active engine (Foundation Models or llama.cpp). All built-in chains use this via `LocanaraDefaults.model`.
-- `FoundationLanguageModel` - Apple Intelligence (Foundation Models) wrapper
+- `FoundationLanguageModel` - Apple Intelligence (Foundation Models) wrapper (iOS)
 - `PromptApiModel` - Gemini Nano (ML Kit Prompt API) wrapper (Android)
 
-### Engine Layer (iOS)
+### Engine Layer
 
-Manages inference engine selection and routing:
+Manages inference engine selection and routing for external GGUF models:
 
-- `InferenceRouter` - Routes inference to the active engine (Foundation Models, llama.cpp, etc.)
+- `InferenceRouter` - Routes inference to the active engine
 - `InferenceEngine` - Unified engine protocol for all backends
-- `LlamaCppEngine` - llama.cpp engine using LocalLLMClient (C++ interop, iOS 17+)
-- `LlamaCppBridge` - Runtime discovery of bridge providers via `NSClassFromString` (for CocoaPods/Expo where C++ interop is isolated)
-- `DeviceCapabilityDetector` - Detects device hardware, Neural Engine, memory, and recommends engines
-- `EngineSelectionMode` - `.auto` / `.deviceAI` / `.externalModel(modelId)`
+- **iOS**: `LlamaCppEngine` - llama.cpp engine using LocalLLMClient (C++ interop, iOS 17+)
+- **iOS**: `LlamaCppBridge` - Runtime discovery of bridge providers via `NSClassFromString` (for CocoaPods/Expo isolation)
+- **iOS**: `DeviceCapabilityDetector` - Detects device hardware, Neural Engine, memory
+- **Android**: `ExecuTorchEngine` - ExecuTorch engine for GGUF models (Android API 26+)
 
-### ModelManager Layer (iOS)
+### ModelManager Layer
 
-Manages downloadable GGUF model lifecycle:
+Manages downloadable GGUF model lifecycle on both platforms:
 
 - `ModelManager` - Download, load, unload, delete models
 - `ModelDownloader` - HTTP download with progress and checksum verification
 - `ModelRegistry` - Available model catalog (Gemma 3 4B, etc.)
 - `ModelStorage` - On-disk model file management
 
-### RAG Layer (iOS)
+### RAG Layer
 
-Retrieval-Augmented Generation for on-device knowledge:
+Retrieval-Augmented Generation for on-device knowledge on both platforms:
 
 - `VectorStore` - In-memory vector storage with cosine similarity search
 - `DocumentChunker` - Text splitting strategies (fixed-size, sentence, paragraph)
 - `EmbeddingEngine` - Text embedding generation
-- `RAGCollectionManager` - Named collection management
+- `RAGManager` / `RAGCollectionManager` - Collection management
 - `RAGQueryEngine` - Query pipeline combining retrieval and generation
 
-### Personalization Layer (iOS)
+### Personalization Layer
 
-User preference learning and prompt optimization:
+User preference learning and prompt optimization on both platforms:
 
 - `PersonalizationManager` - Orchestrates feedback collection and preference learning
 - `FeedbackCollector` - Collects user feedback on AI outputs
@@ -166,14 +165,17 @@ locanara/
 │   │       └── EngineIntegrationTests.swift # Engine integration tests
 │   ├── android/      # Android SDK (Kotlin) - Gemini Nano
 │   │   └── locanara/src/main/kotlin/com/locanara/
-│   │       ├── core/       # LocanaraModel, PromptTemplate, OutputParser, Schema
-│   │       ├── composable/ # Chain, Tool, Memory, Guardrail
-│   │       ├── builtin/    # SummarizeChain, ClassifyChain, etc.
-│   │       ├── dsl/        # Pipeline, ModelExtensions
-│   │       ├── runtime/    # Agent, Session, ChainExecutor
-│   │       ├── platform/   # PromptApiModel
-│   │       └── mlkit/      # MLKitClients, MLKitPromptClient
-│   └── docs/         # Documentation site
+│   │       ├── core/            # LocanaraModel, PromptTemplate, OutputParser, Schema
+│   │       ├── composable/      # Chain, Tool, Memory, Guardrail
+│   │       ├── builtin/         # SummarizeChain, ClassifyChain, etc.
+│   │       ├── dsl/             # Pipeline, ModelExtensions
+│   │       ├── runtime/         # Agent, Session, ChainExecutor
+│   │       ├── platform/        # PromptApiModel
+│   │       ├── engine/          # InferenceEngine, ExecuTorchEngine, ModelRegistry
+│   │       ├── rag/             # VectorStore, DocumentChunker, RAGManager, RAGQueryEngine
+│   │       ├── personalization/ # PersonalizationManager, FeedbackCollector, etc.
+│   │       └── mlkit/           # MLKitClients, MLKitPromptClient
+│   └── site/         # Website (landing + docs + community)
 ├── libraries/
 │   └── expo-ondevice-ai/  # Expo module wrapping native SDKs
 │       ├── src/           # TypeScript API (summarize, chat, model management, etc.)

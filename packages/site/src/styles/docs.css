@@ -1,0 +1,889 @@
+/* ==========================================================================
+   Docs Layout & Content Styles
+   Handles sidebar, navigation, doc page prose, and component patterns
+   that require custom CSS beyond Tailwind inline classes.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Layout: Container & Content
+   -------------------------------------------------------------------------- */
+
+.docs-container {
+  display: flex;
+  min-height: calc(100vh - 56px);
+}
+
+.docs-content {
+  flex: 1;
+  max-width: 900px;
+  padding: 2rem 2.5rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar
+   -------------------------------------------------------------------------- */
+
+.docs-sidebar {
+  width: 280px;
+  min-width: 280px;
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  border-right: 1px solid rgba(45, 42, 38, 0.06);
+  background-color: #fdfcfb;
+  padding: 1.5rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 42, 38, 0.15) transparent;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+  z-index: 40;
+}
+
+.docs-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.docs-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.docs-sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(45, 42, 38, 0.15);
+  border-radius: 4px;
+}
+
+/* Mobile sidebar - hidden by default, slide-in overlay */
+@media (max-width: 768px) {
+  .docs-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    min-width: 280px;
+    transform: translateX(-100%);
+    transition:
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 0.3s ease,
+      border-color 0.3s ease;
+    z-index: 50;
+    padding-top: 56px;
+  }
+
+  .docs-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .docs-content {
+    padding: 1.5rem 1rem;
+    max-width: 100%;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar Overlay (mobile backdrop)
+   -------------------------------------------------------------------------- */
+
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 45;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar Toggle (mobile hamburger)
+   -------------------------------------------------------------------------- */
+
+.docs-sidebar-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .docs-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #2d2a26;
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    z-index: 55;
+    transition:
+      width 0.2s ease,
+      height 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .docs-sidebar-toggle:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .docs-sidebar-toggle.scrolled {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar Navigation
+   -------------------------------------------------------------------------- */
+
+.docs-nav {
+  padding: 0 1rem;
+}
+
+.docs-nav h3 {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b6560;
+  margin: 0;
+  padding: 0.75rem 0.75rem 0.5rem;
+}
+
+.docs-nav ul {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.docs-nav a {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #6b6560;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+  line-height: 1.5;
+}
+
+.docs-nav a:hover {
+  color: #2d2a26;
+  background-color: rgba(45, 42, 38, 0.04);
+}
+
+.docs-nav a.active {
+  color: #2d2a26;
+  font-weight: 500;
+  background-color: rgba(45, 42, 38, 0.06);
+  border-left-color: #2d2a26;
+}
+
+/* --------------------------------------------------------------------------
+   Menu Dropdown (collapsible sidebar sections)
+   -------------------------------------------------------------------------- */
+
+.menu-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.75rem 0.75rem 0.5rem;
+}
+
+.menu-dropdown-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b6560;
+  margin: 0;
+}
+
+.menu-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: #6b6560;
+  transition: transform 0.2s ease;
+}
+
+.menu-dropdown-toggle.expanded {
+  transform: rotate(180deg);
+}
+
+.menu-dropdown-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-dropdown-content.expanded {
+  max-height: 1000px;
+}
+
+.menu-dropdown-items {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+}
+
+.menu-dropdown-items a {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #6b6560;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+  line-height: 1.5;
+}
+
+.menu-dropdown-item-prefix {
+  flex-shrink: 0;
+  color: #999;
+  font-size: 0.7em;
+  margin-right: 0.5rem;
+  user-select: none;
+}
+
+.menu-dropdown-items a:hover {
+  color: #2d2a26;
+  background-color: rgba(45, 42, 38, 0.04);
+}
+
+.menu-dropdown-items a.active {
+  color: #2d2a26;
+  font-weight: 600;
+  background-color: rgba(45, 42, 38, 0.08);
+  border-left-color: #2d2a26;
+}
+
+/* --------------------------------------------------------------------------
+   Doc Page: Prose Styling (via @apply)
+   -------------------------------------------------------------------------- */
+
+.doc-page {
+  @apply prose prose-sm max-w-none;
+  color: #2d2a26;
+  line-height: 1.7;
+}
+
+.doc-page h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+  color: #2d2a26;
+}
+
+.doc-page h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-top: 1.5rem;
+  line-height: 1.35;
+  color: #2d2a26;
+  scroll-margin-top: 80px;
+}
+
+.doc-page h3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #2d2a26;
+  scroll-margin-top: 80px;
+}
+
+.doc-page h4 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #2d2a26;
+}
+
+.doc-page p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: #2d2a26;
+}
+
+.doc-page a {
+  color: #2d2a26;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: rgba(45, 42, 38, 0.3);
+  text-underline-offset: 2px;
+  transition: text-decoration-color 0.15s ease;
+}
+
+.doc-page a:hover {
+  text-decoration-color: #2d2a26;
+}
+
+.doc-page ul,
+.doc-page ol {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.doc-page li {
+  margin-bottom: 0.35rem;
+}
+
+.doc-page li::marker {
+  color: #6b6560;
+}
+
+.doc-page blockquote {
+  border-left: 3px solid rgba(45, 42, 38, 0.15);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #6b6560;
+  font-style: normal;
+}
+
+.doc-page hr {
+  border: none;
+  border-top: 1px solid rgba(45, 42, 38, 0.08);
+  margin: 2rem 0;
+}
+
+.doc-page img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+.doc-page strong {
+  font-weight: 600;
+  color: #2d2a26;
+}
+
+/* --------------------------------------------------------------------------
+   Doc Page: Tables
+   -------------------------------------------------------------------------- */
+
+.doc-page table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.8125rem;
+}
+
+.doc-page thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b6560;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(45, 42, 38, 0.1);
+}
+
+.doc-page tbody td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(45, 42, 38, 0.05);
+  vertical-align: top;
+}
+
+.doc-page tbody tr:nth-child(even) {
+  background-color: rgba(45, 42, 38, 0.02);
+}
+
+.doc-page tbody tr:hover {
+  background-color: rgba(45, 42, 38, 0.04);
+}
+
+/* --------------------------------------------------------------------------
+   Doc Page: Inline Code
+   -------------------------------------------------------------------------- */
+
+.doc-page code:not(pre code) {
+  background-color: rgba(45, 42, 38, 0.06);
+  color: #2d2a26;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 500;
+  font-family:
+    "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "Courier New", monospace;
+}
+
+/* --------------------------------------------------------------------------
+   API Cards Grid
+   -------------------------------------------------------------------------- */
+
+.api-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.api-cards-grid.three-columns {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 768px) {
+  .api-cards-grid,
+  .api-cards-grid.three-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.api-card {
+  border: 1px solid rgba(45, 42, 38, 0.08);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  background-color: #fff;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.api-card:hover {
+  border-color: rgba(45, 42, 38, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.api-card h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: #2d2a26;
+}
+
+.api-card p {
+  font-size: 0.8125rem;
+  color: #6b6560;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   Callout Boxes
+   -------------------------------------------------------------------------- */
+
+.callout {
+  border-left: 3px solid rgba(45, 42, 38, 0.2);
+  border-radius: 0 0.375rem 0.375rem 0;
+  padding: 0.875rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  background-color: rgba(45, 42, 38, 0.03);
+}
+
+.callout p {
+  margin: 0;
+}
+
+.callout p + p {
+  margin-top: 0.5rem;
+}
+
+.callout-info {
+  border-left-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.callout-warning {
+  border-left-color: #f59e0b;
+  background-color: rgba(245, 158, 11, 0.05);
+}
+
+.callout-tip {
+  border-left-color: #10b981;
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.callout-danger {
+  border-left-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+/* --------------------------------------------------------------------------
+   TL;DR Box
+   -------------------------------------------------------------------------- */
+
+.tldr-box {
+  background-color: rgba(45, 42, 38, 0.04);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin: 1.25rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.tldr-box strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b6560;
+}
+
+/* --------------------------------------------------------------------------
+   Page Navigation (prev/next)
+   -------------------------------------------------------------------------- */
+
+.page-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(45, 42, 38, 0.08);
+}
+
+.page-navigation a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(45, 42, 38, 0.08);
+  border-radius: 0.5rem;
+  text-decoration: none;
+  color: #2d2a26;
+  font-size: 0.8125rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  min-width: 0;
+  flex: 1;
+}
+
+.page-navigation a:hover {
+  border-color: rgba(45, 42, 38, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.page-navigation a:last-child {
+  text-align: right;
+}
+
+.page-navigation a span:first-child {
+  font-size: 0.6875rem;
+  color: #6b6560;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.page-navigation a span:last-child {
+  font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .page-navigation {
+    flex-direction: column;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Anchor Headings
+   -------------------------------------------------------------------------- */
+
+.anchor-heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.anchor-heading .anchor-link {
+  opacity: 0;
+  color: #6b6560;
+  text-decoration: none;
+  font-size: 0.875em;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
+  line-height: 1;
+}
+
+.anchor-heading:hover .anchor-link {
+  opacity: 1;
+}
+
+.anchor-heading .anchor-link:hover {
+  color: #2d2a26;
+}
+
+/* --------------------------------------------------------------------------
+   Feature Subtitle
+   -------------------------------------------------------------------------- */
+
+.feature-subtitle {
+  font-size: 0.9375rem;
+  color: #6b6560;
+  margin-top: -0.5rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Dark Mode
+   ========================================================================== */
+
+/* Sidebar */
+.dark .docs-sidebar {
+  background-color: #0a0a0a;
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .docs-sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Sidebar navigation */
+.dark .docs-nav h3 {
+  color: #999;
+}
+
+.dark .docs-nav a {
+  color: #999;
+}
+
+.dark .docs-nav a:hover {
+  color: #f0f0f0;
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .docs-nav a.active {
+  color: #f0f0f0;
+  background-color: rgba(255, 255, 255, 0.06);
+  border-left-color: #f0f0f0;
+}
+
+/* Menu dropdown */
+.dark .menu-dropdown-title {
+  color: #999;
+}
+
+.dark .menu-dropdown-toggle {
+  color: #999;
+}
+
+.dark .menu-dropdown-items a {
+  color: #999;
+}
+
+.dark .menu-dropdown-items a:hover {
+  color: #f0f0f0;
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .menu-dropdown-items a.active {
+  color: #f0f0f0;
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-left-color: #f0f0f0;
+}
+
+.dark .menu-dropdown-item-prefix {
+  color: #666;
+}
+
+/* Toggle button */
+.dark .docs-sidebar-toggle {
+  background-color: #f0f0f0;
+  color: #121212;
+}
+
+/* Doc page */
+.dark .doc-page {
+  color: #f0f0f0;
+}
+
+.dark .doc-page h1,
+.dark .doc-page h2,
+.dark .doc-page h3,
+.dark .doc-page h4 {
+  color: #f0f0f0;
+}
+
+.dark .doc-page p {
+  color: #e0e0e0;
+}
+
+.dark .doc-page a {
+  color: #f0f0f0;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+}
+
+.dark .doc-page a:hover {
+  text-decoration-color: #f0f0f0;
+}
+
+.dark .doc-page strong {
+  color: #f0f0f0;
+}
+
+.dark .doc-page li::marker {
+  color: #999;
+}
+
+.dark .doc-page blockquote {
+  border-left-color: rgba(255, 255, 255, 0.15);
+  color: #999;
+}
+
+.dark .doc-page hr {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Tables */
+.dark .doc-page thead th {
+  color: #999;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .doc-page tbody td {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .doc-page tbody tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.dark .doc-page tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Inline code */
+.dark .doc-page code:not(pre code) {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #f0f0f0;
+}
+
+/* API cards */
+.dark .api-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background-color: #1a1a1a;
+}
+
+.dark .api-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark .api-card h3 {
+  color: #f0f0f0;
+}
+
+.dark .api-card p {
+  color: #999;
+}
+
+/* Callouts */
+.dark .callout {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark .callout-info {
+  border-left-color: #60a5fa;
+  background-color: rgba(96, 165, 250, 0.08);
+}
+
+.dark .callout-warning {
+  border-left-color: #fbbf24;
+  background-color: rgba(251, 191, 36, 0.08);
+}
+
+.dark .callout-tip {
+  border-left-color: #34d399;
+  background-color: rgba(52, 211, 153, 0.08);
+}
+
+.dark .callout-danger {
+  border-left-color: #f87171;
+  background-color: rgba(248, 113, 113, 0.08);
+}
+
+/* TL;DR box */
+.dark .tldr-box {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .tldr-box strong {
+  color: #999;
+}
+
+/* Page navigation */
+.dark .page-navigation {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .page-navigation a {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f0f0f0;
+}
+
+.dark .page-navigation a:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .page-navigation a span:first-child {
+  color: #999;
+}
+
+/* Anchor headings */
+.dark .anchor-heading .anchor-link {
+  color: #999;
+}
+
+.dark .anchor-heading .anchor-link:hover {
+  color: #f0f0f0;
+}
+
+/* Feature subtitle */
+.dark .feature-subtitle {
+  color: #999;
+}

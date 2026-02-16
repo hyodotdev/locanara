@@ -4,7 +4,7 @@
 
 On-Device AI Framework for iOS and Android
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 
 ---
 
@@ -14,7 +14,7 @@ Locanara is an on-device AI framework inspired by LangChain, purpose-built for m
 
 No cloud. No data leaves. Privacy by design.
 
-**Documentation**: [locanara.dev](https://locanara.dev)
+**Documentation**: [locanara.com](https://locanara.com)
 
 ---
 
@@ -24,7 +24,7 @@ No cloud. No data leaves. Privacy by design.
 
 | Engine | Description | Requirements |
 |--------|-------------|--------------|
-| Apple Intelligence | OS-level Foundation Models | iOS 26+ / macOS 26+, Apple Silicon |
+| Apple Intelligence | OS-level Foundation Models | iOS 18.1+ / macOS 15.1+ (iOS 26+ / macOS 26+ recommended), Apple Silicon, 7GB+ free space |
 | llama.cpp | GGUF models with Metal GPU acceleration | iOS 17+ / macOS 14+, Apple Silicon |
 | CoreML | Neural Engine accelerated inference | iOS 17+ / macOS 14+, Apple Silicon |
 | MLX | Apple Silicon optimized inference | macOS 14+, Apple Silicon |
@@ -68,12 +68,27 @@ Most on-device AI SDKs give you raw model access. Locanara gives you a **framewo
 │  LocanaraModel · PromptTemplate ·           │
 │  OutputParser · Schema                      │
 ├─────────────────────────────────────────────┤
-│  Engine Layer                               │
-│  InferenceRouter · DeviceCapabilityDetector │
+│  DSL Layer                                  │
+│  Pipeline · PipelineStep · ModelExtensions  │
 ├─────────────────────────────────────────────┤
 │  Platform Layer                             │
-│  Apple Intelligence · llama.cpp · CoreML ·  │
-│  MLX · Gemini Nano · ExecuTorch             │
+│  FoundationLanguageModel · PromptApiModel   │
+├─────────────────────────────────────────────┤
+│  Engine Layer                               │
+│  InferenceRouter · LlamaCppEngine ·         │
+│  ExecuTorchEngine · DeviceCapabilityDetector│
+├─────────────────────────────────────────────┤
+│  ModelManager Layer                         │
+│  ModelManager · ModelDownloader ·           │
+│  ModelRegistry · ModelStorage               │
+├─────────────────────────────────────────────┤
+│  RAG Layer                                  │
+│  VectorStore · DocumentChunker ·            │
+│  EmbeddingEngine · RAGQueryEngine           │
+├─────────────────────────────────────────────┤
+│  Personalization Layer                      │
+│  PersonalizationManager · FeedbackCollector │
+│  PreferenceAnalyzer · PromptOptimizer       │
 └─────────────────────────────────────────────┘
 ```
 
@@ -165,7 +180,7 @@ implementation("com.locanara:locanara:1.0.0")
   [![Maven Central](https://img.shields.io/maven-central/v/com.locanara/locanara?label=Maven%20Central)](https://central.sonatype.com/artifact/com.locanara/locanara)
   [![CI Android](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml/badge.svg)](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml)
 
-- [**docs**](packages/docs) — Documentation site → [locanara.dev](https://locanara.dev)
+- [**site**](packages/site) — Website + Documentation → [locanara.com](https://locanara.com)
 
 ---
 
@@ -174,8 +189,10 @@ implementation("com.locanara:locanara:1.0.0")
 **iOS / macOS**
 
 - **Minimum**: iOS 17+ / macOS 14+ (llama.cpp, CoreML engines)
-- **Full**: iOS 26+ / macOS 26+ (adds Apple Intelligence engine)
-- Apple Silicon device (A14+ for iPhone, M1+ for Mac)
+- **Apple Intelligence**: iOS 18.1+ / macOS 15.1+ (iOS 26+ / macOS 26+ recommended)
+  - Requires Apple Silicon (A17 Pro+ for iPhone, M1+ for Mac)
+  - Requires 7GB+ free storage space
+- Apple Silicon device required for all engines
 
 **Android**
 
@@ -187,7 +204,7 @@ implementation("com.locanara:locanara:1.0.0")
 
 ## License
 
-MIT License — see [LICENSE](./LICENSE) for details.
+AGPL-3.0 License — see [LICENSE](./LICENSE) for details.
 
 ---
 

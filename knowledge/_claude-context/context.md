@@ -1,7 +1,7 @@
 # Locanara Project Context
 
 > **Auto-generated for Claude Code**
-> Last updated: 2026-02-04T13:41:29.100Z
+> Last updated: 2026-02-16T13:55:08.253Z
 >
 > Usage: `claude --context knowledge/_claude-context/context.md`
 
@@ -1011,13 +1011,14 @@ feat: add model download progress UI
 
 ## Versioning
 
-All packages share the same version in `locanara-versions.json`:
+All packages share versions from `locanara-versions.json` (single source of truth):
 
 ```json
 {
-  "version": "1.0.0",
-  "apple": "1.0.0",
-  "android": "1.0.0"
+  "version": "1.0.1",      // Root package
+  "types": "1.0.1",        // GraphQL types
+  "apple": "1.0.1",        // iOS/macOS SDK
+  "android": "1.0.2"       // Android SDK
 }
 ```
 
@@ -1031,18 +1032,23 @@ MINOR: New features (backward compatible)
 PATCH: Bug fixes (backward compatible)
 ```
 
-### Version Bump Script
+### Version Sync (Automatic in CI)
+
+All release workflows automatically sync package.json versions:
 
 ```bash
-# Bump patch version
-bun run scripts/bump-version.mjs patch
-
-# Bump minor version
-bun run scripts/bump-version.mjs minor
-
-# Bump major version
-bun run scripts/bump-version.mjs major
+# Manual sync (if needed)
+bun run version:sync
 ```
+
+CI workflows (`release-types.yml`, `release-android.yml`, `release-apple.yml`) automatically:
+
+1. Update `locanara-versions.json`
+2. Run `bun run version:sync`
+3. Commit all synced files
+4. Build and publish
+
+See `docs/VERSION_SYNC.md` for implementation details.
 
 ## Release Process
 
