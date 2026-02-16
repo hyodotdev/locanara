@@ -78,7 +78,8 @@ export const syncProfile = internalMutation({
       await ctx.db.patch(existingProfile._id, {
         displayName: existingProfile.displayName || args.name || undefined,
         avatarUrl: existingProfile.avatarUrl || args.image || undefined,
-        githubUsername: existingProfile.githubUsername || args.name || undefined,
+        githubUsername:
+          existingProfile.githubUsername || args.name || undefined,
         updatedAt: now,
       });
     } else {

@@ -40,15 +40,18 @@ export const addComment = mutation({
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .first();
 
-      await ctx.runMutation(internal.notifications.mutation.createNotification, {
-        userId: post.authorId,
-        type: "COMMENT_ON_POST",
-        title: "New Comment",
-        message: `${commenterProfile?.displayName || commenterProfile?.githubUsername || "Someone"} commented on your post "${post.title}"`,
-        postId: args.postId,
-        commentId,
-        triggeredById: userId,
-      });
+      await ctx.runMutation(
+        internal.notifications.mutation.createNotification,
+        {
+          userId: post.authorId,
+          type: "COMMENT_ON_POST",
+          title: "New Comment",
+          message: `${commenterProfile?.displayName || commenterProfile?.githubUsername || "Someone"} commented on your post "${post.title}"`,
+          postId: args.postId,
+          commentId,
+          triggeredById: userId,
+        }
+      );
     }
 
     // If this is a reply, notify the parent comment author
@@ -60,20 +63,27 @@ export const addComment = mutation({
           .withIndex("by_user", (q) => q.eq("userId", userId))
           .first();
 
-        await ctx.runMutation(internal.notifications.mutation.createNotification, {
-          userId: parentComment.authorId,
-          type: "COMMENT_ON_POST",
-          title: "New Reply",
-          message: `${commenterProfile?.displayName || commenterProfile?.githubUsername || "Someone"} replied to your comment`,
-          postId: args.postId,
-          commentId,
-          triggeredById: userId,
-        });
+        await ctx.runMutation(
+          internal.notifications.mutation.createNotification,
+          {
+            userId: parentComment.authorId,
+            type: "COMMENT_ON_POST",
+            title: "New Reply",
+            message: `${commenterProfile?.displayName || commenterProfile?.githubUsername || "Someone"} replied to your comment`,
+            postId: args.postId,
+            commentId,
+            triggeredById: userId,
+          }
+        );
       }
     }
 
     // Send notifications to mentioned users
-    const mentionedUserIds = await getMentionedUserIds(ctx.db, args.content, userId);
+    const mentionedUserIds = await getMentionedUserIds(
+      ctx.db,
+      args.content,
+      userId
+    );
     // Filter out users who already received notifications (post author, parent comment author)
     const alreadyNotified = new Set([post.authorId]);
     if (args.parentId) {
@@ -85,19 +95,25 @@ export const addComment = mutation({
       .query("userProfiles")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
-    const commenterName = commenterProfile?.displayName || commenterProfile?.githubUsername || "Someone";
+    const commenterName =
+      commenterProfile?.displayName ||
+      commenterProfile?.githubUsername ||
+      "Someone";
 
     for (const mentionedUserId of mentionedUserIds) {
       if (!alreadyNotified.has(mentionedUserId)) {
-        await ctx.runMutation(internal.notifications.mutation.createNotification, {
-          userId: mentionedUserId,
-          type: "MENTIONED",
-          title: "You were mentioned",
-          message: `${commenterName} mentioned you in a comment on "${post.title}"`,
-          postId: args.postId,
-          commentId,
-          triggeredById: userId,
-        });
+        await ctx.runMutation(
+          internal.notifications.mutation.createNotification,
+          {
+            userId: mentionedUserId,
+            type: "MENTIONED",
+            title: "You were mentioned",
+            message: `${commenterName} mentioned you in a comment on "${post.title}"`,
+            postId: args.postId,
+            commentId,
+            triggeredById: userId,
+          }
+        );
       }
     }
 
@@ -162,7 +178,10 @@ export const deleteComment = mutation({
     // Update post comment count
     if (post) {
       await ctx.db.patch(post._id, {
-        commentsCount: Math.max(0, post.commentsCount - 1 - childReplies.length),
+        commentsCount: Math.max(
+          0,
+          post.commentsCount - 1 - childReplies.length
+        ),
       });
     }
 
@@ -183,7 +202,10 @@ export const toggleCommentLike = mutation({
     const existingLike = await ctx.db
       .query("likes")
       .withIndex("by_target_user", (q) =>
-        q.eq("targetType", "comment").eq("targetId", args.commentId).eq("userId", userId)
+        q
+          .eq("targetType", "comment")
+          .eq("targetId", args.commentId)
+          .eq("userId", userId)
       )
       .first();
 
@@ -213,15 +235,18 @@ export const toggleCommentLike = mutation({
           .withIndex("by_user", (q) => q.eq("userId", userId))
           .first();
 
-        await ctx.runMutation(internal.notifications.mutation.createNotification, {
-          userId: comment.authorId,
-          type: "LIKE_ON_COMMENT",
-          title: "New Like",
-          message: `${likerProfile?.displayName || likerProfile?.githubUsername || "Someone"} liked your comment`,
-          postId: comment.postId,
-          commentId: args.commentId,
-          triggeredById: userId,
-        });
+        await ctx.runMutation(
+          internal.notifications.mutation.createNotification,
+          {
+            userId: comment.authorId,
+            type: "LIKE_ON_COMMENT",
+            title: "New Like",
+            message: `${likerProfile?.displayName || likerProfile?.githubUsername || "Someone"} liked your comment`,
+            postId: comment.postId,
+            commentId: args.commentId,
+            triggeredById: userId,
+          }
+        );
       }
 
       return { liked: true };

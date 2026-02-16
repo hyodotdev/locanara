@@ -49,7 +49,10 @@ export const getPosts = query({
           const like = await ctx.db
             .query("likes")
             .withIndex("by_target_user", (q) =>
-              q.eq("targetType", "post").eq("targetId", post._id).eq("userId", userId)
+              q
+                .eq("targetType", "post")
+                .eq("targetId", post._id)
+                .eq("userId", userId)
             )
             .first();
           hasLiked = !!like;
@@ -59,7 +62,10 @@ export const getPosts = query({
         const githubUsername =
           authorProfile?.githubUsername || authorUser?.name || "user";
         const displayName =
-          authorProfile?.displayName || authorProfile?.githubUsername || authorUser?.name || "Anonymous";
+          authorProfile?.displayName ||
+          authorProfile?.githubUsername ||
+          authorUser?.name ||
+          "Anonymous";
         const avatarUrl =
           authorProfile?.avatarUrl || authorUser?.image || undefined;
 
@@ -111,7 +117,10 @@ export const getPost = query({
       const like = await ctx.db
         .query("likes")
         .withIndex("by_target_user", (q) =>
-          q.eq("targetType", "post").eq("targetId", post._id).eq("userId", userId)
+          q
+            .eq("targetType", "post")
+            .eq("targetId", post._id)
+            .eq("userId", userId)
         )
         .first();
       hasLiked = !!like;
@@ -121,7 +130,10 @@ export const getPost = query({
     const githubUsername =
       authorProfile?.githubUsername || authorUser?.name || "user";
     const displayName =
-      authorProfile?.displayName || authorProfile?.githubUsername || authorUser?.name || "Anonymous";
+      authorProfile?.displayName ||
+      authorProfile?.githubUsername ||
+      authorUser?.name ||
+      "Anonymous";
     const avatarUrl =
       authorProfile?.avatarUrl || authorUser?.image || undefined;
 

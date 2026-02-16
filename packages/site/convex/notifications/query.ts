@@ -24,10 +24,16 @@ export const getUserNotifications = query({
           if (authUser) {
             const profile = await ctx.db
               .query("userProfiles")
-              .withIndex("by_user", (q) => q.eq("userId", notification.triggeredById!))
+              .withIndex("by_user", (q) =>
+                q.eq("userId", notification.triggeredById!)
+              )
               .first();
             triggeredByUser = {
-              displayName: profile?.displayName || profile?.githubUsername || authUser.name || "User",
+              displayName:
+                profile?.displayName ||
+                profile?.githubUsername ||
+                authUser.name ||
+                "User",
               avatarUrl: profile?.avatarUrl || authUser.image || undefined,
               githubUsername: profile?.githubUsername || authUser.name,
             };
@@ -55,7 +61,9 @@ export const getUnreadCount = query({
 
     const unreadNotifications = await ctx.db
       .query("notifications")
-      .withIndex("by_user_unread", (q) => q.eq("userId", userId).eq("isRead", false))
+      .withIndex("by_user_unread", (q) =>
+        q.eq("userId", userId).eq("isRead", false)
+      )
       .collect();
 
     return unreadNotifications.length;
@@ -85,10 +93,16 @@ export const getRecentNotifications = query({
           if (authUser) {
             const profile = await ctx.db
               .query("userProfiles")
-              .withIndex("by_user", (q) => q.eq("userId", notification.triggeredById!))
+              .withIndex("by_user", (q) =>
+                q.eq("userId", notification.triggeredById!)
+              )
               .first();
             triggeredByUser = {
-              displayName: profile?.displayName || profile?.githubUsername || authUser.name || "User",
+              displayName:
+                profile?.displayName ||
+                profile?.githubUsername ||
+                authUser.name ||
+                "User",
               avatarUrl: profile?.avatarUrl || authUser.image || undefined,
               githubUsername: profile?.githubUsername || authUser.name,
             };

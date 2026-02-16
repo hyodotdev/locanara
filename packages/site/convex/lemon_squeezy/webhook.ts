@@ -178,7 +178,10 @@ export const webhook = httpAction(async (ctx, request) => {
       if (githubUsername && membershipId) {
         const githubToken = process.env.GITHUB_REPO_ADMIN_TOKEN;
         if (githubToken) {
-          const inviteSent = await addRepoCollaborator(githubUsername, githubToken);
+          const inviteSent = await addRepoCollaborator(
+            githubUsername,
+            githubToken
+          );
           if (inviteSent) {
             await ctx.runMutation(internal.pro.mutation.markGithubInviteSent, {
               membershipId,

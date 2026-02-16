@@ -33,7 +33,11 @@ export const searchUsers = query({
         return {
           userId: profile.userId,
           username: profile.githubUsername || user?.name || "user",
-          displayName: profile.displayName || profile.githubUsername || user?.name || "User",
+          displayName:
+            profile.displayName ||
+            profile.githubUsername ||
+            user?.name ||
+            "User",
           avatarUrl: profile.avatarUrl || user?.image,
         };
       })

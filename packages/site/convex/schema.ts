@@ -186,7 +186,10 @@ export default defineSchema({
     metadata: v.optional(
       v.union(
         v.object({ type: v.literal("github") }),
-        v.object({ type: v.literal("tesla"), vehicleIds: v.optional(v.array(v.string())) })
+        v.object({
+          type: v.literal("tesla"),
+          vehicleIds: v.optional(v.array(v.string())),
+        })
       )
     ),
     lastLoginAt: v.optional(v.number()),

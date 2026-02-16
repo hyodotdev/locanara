@@ -38,10 +38,10 @@ Open the browser console and run:
 
 ```javascript
 // Check if Prompt API is available
-await window.LanguageModel?.availability();  // Should return 'readily'
+await window.LanguageModel?.availability(); // Should return 'readily'
 
 // Check if Summarizer is available
-await window.Summarizer?.availability();  // Should return 'available'
+await window.Summarizer?.availability(); // Should return 'available'
 ```
 
 ## Installation
@@ -68,7 +68,7 @@ bun add @locanara/web
 ## Quick Start
 
 ```typescript
-import { Locanara } from '@locanara/web';
+import { Locanara } from "@locanara/web";
 
 // Get singleton instance
 const locanara = Locanara.getInstance();
@@ -78,18 +78,18 @@ const capability = await locanara.getDeviceCapability();
 console.log(capability.availableFeatures);
 
 // Summarize text
-const summary = await locanara.summarize('Long article text here...');
+const summary = await locanara.summarize("Long article text here...");
 console.log(summary.summary);
 
 // Translate text
-const translation = await locanara.translate('Hello!', {
-  sourceLanguage: 'en',
-  targetLanguage: 'ko',
+const translation = await locanara.translate("Hello!", {
+  sourceLanguage: "en",
+  targetLanguage: "ko",
 });
 console.log(translation.translatedText);
 
 // Chat with AI
-const response = await locanara.chat('What is machine learning?');
+const response = await locanara.chat("What is machine learning?");
 console.log(response.response);
 ```
 
@@ -98,11 +98,11 @@ console.log(response.response);
 ### Summarize
 
 ```typescript
-import { SummarizeType, SummarizeLength } from '@locanara/web';
+import { SummarizeType, SummarizeLength } from "@locanara/web";
 
 const result = await locanara.summarize(text, {
-  type: SummarizeType.KEY_POINTS,  // KEY_POINTS | TLDR | TEASER | HEADLINE
-  length: SummarizeLength.MEDIUM,   // SHORT | MEDIUM | LONG
+  type: SummarizeType.KEY_POINTS, // KEY_POINTS | TLDR | TEASER | HEADLINE
+  length: SummarizeLength.MEDIUM, // SHORT | MEDIUM | LONG
 });
 ```
 
@@ -110,8 +110,8 @@ const result = await locanara.summarize(text, {
 
 ```typescript
 const result = await locanara.translate(text, {
-  sourceLanguage: 'en',
-  targetLanguage: 'ko',
+  sourceLanguage: "en",
+  targetLanguage: "ko",
 });
 ```
 
@@ -121,7 +121,7 @@ Supported languages: `en`, `es`, `fr`, `de`, `ja`, `ko`, `zh`, and more.
 
 ```typescript
 const result = await locanara.chat(message, {
-  systemPrompt: 'You are a helpful assistant.',
+  systemPrompt: "You are a helpful assistant.",
   temperature: 0.7,
   topK: 3,
 });
@@ -133,11 +133,11 @@ await locanara.resetChat();
 ### Rewrite
 
 ```typescript
-import { RewriteTone, RewriteLength } from '@locanara/web';
+import { RewriteTone, RewriteLength } from "@locanara/web";
 
 const result = await locanara.rewrite(text, {
-  tone: RewriteTone.MORE_FORMAL,  // AS_IS | MORE_FORMAL | MORE_CASUAL
-  length: RewriteLength.AS_IS,     // SHORTER | AS_IS | LONGER
+  tone: RewriteTone.MORE_FORMAL, // AS_IS | MORE_FORMAL | MORE_CASUAL
+  length: RewriteLength.AS_IS, // SHORTER | AS_IS | LONGER
 });
 ```
 
@@ -145,18 +145,18 @@ const result = await locanara.rewrite(text, {
 
 ```typescript
 const result = await locanara.classify(text, {
-  categories: ['Technology', 'Sports', 'Politics'],
+  categories: ["Technology", "Sports", "Politics"],
 });
-console.log(result.category);    // 'Technology'
-console.log(result.confidence);  // 0.95
+console.log(result.category); // 'Technology'
+console.log(result.confidence); // 0.95
 ```
 
 ### Detect Language
 
 ```typescript
-const results = await locanara.detectLanguage('Bonjour!');
-console.log(results[0].detectedLanguage);  // 'fr'
-console.log(results[0].confidence);         // 0.95
+const results = await locanara.detectLanguage("Bonjour!");
+console.log(results[0].detectedLanguage); // 'fr'
+console.log(results[0].confidence); // 0.95
 ```
 
 ## Streaming
@@ -187,7 +187,9 @@ Monitor model download progress:
 ```typescript
 const locanara = Locanara.getInstance({
   onDownloadProgress: (progress) => {
-    console.log(`Downloaded: ${(progress.loaded / progress.total * 100).toFixed(1)}%`);
+    console.log(
+      `Downloaded: ${((progress.loaded / progress.total) * 100).toFixed(1)}%`
+    );
   },
 });
 ```
@@ -195,7 +197,7 @@ const locanara = Locanara.getInstance({
 ## Error Handling
 
 ```typescript
-import { LocanaraError, LocanaraErrorCode } from '@locanara/web';
+import { LocanaraError, LocanaraErrorCode } from "@locanara/web";
 
 try {
   const result = await locanara.summarize(text);
@@ -203,10 +205,10 @@ try {
   if (error instanceof LocanaraError) {
     switch (error.code) {
       case LocanaraErrorCode.NOT_SUPPORTED:
-        console.log('Feature not supported on this device');
+        console.log("Feature not supported on this device");
         break;
       case LocanaraErrorCode.EXECUTION_FAILED:
-        console.log('Execution failed:', error.message);
+        console.log("Execution failed:", error.message);
         break;
     }
   }
@@ -241,32 +243,32 @@ bun run build
 
 ### Locanara
 
-| Method | Description |
-|--------|-------------|
-| `getInstance(options?)` | Get singleton instance |
-| `getDeviceCapability()` | Check available features |
-| `summarize(text, options?)` | Summarize text |
+| Method                               | Description              |
+| ------------------------------------ | ------------------------ |
+| `getInstance(options?)`              | Get singleton instance   |
+| `getDeviceCapability()`              | Check available features |
+| `summarize(text, options?)`          | Summarize text           |
 | `summarizeStreaming(text, options?)` | Summarize with streaming |
-| `translate(text, options)` | Translate text |
-| `translateStreaming(text, options)` | Translate with streaming |
-| `chat(message, options?)` | Chat with AI |
-| `chatStreaming(message, options?)` | Chat with streaming |
-| `rewrite(text, options?)` | Rewrite text |
-| `rewriteStreaming(text, options?)` | Rewrite with streaming |
-| `classify(text, options)` | Classify text |
-| `extract(text, options)` | Extract information |
-| `proofread(text)` | Proofread text |
-| `detectLanguage(text)` | Detect language |
-| `resetChat()` | Reset chat session |
-| `destroy()` | Cleanup resources |
+| `translate(text, options)`           | Translate text           |
+| `translateStreaming(text, options)`  | Translate with streaming |
+| `chat(message, options?)`            | Chat with AI             |
+| `chatStreaming(message, options?)`   | Chat with streaming      |
+| `rewrite(text, options?)`            | Rewrite text             |
+| `rewriteStreaming(text, options?)`   | Rewrite with streaming   |
+| `classify(text, options)`            | Classify text            |
+| `extract(text, options)`             | Extract information      |
+| `proofread(text)`                    | Proofread text           |
+| `detectLanguage(text)`               | Detect language          |
+| `resetChat()`                        | Reset chat session       |
+| `destroy()`                          | Cleanup resources        |
 
 ## Browser Support
 
-| Browser | Support |
-|---------|---------|
-| Chrome 131+ | Full support |
-| Chrome Canary | Full support |
-| Chrome Dev | Full support |
+| Browser        | Support       |
+| -------------- | ------------- |
+| Chrome 131+    | Full support  |
+| Chrome Canary  | Full support  |
+| Chrome Dev     | Full support  |
 | Other browsers | Not supported |
 
 ## License

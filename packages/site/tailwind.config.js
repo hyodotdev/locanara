@@ -50,13 +50,7 @@ export default {
           "Roboto",
           "sans-serif",
         ],
-        mono: [
-          "SF Mono",
-          "Fira Code",
-          "Fira Mono",
-          "Roboto Mono",
-          "monospace",
-        ],
+        mono: ["SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "monospace"],
       },
       fontSize: {
         xs: "0.75rem",

@@ -168,10 +168,7 @@ export const incrementSeat = internalMutation({
 
     if (inventory) {
       const config = SEAT_CONFIG[args.tier];
-      const newRemaining = Math.min(
-        inventory.remainingSeats + 1,
-        config.total
-      );
+      const newRemaining = Math.min(inventory.remainingSeats + 1, config.total);
       await ctx.db.patch(inventory._id, {
         remainingSeats: newRemaining,
         updatedAt: Date.now(),

@@ -16,7 +16,10 @@ export const loginWithOAuth = internalMutation({
     metadata: v.optional(
       v.union(
         v.object({ type: v.literal("github") }),
-        v.object({ type: v.literal("tesla"), vehicleIds: v.optional(v.array(v.string())) })
+        v.object({
+          type: v.literal("tesla"),
+          vehicleIds: v.optional(v.array(v.string())),
+        })
       )
     ),
   },
@@ -27,7 +30,9 @@ export const loginWithOAuth = internalMutation({
     const existingOAuth = await ctx.db
       .query("oauthAccounts")
       .withIndex("by_provider_user", (q) =>
-        q.eq("provider", args.provider).eq("providerUserId", args.providerUserId)
+        q
+          .eq("provider", args.provider)
+          .eq("providerUserId", args.providerUserId)
       )
       .first();
 
@@ -36,9 +41,15 @@ export const loginWithOAuth = internalMutation({
       await ctx.db.patch(existingOAuth._id, {
         lastLoginAt: now,
         updatedAt: now,
-        ...(args.accessToken !== undefined && { accessToken: args.accessToken }),
-        ...(args.refreshToken !== undefined && { refreshToken: args.refreshToken }),
-        ...(args.tokenExpiresAt !== undefined && { tokenExpiresAt: args.tokenExpiresAt }),
+        ...(args.accessToken !== undefined && {
+          accessToken: args.accessToken,
+        }),
+        ...(args.refreshToken !== undefined && {
+          refreshToken: args.refreshToken,
+        }),
+        ...(args.tokenExpiresAt !== undefined && {
+          tokenExpiresAt: args.tokenExpiresAt,
+        }),
         ...(args.metadata !== undefined && { metadata: args.metadata }),
       });
       return { userId: existingOAuth.userId, isNewUser: false };
@@ -147,7 +158,9 @@ export const updateTokens = internalMutation({
     const oauth = await ctx.db
       .query("oauthAccounts")
       .withIndex("by_provider_user", (q) =>
-        q.eq("provider", args.provider).eq("providerUserId", args.providerUserId)
+        q
+          .eq("provider", args.provider)
+          .eq("providerUserId", args.providerUserId)
       )
       .first();
 
@@ -157,8 +170,12 @@ export const updateTokens = internalMutation({
 
     await ctx.db.patch(oauth._id, {
       accessToken: args.accessToken,
-      ...(args.refreshToken !== undefined && { refreshToken: args.refreshToken }),
-      ...(args.tokenExpiresAt !== undefined && { tokenExpiresAt: args.tokenExpiresAt }),
+      ...(args.refreshToken !== undefined && {
+        refreshToken: args.refreshToken,
+      }),
+      ...(args.tokenExpiresAt !== undefined && {
+        tokenExpiresAt: args.tokenExpiresAt,
+      }),
       updatedAt: Date.now(),
     });
   },

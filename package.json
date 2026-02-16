@@ -7,14 +7,17 @@
     "packages/*"
   ],
   "lint-staged": {
-    "packages/site/src/**/*.{ts,tsx}": [
+    "packages/site/**/*.{ts,tsx}": [
       "bash -c 'cd packages/site && bun run typecheck'",
       "bunx prettier --write"
     ],
-    "packages/site/src/**/*.{js,jsx,css,json}": [
+    "packages/site/**/*.{js,jsx,css,json,md,html}": [
       "bunx prettier --write"
     ],
-    "packages/gql/src/**/*.{ts,graphql}": [
+    "packages/gql/**/*.{ts,graphql}": [
+      "bunx prettier --write"
+    ],
+    "*.{md,json}": [
       "bunx prettier --write"
     ]
   },

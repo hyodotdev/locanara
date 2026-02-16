@@ -70,7 +70,9 @@ export const markAllAsRead = mutation({
 
     const unreadNotifications = await ctx.db
       .query("notifications")
-      .withIndex("by_user_unread", (q) => q.eq("userId", userId).eq("isRead", false))
+      .withIndex("by_user_unread", (q) =>
+        q.eq("userId", userId).eq("isRead", false)
+      )
       .collect();
 
     const now = Date.now();

@@ -30,23 +30,33 @@ export const createPost = mutation({
     });
 
     // Send notifications to mentioned users
-    const mentionedUserIds = await getMentionedUserIds(ctx.db, args.content, userId);
+    const mentionedUserIds = await getMentionedUserIds(
+      ctx.db,
+      args.content,
+      userId
+    );
     if (mentionedUserIds.length > 0) {
       const authorProfile = await ctx.db
         .query("userProfiles")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .first();
-      const authorName = authorProfile?.displayName || authorProfile?.githubUsername || "Someone";
+      const authorName =
+        authorProfile?.displayName ||
+        authorProfile?.githubUsername ||
+        "Someone";
 
       for (const mentionedUserId of mentionedUserIds) {
-        await ctx.runMutation(internal.notifications.mutation.createNotification, {
-          userId: mentionedUserId,
-          type: "MENTIONED",
-          title: "You were mentioned",
-          message: `${authorName} mentioned you in a post: "${args.title}"`,
-          postId,
-          triggeredById: userId,
-        });
+        await ctx.runMutation(
+          internal.notifications.mutation.createNotification,
+          {
+            userId: mentionedUserId,
+            type: "MENTIONED",
+            title: "You were mentioned",
+            message: `${authorName} mentioned you in a post: "${args.title}"`,
+            postId,
+            triggeredById: userId,
+          }
+        );
       }
     }
 
@@ -126,7 +136,10 @@ export const toggleLike = mutation({
     const existingLike = await ctx.db
       .query("likes")
       .withIndex("by_target_user", (q) =>
-        q.eq("targetType", "post").eq("targetId", args.postId).eq("userId", userId)
+        q
+          .eq("targetType", "post")
+          .eq("targetId", args.postId)
+          .eq("userId", userId)
       )
       .first();
 
@@ -156,14 +169,17 @@ export const toggleLike = mutation({
           .withIndex("by_user", (q) => q.eq("userId", userId))
           .first();
 
-        await ctx.runMutation(internal.notifications.mutation.createNotification, {
-          userId: post.authorId,
-          type: "LIKE_ON_POST",
-          title: "New Like",
-          message: `${likerProfile?.displayName || likerProfile?.githubUsername || "Someone"} liked your post "${post.title}"`,
-          postId: args.postId,
-          triggeredById: userId,
-        });
+        await ctx.runMutation(
+          internal.notifications.mutation.createNotification,
+          {
+            userId: post.authorId,
+            type: "LIKE_ON_POST",
+            title: "New Like",
+            message: `${likerProfile?.displayName || likerProfile?.githubUsername || "Someone"} liked your post "${post.title}"`,
+            postId: args.postId,
+            triggeredById: userId,
+          }
+        );
       }
 
       return { liked: true };
