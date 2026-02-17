@@ -4,6 +4,15 @@
   "description": "Expo module for on-device AI using Locanara SDK",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "android",
+    "ios",
+    "plugin/build",
+    "app.plugin.js",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",
@@ -71,5 +80,9 @@
   },
   "expo": {
     "plugin": "./app.plugin.js"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
