@@ -44,3 +44,13 @@ jobs:
 
       - name: Test
         run: bun run test:coverage
+
+      - name: Build
+        run: bun run build
+
+      - name: Verify build output
+        run: |
+          if [ ! -f "build/index.js" ] || [ ! -f "build/index.d.ts" ]; then
+            echo "Build output missing!"
+            exit 1
+          fi

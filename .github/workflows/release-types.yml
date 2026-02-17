@@ -84,10 +84,14 @@ jobs:
           echo "Updated locanara-versions.json:"
           cat locanara-versions.json
 
-      - name: Sync version to packages/docs
+      - name: Sync version to packages/site
         if: github.event.inputs.version != 'current'
         run: |
-          cp locanara-versions.json packages/docs/locanara-versions.json
+          cp locanara-versions.json packages/site/locanara-versions.json
+
+      - name: Sync versions to all package.json files
+        if: github.event.inputs.version != 'current'
+        run: bun run version:sync
 
       - name: Commit version changes
         if: github.event.inputs.version != 'current'
@@ -96,7 +100,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add locanara-versions.json packages/docs/locanara-versions.json
+          git add locanara-versions.json packages/site/locanara-versions.json package.json packages/gql/package.json packages/android/package.json
           git commit -m "chore: bump types to $VERSION"
           git push origin main
 
@@ -172,5 +176,5 @@ jobs:
             Download and use these types in your iOS/Android projects.
 
             ### Documentation
-            - [Documentation](https://locanara.dev)
+            - [Documentation](https://locanara.com)
             - [GitHub Repository](https://github.com/hyodotdev/locanara)

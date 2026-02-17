@@ -17,7 +17,7 @@ Locanara is an on-device AI **framework** for iOS and Android, inspired by LangC
 
 ### Supported Platforms
 
-- **iOS/macOS**: Apple Intelligence (Foundation Models) - iOS 26+, macOS 26+
+- **iOS/macOS**: Apple Intelligence (Foundation Models) - iOS 18.1+, macOS 15.1+ (iOS 26+, macOS 26+ recommended)
 - **Android**: Gemini Nano (ML Kit GenAI) - Android 14+
 
 ### Distribution
@@ -34,27 +34,34 @@ locanara-community/
 ├── packages/
 │   ├── apple/          # Swift SDK (SPM + CocoaPods)
 │   │   ├── Sources/
-│   │   │   ├── Core/           # LocanaraModel, PromptTemplate, OutputParser, Schema
-│   │   │   ├── Composable/     # Chain, Tool, Memory, Guardrail
-│   │   │   ├── BuiltIn/        # SummarizeChain, ClassifyChain, etc.
-│   │   │   ├── DSL/            # Pipeline, PipelineStep, ModelExtensions
-│   │   │   ├── Runtime/        # Agent, Session, ChainExecutor
-│   │   │   ├── Platform/       # FoundationLanguageModel
-│   │   │   └── Features/       # Legacy feature executors
+│   │   │   ├── Core/            # LocanaraModel, PromptTemplate, OutputParser, Schema
+│   │   │   ├── Composable/      # Chain, Tool, Memory, Guardrail
+│   │   │   ├── BuiltIn/         # SummarizeChain, ClassifyChain, etc.
+│   │   │   ├── DSL/             # Pipeline, PipelineStep, ModelExtensions
+│   │   │   ├── Runtime/         # Agent, Session, ChainExecutor
+│   │   │   ├── Platform/        # FoundationLanguageModel
+│   │   │   ├── Engine/          # InferenceRouter, LlamaCppEngine
+│   │   │   ├── ModelManager/    # ModelManager, ModelDownloader
+│   │   │   ├── RAG/             # VectorStore, DocumentChunker
+│   │   │   ├── Personalization/ # PersonalizationManager, FeedbackCollector
+│   │   │   └── Features/        # Legacy feature executors
 │   │   ├── Tests/
 │   │   └── Example/    # Example app
 │   ├── android/        # Kotlin SDK (Maven Central)
 │   │   ├── locanara/
 │   │   │   └── src/main/kotlin/com/locanara/
-│   │   │       ├── core/       # LocanaraModel, PromptTemplate, OutputParser, Schema
-│   │   │       ├── composable/ # Chain, Tool, Memory, Guardrail
-│   │   │       ├── builtin/    # SummarizeChain, ClassifyChain, etc.
-│   │   │       ├── dsl/        # Pipeline, ModelExtensions
-│   │   │       ├── runtime/    # Agent, Session, ChainExecutor
-│   │   │       └── platform/   # PromptApiModel
+│   │   │       ├── core/            # LocanaraModel, PromptTemplate, OutputParser, Schema
+│   │   │       ├── composable/      # Chain, Tool, Memory, Guardrail
+│   │   │       ├── builtin/         # SummarizeChain, ClassifyChain, etc.
+│   │   │       ├── dsl/             # Pipeline, ModelExtensions
+│   │   │       ├── runtime/         # Agent, Session, ChainExecutor
+│   │   │       ├── platform/        # PromptApiModel
+│   │   │       ├── engine/          # InferenceEngine, ExecuTorchEngine
+│   │   │       ├── rag/             # VectorStore, RAGManager
+│   │   │       └── personalization/ # PersonalizationManager
 │   │   └── example/    # Example app
 │   ├── gql/            # GraphQL schema definitions
-│   └── docs/           # Documentation website
+│   └── site/           # Website (landing + docs + community)
 ├── libraries/          # Third-party framework integrations
 │   ├── expo-ondevice-ai/       # Expo module
 │   └── react-native-ondevice-ai/ # React Native module (planned)
@@ -112,24 +119,44 @@ refactor: simplify Foundation Models client
 Locanara is structured as a layered framework (similar to LangChain for on-device AI):
 
 ```text
-┌─────────────────────────────────────────────┐
-│  Runtime Layer                              │
-│  Agent · Session · ChainExecutor            │
-├─────────────────────────────────────────────┤
-│  Built-in Chains (reference implementations)│
-│  Summarize · Classify · Chat · Translate ·  │
-│  Extract · Rewrite · Proofread              │
-├─────────────────────────────────────────────┤
-│  Composable Layer                           │
-│  Chain · Tool · Memory · Guardrail          │
-├─────────────────────────────────────────────┤
-│  Core Layer                                 │
-│  LocanaraModel · PromptTemplate ·           │
-│  OutputParser · Schema                      │
-├─────────────────────────────────────────────┤
-│  Platform Layer                             │
-│  Apple Intelligence │ Gemini Nano           │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  Runtime Layer                                      │
+│  Agent · Session · ChainExecutor                    │
+├─────────────────────────────────────────────────────┤
+│  Built-in Chains (reference implementations)        │
+│  Summarize · Classify · Chat · Translate ·          │
+│  Extract · Rewrite · Proofread                      │
+├─────────────────────────────────────────────────────┤
+│  Composable Layer                                   │
+│  Chain · Tool · Memory · Guardrail                  │
+├─────────────────────────────────────────────────────┤
+│  Core Layer                                         │
+│  LocanaraModel · PromptTemplate ·                   │
+│  OutputParser · Schema                              │
+├─────────────────────────────────────────────────────┤
+│  DSL Layer                                          │
+│  Pipeline · PipelineStep · ModelExtensions          │
+├─────────────────────────────────────────────────────┤
+│  Platform Layer                                     │
+│  FoundationLanguageModel (iOS) ·                    │
+│  PromptApiModel (Android)                           │
+├─────────────────────────────────────────────────────┤
+│  Engine Layer                                       │
+│  InferenceRouter · InferenceEngine ·                │
+│  LlamaCppEngine (iOS) · ExecuTorchEngine (Android)  │
+├─────────────────────────────────────────────────────┤
+│  ModelManager Layer                                 │
+│  ModelManager · ModelDownloader ·                   │
+│  ModelRegistry · ModelStorage                       │
+├─────────────────────────────────────────────────────┤
+│  RAG Layer                                          │
+│  VectorStore · DocumentChunker ·                    │
+│  EmbeddingEngine · RAGQueryEngine                   │
+├─────────────────────────────────────────────────────┤
+│  Personalization Layer                              │
+│  PersonalizationManager · FeedbackCollector ·       │
+│  PreferenceAnalyzer · PromptOptimizer               │
+└─────────────────────────────────────────────────────┘
 ```
 
 ### Key Concepts
@@ -171,11 +198,11 @@ Developers build their own AI features by:
 - Follow Kotlin coding conventions
 - Package: `com.locanara`
 
-### TypeScript (Docs)
+### TypeScript (Site)
 
 - Use strict mode
 - Prefer functional components with hooks
-- Use CSS modules or CSS-in-JS
+- Use Tailwind CSS for styling
 
 ## API Naming Conventions
 
@@ -196,22 +223,22 @@ All packages share the same version number defined in `locanara-versions.json`:
 
 ```json
 {
-  "version": "1.0.0",
-  "types": "1.0.0",
-  "apple": "1.0.0",
-  "android": "1.0.0"
+  "version": "1.0.1",
+  "types": "1.0.1",
+  "apple": "1.0.1",
+  "android": "1.0.2"
 }
 ```
 
 ## Development Commands
 
-### Docs
+### Site
 
 ```bash
-cd packages/docs
+cd packages/site
 bun install
-bun dev        # Start dev server
-bun build      # Build for production
+bunx convex dev & bun dev   # Start dev server with Convex
+bun build                   # Build for production
 ```
 
 ### Apple

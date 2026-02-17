@@ -1,0 +1,73 @@
+@import "./styles/docs.css";
+@import "./styles/code.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+:root {
+  --color-primary: #2d2a26;
+  --color-primary-light: #6b6560;
+  --color-accent: #e95420;
+  --color-accent-hover: #d14810;
+  --color-bg-primary: #faf8f5;
+  --color-bg-secondary: #f2efe9;
+  --color-text-primary: #2d2a26;
+  --color-text-secondary: #6b6560;
+}
+
+.dark {
+  --color-primary: #e5e5e5;
+  --color-primary-light: #999999;
+  --color-bg-primary: #121212;
+  --color-bg-secondary: #1e1e1e;
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #999999;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-y: scroll;
+}
+
+body {
+  margin: 0;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Selection styles */
+::selection {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+/* Utility classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

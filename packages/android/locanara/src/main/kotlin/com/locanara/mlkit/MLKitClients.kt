@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import com.google.mlkit.genai.common.DownloadCallback
 import com.google.mlkit.genai.common.GenAiException
+import com.locanara.LocanaraException
 import com.google.mlkit.genai.imagedescription.ImageDescription
 import com.google.mlkit.genai.imagedescription.ImageDescriber
 import com.google.mlkit.genai.imagedescription.ImageDescriberOptions
@@ -588,4 +589,24 @@ private fun Int.toFeatureStatus(): FeatureStatus = when (this) {
     2 -> FeatureStatus.DOWNLOADING
     3 -> FeatureStatus.AVAILABLE
     else -> FeatureStatus.UNAVAILABLE
+}
+
+// ============================================
+// ML Kit GenAI Error Mapping
+// ============================================
+
+/**
+ * Maps ML Kit GenAiException to Locanara exceptions with specific handling
+ * for BUSY (quota exceeded) and BACKGROUND_USE_BLOCKED error conditions.
+ */
+internal fun mapGenAiException(e: Exception): LocanaraException {
+    val message = e.message?.lowercase() ?: ""
+    return when {
+        message.contains("busy") || message.contains("quota") ->
+            LocanaraException.ModelBusy
+        message.contains("background") || message.contains("foreground") ->
+            LocanaraException.BackgroundUseBlocked
+        else ->
+            LocanaraException.ExecutionFailed(e.message ?: "ML Kit GenAI error", e)
+    }
 }

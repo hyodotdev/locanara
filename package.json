@@ -1,20 +1,23 @@
 {
   "name": "locanara",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.1",
   "description": "Locanara - On-Device Intelligence SDK for Mobile Apps",
   "workspaces": [
     "packages/*"
   ],
   "lint-staged": {
-    "packages/docs/src/**/*.{ts,tsx}": [
-      "bash -c 'cd packages/docs && bun run typecheck'",
+    "packages/site/**/*.{ts,tsx}": [
+      "bash -c 'cd packages/site && bun run typecheck'",
       "bunx prettier --write"
     ],
-    "packages/docs/src/**/*.{js,jsx,css,json}": [
+    "packages/site/**/*.{js,jsx,css,json,md,html}": [
       "bunx prettier --write"
     ],
-    "packages/gql/src/**/*.{ts,graphql}": [
+    "packages/gql/**/*.{ts,graphql}": [
+      "bunx prettier --write"
+    ],
+    "*.{md,json}": [
       "bunx prettier --write"
     ]
   },
@@ -27,10 +30,10 @@
     "generate": "cd packages/gql && bun run generate",
     "version:sync": "bun scripts/sync-versions.mjs",
     "version:bump": "bun scripts/bump-version.mjs",
-    "docs": "bun run --cwd packages/docs",
-    "docs:install": "cd packages/docs && bun install",
-    "docs:dev": "bun run --cwd packages/docs dev",
-    "docs:build": "bun run --cwd packages/docs build",
+    "site": "bun run --cwd packages/site",
+    "site:install": "cd packages/site && bun install",
+    "site:dev": "bun run --cwd packages/site dev",
+    "site:build": "bun run --cwd packages/site build",
     "gql": "bun run --cwd packages/gql",
     "gql:generate": "bun run --cwd packages/gql generate",
     "knowledge": "bun run --cwd scripts/agent compile",

@@ -1,0 +1,24 @@
+# Locanara
+
+> Free and open-source on-device AI SDK for iOS and Android
+
+Privacy-first, unified on-device AI SDK for mobile developers. Build AI-powered apps without compromising user privacy. Licensed under AGPL-3.0.
+
+## About
+
+Locanara enables mobile developers to integrate AI features (summarization, classification, chat, translation, and more) using on-device processing. No cloud, no data collection, complete privacy. Includes Private RAG (document-based AI answers) and Personalization (AI that learns user preferences).
+
+- iOS: Apple Intelligence (iOS 26+) + llama.cpp with GGUF models (iOS 17+)
+- Android: Gemini Nano & ML Kit GenAI
+- Web: Chrome Built-in AI
+
+## Pricing
+
+Free and open-source. No API keys, no usage limits, no per-request fees.
+
+## Links
+
+- Docs: https://locanara.com/docs
+- Full info: https://locanara.com/llms-full.txt
+- Community: https://locanara.com/community
+- GitHub: https://github.com/hyodotdev/locanara

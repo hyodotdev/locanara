@@ -1,0 +1,44 @@
+name: Deploy Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/site/**"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        working-directory: packages/site
+        run: bun install
+
+      - name: Build
+        working-directory: packages/site
+        run: bun run build
+        env:
+          VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LOCANARA }}
+          projectId: locanara
+          channelId: live
+          entryPoint: packages/site
+
+      - name: Summary
+        run: |
+          echo "## Site Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Site: https://locanara.com" >> $GITHUB_STEP_SUMMARY

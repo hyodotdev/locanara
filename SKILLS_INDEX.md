@@ -14,9 +14,6 @@
 # Android development
 /android check for new features and add them
 
-# Web development
-/web check for new features and add them
-
 # Testing
 /test write tests for all platforms
 
@@ -31,7 +28,6 @@
 | `/gql`     | GraphQL Architect      | API spec management | Schema validation, naming fixes, type/API additions    |
 | `/apple`   | Apple Intelligence SDK | iOS implementation  | Feature additions, code validation, type/API impl      |
 | `/android` | Android SDK            | Android impl        | Feature additions, code validation, type/API impl      |
-| `/web`     | Web SDK                | Web implementation  | Chrome Built-in AI integration, feature/type/API impl  |
 | `/test`    | Test Engineer          | Test writing/run    | Both platform tests, execution, coverage check         |
 | `/docs`    | Documentation Manager  | Doc management      | Doc validation, auto-generation, API reference updates |
 
@@ -61,14 +57,6 @@
 /android check for new features and add them
 /android check existing code for issues
 /android implement VoiceRecognition feature
-```
-
-### `/web` - Web SDK
-
-```bash
-/web check for new features and add them
-/web check existing code for issues
-/web verify Summarizer API integration
 ```
 
 ### `/test` - Test Engineer

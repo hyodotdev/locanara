@@ -1,6 +1,6 @@
 {
   "name": "@locanara/android",
-  "version": "0.1.0",
+  "version": "1.0.2",
   "description": "Locanara SDK for Android (Gemini Nano)",
   "scripts": {
     "build": "./gradlew build",
@@ -16,5 +16,5 @@
     "ai"
   ],
   "author": "locanara",
-  "license": "MIT"
+  "license": "AGPL-3.0"
 }

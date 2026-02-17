@@ -1,0 +1,416 @@
+/* ==========================================================================
+   Code Block & Syntax Highlighting Styles
+   Token colors for syntax highlighting that cannot be achieved with
+   Tailwind inline classes.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Code Block Wrapper
+   -------------------------------------------------------------------------- */
+
+.code-block-wrapper {
+  position: relative;
+  margin: 1rem 0 1.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Code Block Badge (copy button / language label)
+   -------------------------------------------------------------------------- */
+
+.code-block-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 2;
+}
+
+.code-block-language {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #6b6560;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background-color: rgba(45, 42, 38, 0.06);
+  user-select: none;
+}
+
+.code-block-badge button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 4px;
+  background-color: rgba(45, 42, 38, 0.06);
+  color: #6b6560;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.code-block-badge button:hover {
+  background-color: rgba(45, 42, 38, 0.12);
+  color: #2d2a26;
+}
+
+/* --------------------------------------------------------------------------
+   Code Block (pre element)
+   -------------------------------------------------------------------------- */
+
+.code-block,
+pre.code-block {
+  background-color: #f7f5f2;
+  border: 1px solid rgba(45, 42, 38, 0.08);
+  border-radius: 0.5rem;
+  padding: 1.25rem 1rem;
+  overflow-x: auto;
+  font-family:
+    "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  tab-size: 2;
+  -moz-tab-size: 2;
+  color: #2d2a26;
+  margin: 0;
+}
+
+.code-block code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+  font-weight: normal;
+}
+
+/* --------------------------------------------------------------------------
+   Syntax Highlighting Tokens - Light Mode
+   -------------------------------------------------------------------------- */
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #8e8578;
+  font-style: italic;
+}
+
+.token.keyword,
+.token.control,
+.token.directive {
+  color: #9b2c83;
+  font-weight: 500;
+}
+
+.token.string,
+.token.char,
+.token.template-string {
+  color: #2e7d32;
+}
+
+.token.number,
+.token.boolean {
+  color: #c75000;
+}
+
+.token.function,
+.token.function-name {
+  color: #1565c0;
+}
+
+.token.class-name,
+.token.type-name,
+.token.maybe-class-name {
+  color: #00838f;
+}
+
+.token.builtin-type {
+  color: #c75000;
+}
+
+.token.custom-type {
+  color: #00838f;
+}
+
+.token.field {
+  color: #2d2a26;
+}
+
+.token.punctuation {
+  color: #6b6560;
+}
+
+.token.decorator,
+.token.annotation {
+  color: #9a7b00;
+}
+
+.token.symbol {
+  color: #9c27b0;
+}
+
+.token.tag {
+  color: #c62828;
+}
+
+.token.attr-name {
+  color: #c75000;
+}
+
+.token.attr-value {
+  color: #2e7d32;
+}
+
+.token.enum-value,
+.token.constant {
+  color: #00838f;
+}
+
+.token.required {
+  color: #c62828;
+}
+
+.token.property {
+  color: #2e7d32;
+}
+
+.token.operator {
+  color: #6b6560;
+}
+
+.token.variable {
+  color: #2d2a26;
+}
+
+.token.regex {
+  color: #c75000;
+}
+
+.token.inserted {
+  color: #2e7d32;
+}
+
+.token.deleted {
+  color: #c62828;
+}
+
+.token.namespace {
+  opacity: 0.8;
+}
+
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   Inline Code in Doc Pages
+   -------------------------------------------------------------------------- */
+
+.doc-page code:not(pre code) {
+  background-color: rgba(45, 42, 38, 0.06);
+  color: #2d2a26;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 500;
+  font-family:
+    "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "Courier New", monospace;
+  word-break: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   Custom Scrollbar for Code Blocks
+   -------------------------------------------------------------------------- */
+
+.code-block::-webkit-scrollbar {
+  height: 6px;
+}
+
+.code-block::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.code-block::-webkit-scrollbar-thumb {
+  background-color: rgba(45, 42, 38, 0.15);
+  border-radius: 3px;
+}
+
+.code-block::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(45, 42, 38, 0.25);
+}
+
+.code-block {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 42, 38, 0.15) transparent;
+}
+
+/* ==========================================================================
+   Dark Mode - Monokai/Sublime-Inspired
+   ========================================================================== */
+
+/* Code block container */
+.dark .code-block,
+.dark pre.code-block {
+  background-color: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.06);
+  color: #f8f8f2;
+}
+
+/* Badge & controls */
+.dark .code-block-language {
+  color: #999;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .code-block-badge button {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #999;
+}
+
+.dark .code-block-badge button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #f0f0f0;
+}
+
+/* --------------------------------------------------------------------------
+   Syntax Highlighting Tokens - Dark Mode (Monokai/Sublime)
+   -------------------------------------------------------------------------- */
+
+.dark .token.comment,
+.dark .token.prolog,
+.dark .token.doctype,
+.dark .token.cdata {
+  color: #75715e;
+  font-style: italic;
+}
+
+.dark .token.keyword,
+.dark .token.control,
+.dark .token.directive {
+  color: #f92672;
+  font-weight: 500;
+}
+
+.dark .token.string,
+.dark .token.char,
+.dark .token.template-string {
+  color: #e6db74;
+}
+
+.dark .token.number,
+.dark .token.boolean {
+  color: #ae81ff;
+}
+
+.dark .token.function,
+.dark .token.function-name {
+  color: #a6e22e;
+}
+
+.dark .token.class-name,
+.dark .token.type-name,
+.dark .token.maybe-class-name {
+  color: #66d9ef;
+  font-style: italic;
+}
+
+.dark .token.builtin-type {
+  color: #fd971f;
+}
+
+.dark .token.custom-type {
+  color: #66d9ef;
+}
+
+.dark .token.field {
+  color: #f8f8f2;
+}
+
+.dark .token.punctuation {
+  color: #a8a8a2;
+}
+
+.dark .token.decorator,
+.dark .token.annotation {
+  color: #e6db74;
+}
+
+.dark .token.symbol {
+  color: #ae81ff;
+}
+
+.dark .token.tag {
+  color: #f92672;
+}
+
+.dark .token.attr-name {
+  color: #a6e22e;
+}
+
+.dark .token.attr-value {
+  color: #e6db74;
+}
+
+.dark .token.enum-value,
+.dark .token.constant {
+  color: #66d9ef;
+}
+
+.dark .token.required {
+  color: #f92672;
+}
+
+.dark .token.property {
+  color: #a6e22e;
+}
+
+.dark .token.operator {
+  color: #f92672;
+}
+
+.dark .token.variable {
+  color: #f8f8f2;
+}
+
+.dark .token.regex {
+  color: #fd971f;
+}
+
+.dark .token.inserted {
+  color: #a6e22e;
+}
+
+.dark .token.deleted {
+  color: #f92672;
+}
+
+/* Inline code in dark mode */
+.dark .doc-page code:not(pre code) {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #f0f0f0;
+}
+
+/* Dark mode scrollbar for code blocks */
+.dark .code-block::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.dark .code-block::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.dark .code-block {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}

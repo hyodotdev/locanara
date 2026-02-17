@@ -1,0 +1,51 @@
+import { type ReactNode, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+
+interface AnchorLinkProps {
+  id: string;
+  level: "h1" | "h2" | "h3" | "h4";
+  children: ReactNode;
+}
+
+function AnchorLink({ id, level, children }: AnchorLinkProps) {
+  const Tag = level;
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash === `#${id}`) {
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: "instant", block: "start" });
+        }
+      }, 100);
+    }
+  }, [location, id]);
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "instant", block: "start" });
+      window.history.pushState(null, "", `#${id}`);
+    }
+    const url = `${window.location.pathname}#${id}`;
+    void navigator.clipboard.writeText(window.location.origin + url);
+  };
+
+  return (
+    <Tag id={id} className="anchor-heading">
+      {children}
+      <a
+        href={`#${id}`}
+        className="anchor-link"
+        onClick={handleClick}
+        aria-label="Direct link to heading"
+      >
+        #
+      </a>
+    </Tag>
+  );
+}
+
+export default AnchorLink;

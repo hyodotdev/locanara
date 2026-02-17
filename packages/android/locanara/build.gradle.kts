@@ -132,12 +132,12 @@ mavenPublishing {
     pom {
         name.set("Locanara Android SDK")
         description.set("On-device AI SDK for Android using Gemini Nano")
-        url.set("https://locanara.dev")
+        url.set("https://locanara.com")
 
         licenses {
             license {
-                name.set("MIT")
-                url.set("https://opensource.org/licenses/MIT")
+                name.set("AGPL-3.0")
+                url.set("https://www.gnu.org/licenses/agpl-3.0.html")
             }
         }
 

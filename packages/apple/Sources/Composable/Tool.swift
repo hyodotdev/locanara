@@ -51,6 +51,55 @@ public struct FunctionTool: Tool {
     }
 }
 
+// MARK: - Apple Foundation Models Tool Bridge
+
+#if canImport(FoundationModels)
+import FoundationModels
+
+/// Bridges a Locanara `Tool` to Apple's Foundation Models `Tool` protocol,
+/// enabling the on-device model to autonomously call tools during generation.
+///
+/// ```swift
+/// let weatherTool = FunctionTool(id: "weather", ...) { args in "Sunny" }
+/// let bridge = FoundationModelToolBridge(tool: weatherTool)
+/// let session = LanguageModelSession(tools: [bridge])
+/// ```
+@available(iOS 26.0, macOS 26.0, *)
+public struct FoundationModelToolBridge: FoundationModels.Tool {
+    public let name: String
+    public let description: String
+
+    @Generable
+    public struct Arguments {
+        @Guide(description: "JSON-encoded arguments as key-value pairs")
+        var arguments: String
+    }
+
+    private let locanaraTool: any Locanara.Tool
+
+    public init(tool: any Locanara.Tool) {
+        self.locanaraTool = tool
+        self.name = tool.id
+        self.description = "\(tool.description). Parameters: \(tool.parameterDescription)"
+    }
+
+    public typealias Output = String
+
+    public func call(arguments: Arguments) async throws -> String {
+        let parsed = Self.parseArguments(arguments.arguments)
+        return try await locanaraTool.execute(arguments: parsed)
+    }
+
+    private static func parseArguments(_ json: String) -> [String: String] {
+        guard let data = json.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return ["input": json]
+        }
+        return dict.mapValues { String(describing: $0) }
+    }
+}
+#endif
+
 // MARK: - Local Search Tool
 
 /// Built-in tool that performs on-device text search (no network)

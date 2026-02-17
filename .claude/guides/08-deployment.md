@@ -19,7 +19,7 @@ Located in `.github/workflows/`:
 | --------------------- | --------------------------- |
 | `release-apple.yml`   | Apple SDK → SPM + CocoaPods |
 | `release-android.yml` | Android SDK → Maven Central |
-| `deploy-docs.yml`     | Docs → Firebase Hosting     |
+| `deploy-site.yml`     | Site → Firebase Hosting     |
 
 ### Workflow Inputs
 
@@ -40,16 +40,27 @@ Each workflow has one input:
 
 ## Versioning
 
-Versions are tracked in `locanara-versions.json`:
+Versions are tracked in `locanara-versions.json` (single source of truth):
 
 ```json
 {
-  "version": "1.0.0",
-  "types": "1.0.0",
-  "apple": "1.0.0",
-  "android": "1.0.0"
+  "version": "1.0.0",      // Root package
+  "types": "1.0.0",        // GraphQL types
+  "apple": "1.0.0",        // iOS/macOS SDK
+  "android": "1.0.0"       // Android SDK
 }
 ```
+
+### Automatic Version Sync
+
+All release workflows automatically sync package.json versions using `bun run version:sync`:
+
+1. Workflow updates `locanara-versions.json`
+2. Runs `bun run version:sync`
+3. Commits synced package.json files
+4. Builds and publishes
+
+See [docs/VERSION_SYNC.md](../../docs/VERSION_SYNC.md) for implementation details.
 
 ## CI/CD
 
@@ -63,8 +74,11 @@ This repository uses **standard GitHub-hosted runners**.
 ### iOS
 
 - SPM minimum deployment target: iOS 17 (Package.swift)
-- Foundation Models (Apple Intelligence) require iOS 26+
-- llama.cpp engine requires iOS 17+ with Apple Silicon
+- Foundation Models (Apple Intelligence):
+  - **Minimum**: iOS 18.1+ (iPhone 15 Pro or later)
+  - **Recommended**: iOS 26+ for full feature support
+  - **Storage**: 7GB+ free space required
+- llama.cpp engine: iOS 17+ with Apple Silicon
 - Devices without Apple Intelligence can use llama.cpp with downloaded GGUF models
 
 ### Android
