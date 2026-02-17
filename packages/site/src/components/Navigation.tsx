@@ -103,6 +103,16 @@ export function Navigation() {
             >
               <Search className="w-4 h-4" />
             </button>
+            <a
+              href="https://github.com/hyodotdev/locanara"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 text-text-secondary dark:text-text-dark-secondary hover:text-text-primary dark:hover:text-text-dark-primary transition-colors"
+              aria-label="GitHub Repository"
+              title="View on GitHub"
+            >
+              <Github className="w-4 h-4" />
+            </a>
             <ThemeToggle />
             {showLoadingSkeleton ? (
               /* Loading auth state */
@@ -163,6 +173,15 @@ export function Navigation() {
                 </Link>
               ))}
               <div className="flex items-center gap-3 px-2 pt-2">
+                <a
+                  href="https://github.com/hyodotdev/locanara"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-text-secondary dark:text-text-dark-secondary hover:text-text-primary dark:hover:text-text-dark-primary transition-colors"
+                  aria-label="GitHub Repository"
+                >
+                  <Github className="w-4 h-4" />
+                </a>
                 <ThemeToggle />
                 {showLoadingSkeleton ? (
                   <div className="w-20 h-8 rounded bg-primary/10 dark:bg-white/10 animate-pulse" />
