@@ -69,8 +69,8 @@ public enum InferenceEngineFactory {
     ) async throws -> any InferenceEngine {
         switch type {
         case .llamaCpp:
-            guard #available(iOS 17.0, macOS 14.0, *) else {
-                throw LocanaraError.custom(.featureNotAvailable, "LlamaCppEngine requires iOS 17.0+ or macOS 14.0+")
+            guard #available(iOS 17.0, *) else {
+                throw LocanaraError.custom(.featureNotAvailable, "LlamaCppEngine requires iOS 17.0+")
             }
             let llamaConfig = LlamaCppEngine.Configuration(
                 numThreads: config.numThreads,

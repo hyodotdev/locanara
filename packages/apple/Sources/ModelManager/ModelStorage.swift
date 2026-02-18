@@ -313,6 +313,9 @@ public final class ModelStorage: @unchecked Sendable {
     ///
     /// - Returns: Available space in bytes
     public func getAvailableStorage() -> Int64 {
+        #if os(tvOS) || os(watchOS)
+        return 0
+        #else
         do {
             let values = try baseDirectory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
             return values.volumeAvailableCapacityForImportantUsage ?? 0
@@ -320,6 +323,7 @@ public final class ModelStorage: @unchecked Sendable {
             logger.error("Failed to get available storage: \(error.localizedDescription)")
             return 0
         }
+        #endif
     }
 
     /// Check if there's enough space for a model

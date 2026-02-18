@@ -366,8 +366,8 @@ public final class ModelManager: @unchecked Sendable {
             }
 
             // Fall through to built-in LlamaCppEngine
-            guard #available(iOS 17.0, macOS 14.0, *) else {
-                throw LocanaraError.modelLoadFailed("LlamaCppEngine requires iOS 17.0+ or macOS 14.0+")
+            guard #available(iOS 17.0, *) else {
+                throw LocanaraError.modelLoadFailed("LlamaCppEngine requires iOS 17.0+")
             }
             let engine = try await LlamaCppEngine.create(
                 modelPath: modelPath,
