@@ -113,6 +113,44 @@ if (capability.isSupported) {
       </section>
 
       <section>
+        <h2 id="model-management">Model Management</h2>
+        <p>
+          On iOS, you can download and switch between open-source GGUF models
+          using the llama.cpp engine. On Android, the Prompt API model (Gemini
+          Nano) can be downloaded when available.
+        </p>
+        <CodeBlock language="typescript">{`import {
+  getAvailableModels, downloadModel, loadModel,
+  getCurrentEngine, getDownloadedModels, deleteModel
+} from 'expo-ondevice-ai';
+
+// Browse available models (iOS)
+const models = await getAvailableModels();
+
+// Download with progress callback
+await downloadModel(models[0].modelId, (progress) => {
+  console.log(\`\${Math.round(progress.progress * 100)}%\`);
+});
+
+// Load and switch to it
+await loadModel(models[0].modelId);
+
+// Check current engine
+const engine = await getCurrentEngine();
+// 'foundation_models' | 'llama_cpp' | 'prompt_api' | 'none'
+
+// Clean up
+await deleteModel(models[0].modelId);`}</CodeBlock>
+        <p>
+          For a complete guide on switching between engines, see the{" "}
+          <Link to="/docs/tutorials/model-selection">
+            Model Selection tutorial
+          </Link>
+          .
+        </p>
+      </section>
+
+      <section>
         <h2 id="source-code">Source Code</h2>
         <p>
           <a

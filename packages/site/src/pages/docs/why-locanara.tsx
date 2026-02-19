@@ -147,6 +147,152 @@ let result = try await model.pipeline {
       </section>
 
       <section>
+        <h2 id="built-for-constraints">Built for On-Device Constraints</h2>
+        <p>
+          On-device models operate under constraints that cloud models don't
+          have. Locanara's framework layer is specifically designed to handle
+          these.
+        </p>
+
+        <h3>Memory: Automatic Context Management</h3>
+        <p>
+          On-device models typically have a{" "}
+          <strong>~4K token context window</strong> — roughly 32x smaller than
+          cloud models like GPT-4. Without memory management, conversations
+          break after just 5 turns because the full history won't fit in the
+          prompt.
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "1.5rem",
+            margin: "1.5rem 0",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                fontWeight: 600,
+                marginBottom: "0.5rem",
+                color: "var(--text-secondary)",
+              }}
+            >
+              Without Memory
+            </p>
+            <CodeBlock language="swift">{`// Manual token management
+var history: [String] = []
+history.append(input)
+history.append(response)
+
+// Exceeds context window? Just truncate.
+while estimateTokens(history) > 2000 {
+    history.removeFirst() // Context lost
+}`}</CodeBlock>
+          </div>
+          <div>
+            <p
+              style={{
+                fontWeight: 600,
+                marginBottom: "0.5rem",
+                color: "var(--text-primary)",
+              }}
+            >
+              With SummaryMemory
+            </p>
+            <CodeBlock language="swift">{`// Older turns are auto-summarized,
+// not just dropped
+let memory = SummaryMemory(recentWindowSize: 4)
+
+// Turn 1-4: full detail kept
+// Turn 5+: older turns compressed
+// "Previous summary: User asked about
+//  travel plans to Tokyo..."
+// [Turn 3 full] [Turn 4 full]`}</CodeBlock>
+          </div>
+        </div>
+        <p>
+          <code>SummaryMemory</code> uses the on-device model itself to compress
+          older conversation turns into a summary, preserving context while
+          staying within the token budget. This is unnecessary for 128K-token
+          cloud models, but{" "}
+          <strong>essential for 4K-token on-device models</strong>.
+        </p>
+
+        <h3>Guardrails: Input/Output Safety</h3>
+        <p>
+          On-device models have <strong>weaker built-in safety filters</strong>{" "}
+          than cloud models. They also have strict input length limits. Without
+          guardrails, you end up copy-pasting validation code across every AI
+          feature.
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "1.5rem",
+            margin: "1.5rem 0",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                fontWeight: 600,
+                marginBottom: "0.5rem",
+                color: "var(--text-secondary)",
+              }}
+            >
+              Without Guardrails
+            </p>
+            <CodeBlock language="swift">{`// Repeated in every AI feature
+if input.count > 4000 {
+    input = String(input.prefix(4000))
+}
+if input.contains("password") {
+    throw BlockedError()
+}
+let result = try await model.generate(input)
+if result.contains("sensitive") {
+    throw BlockedError()
+}
+// × 10 features = boilerplate hell`}</CodeBlock>
+          </div>
+          <div>
+            <p
+              style={{
+                fontWeight: 600,
+                marginBottom: "0.5rem",
+                color: "var(--text-primary)",
+              }}
+            >
+              With GuardedChain
+            </p>
+            <CodeBlock language="swift">{`// Define once, apply to any chain
+let safe = GuardedChain(
+    chain: myFeatureChain,
+    guardrails: [
+        InputLengthGuardrail(maxCharacters: 4000),
+        ContentFilterGuardrail(
+            blockedPatterns: ["password", "SSN"]
+        )
+    ]
+)
+// ✓ Auto-truncates long input
+// ✓ Blocks sensitive input & output
+// ✓ Reusable across all features`}</CodeBlock>
+          </div>
+        </div>
+        <p>
+          Guardrails wrap any chain with automatic{" "}
+          <strong>pre-execution</strong> (input validation, truncation) and{" "}
+          <strong>post-execution</strong> (output filtering) checks — defined
+          once, applied everywhere.
+        </p>
+      </section>
+
+      <section>
         <h2 id="schema-driven">Schema-Driven Cross-Platform Types</h2>
         <p>
           Locanara uses a{" "}
@@ -496,15 +642,18 @@ println(result.summary)
       <section>
         <h2 id="getting-started">Getting Started</h2>
         <p>
-          Ready to add on-device AI to your app? Check out our platform-specific
-          tutorials:
+          Ready to add on-device AI to your app? Set up the SDK and explore the
+          feature tutorials:
         </p>
         <ul style={{ marginTop: "1rem" }}>
           <li>
-            <Link to="/docs/tutorials/ios">iOS SDK Tutorial</Link>
+            <Link to="/docs/ios-setup">iOS Setup Guide</Link>
           </li>
           <li>
-            <Link to="/docs/tutorials/android">Android SDK Tutorial</Link>
+            <Link to="/docs/android-setup">Android Setup Guide</Link>
+          </li>
+          <li>
+            <Link to="/docs/tutorials">Feature Tutorials</Link>
           </li>
         </ul>
       </section>

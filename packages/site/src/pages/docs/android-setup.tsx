@@ -2,7 +2,6 @@ import { SEO } from "../../components/SEO";
 import CodeBlock from "../../components/docs/CodeBlock";
 import AnchorLink from "../../components/docs/AnchorLink";
 import Callout from "../../components/docs/Callout";
-import PlatformBadge from "../../components/docs/PlatformBadge";
 import PageNavigation from "../../components/docs/PageNavigation";
 
 function AndroidSetup() {
@@ -16,8 +15,6 @@ function AndroidSetup() {
       />
       <h1>Android Setup Guide</h1>
       <p>Setting up Locanara for Android with Gemini Nano and ML Kit GenAI.</p>
-
-      <PlatformBadge platforms={["android"]} />
 
       <section>
         <AnchorLink id="requirements" level="h2">
@@ -149,7 +146,7 @@ println("Original: \${result.originalLength} chars")`}
         <CodeBlock
           language="kotlin"
           code={`import com.locanara.builtin.RewriteChain
-import com.locanara.builtin.RewriteOutputType
+import com.locanara.RewriteOutputType
 
 // Using RewriteChain
 val result = RewriteChain(style = RewriteOutputType.PROFESSIONAL).run(
@@ -327,9 +324,10 @@ println(r2.message)  // Remembers context from previous turn`}
 
         <Callout type="danger" title="Important">
           <p>
-            Gemini Nano models run entirely on-device. There is{" "}
-            <strong>no cloud fallback</strong> - if the device doesn't support
-            Gemini Nano, the feature will not work.
+            All AI processing runs entirely on-device.{" "}
+            <strong>There is no cloud fallback.</strong> If Gemini Nano is not
+            available, the SDK can use the ExecuTorch engine as an alternative
+            on-device backend with downloaded models on supported devices.
           </p>
         </Callout>
       </section>
