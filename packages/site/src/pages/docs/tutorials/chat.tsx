@@ -254,7 +254,7 @@ chain.streamRun("Explain Jetpack Compose").collect { chunk ->
 const result = await chatStream('Explain React Native', {
   systemPrompt: 'You are a helpful assistant.',
   onChunk: (chunk) => {
-    process.stdout.write(chunk.delta)
+    console.log(chunk.delta)
   }
 })
 console.log('\\nFull response:', result.message)`,

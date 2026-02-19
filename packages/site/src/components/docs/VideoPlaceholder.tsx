@@ -16,24 +16,13 @@ function VideoPlaceholder({ caption, src }: VideoPlaceholderProps) {
   if (src) {
     return (
       <div className="video-placeholder">
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
+        <div className="flex flex-col items-center">
           <video
             src={src}
             controls
             playsInline
             preload="metadata"
-            style={{
-              width: "100%",
-              maxWidth: "280px",
-              borderRadius: "1.5rem",
-              backgroundColor: "#000",
-            }}
+            className="w-full max-w-[280px] rounded-xl bg-black"
           />
           <p className="video-caption">{caption}</p>
         </div>
@@ -43,21 +32,8 @@ function VideoPlaceholder({ caption, src }: VideoPlaceholderProps) {
 
   return (
     <div className="video-placeholder">
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <div
-          className="video-placeholder-box"
-          style={{
-            maxWidth: "280px",
-            aspectRatio: "9 / 19.5",
-            borderRadius: "1.5rem",
-          }}
-        >
+      <div className="flex flex-col items-center">
+        <div className="video-placeholder-box max-w-[280px] aspect-[9/19.5]">
           <div className="video-placeholder-icon">
             <Play size={32} />
           </div>

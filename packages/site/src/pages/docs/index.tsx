@@ -144,7 +144,7 @@ function Docs() {
               </NavLink>
             </li>
           </ul>
-          <h3 style={{ marginTop: "2rem" }}>Reference</h3>
+          <h3 className="mt-8">Reference</h3>
           <ul>
             <MenuDropdown
               title="Types"
@@ -216,7 +216,7 @@ function Docs() {
               </NavLink>
             </li>
           </ul>
-          <h3 style={{ marginTop: "2rem" }}>Setup Guides</h3>
+          <h3 className="mt-8">Setup Guides</h3>
           <ul>
             <li>
               <NavLink
@@ -236,8 +236,17 @@ function Docs() {
                 Android Setup
               </NavLink>
             </li>
+            <li>
+              <NavLink
+                to="/docs/web-setup"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Web Setup
+              </NavLink>
+            </li>
           </ul>
-          <h3 style={{ marginTop: "2rem" }}>Tutorials</h3>
+          <h3 className="mt-8">Tutorials</h3>
           <ul>
             <li>
               <NavLink
@@ -312,7 +321,7 @@ function Docs() {
               </NavLink>
             </li>
           </ul>
-          <h3 style={{ marginTop: "2rem" }}>Libraries</h3>
+          <h3 className="mt-8">Libraries</h3>
           <ul>
             <li>
               <NavLink
