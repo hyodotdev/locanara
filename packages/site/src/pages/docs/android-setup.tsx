@@ -326,8 +326,8 @@ println(r2.message)  // Remembers context from previous turn`}
           <p>
             All AI processing runs entirely on-device.{" "}
             <strong>There is no cloud fallback.</strong> If Gemini Nano is not
-            available, the SDK can fall back to the ExecuTorch engine with
-            downloaded models on supported devices.
+            available, the SDK can use the ExecuTorch engine as an alternative
+            on-device backend with downloaded models on supported devices.
           </p>
         </Callout>
       </section>

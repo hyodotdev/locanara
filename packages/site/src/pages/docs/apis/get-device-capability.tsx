@@ -92,7 +92,7 @@ if capability.isSupported {
     print("Available features: \\(capability.availableFeatures)")
 } else {
     print("On-device AI is not supported on this device")
-    // Fall back to cloud API or disable AI features
+    // Disable AI features or show a fallback UI
 }`}</CodeBlock>
             ),
             kotlin: (
@@ -106,7 +106,7 @@ if (capability.isSupported) {
     println("Available features: \${capability.availableFeatures}")
 } else {
     println("On-device AI is not supported on this device")
-    // Fall back to cloud API or disable AI features
+    // Disable AI features or show a fallback UI
 }`}</CodeBlock>
             ),
             typescript: (
