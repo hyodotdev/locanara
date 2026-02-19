@@ -14,7 +14,7 @@ Locanara is an on-device AI framework inspired by LangChain, purpose-built for m
 
 No cloud. No data leaves. Privacy by design.
 
-**Documentation**: [locanara.com](https://locanara.com)
+**Documentation**: [locanara.com](https://locanara.com) | **Blog**: [LangChain for Mobile, Entirely On-Device — Meet Locanara](https://medium.com/dooboolab/langchain-for-mobile-entirely-on-device-meet-locanara-33112ade3b0e)
 
 ---
 
@@ -22,19 +22,19 @@ No cloud. No data leaves. Privacy by design.
 
 ### iOS / macOS
 
-| Engine | Description | Requirements |
-|--------|-------------|--------------|
-| Apple Intelligence | OS-level Foundation Models | iOS 18.1+ / macOS 15.1+ (iOS 26+ / macOS 26+ recommended), Apple Silicon, 7GB+ free space |
-| llama.cpp | GGUF models with Metal GPU acceleration | iOS 17+ / macOS 14+, Apple Silicon |
-| CoreML | Neural Engine accelerated inference | iOS 17+ / macOS 14+, Apple Silicon |
-| MLX | Apple Silicon optimized inference | macOS 14+, Apple Silicon |
+| Engine             | Description                             | Requirements                                                                              |
+| ------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Apple Intelligence | OS-level Foundation Models              | iOS 18.1+ / macOS 15.1+ (iOS 26+ / macOS 26+ recommended), Apple Silicon, 7GB+ free space |
+| llama.cpp          | GGUF models with Metal GPU acceleration | iOS 17+ / macOS 14+, Apple Silicon                                                        |
+| CoreML             | Neural Engine accelerated inference     | iOS 17+ / macOS 14+, Apple Silicon                                                        |
+| MLX                | Apple Silicon optimized inference       | macOS 14+, Apple Silicon                                                                  |
 
 ### Android
 
-| Engine | Description | Requirements |
-|--------|-------------|--------------|
-| Gemini Nano | ML Kit GenAI (Prompt API) | Android 14+ (API 34+) |
-| ExecuTorch | Meta's on-device inference runtime | Android 12+ (API 31+) |
+| Engine      | Description                        | Requirements          |
+| ----------- | ---------------------------------- | --------------------- |
+| Gemini Nano | ML Kit GenAI (Prompt API)          | Android 14+ (API 34+) |
+| ExecuTorch  | Meta's on-device inference runtime | Android 12+ (API 31+) |
 
 > Locanara automatically detects device capabilities and routes inference to the best available engine.
 
@@ -124,15 +124,15 @@ implementation("com.locanara:locanara:1.0.0")
 
 7 ready-to-use chains, each returning typed results:
 
-| Chain | Result Type | Description |
-|-------|-------------|-------------|
-| SummarizeChain | SummarizeResult | Text summarization |
-| ClassifyChain | ClassifyResult | Text classification |
-| ExtractChain | ExtractResult | Entity extraction |
-| ChatChain | ChatResult | Conversational AI with memory |
-| TranslateChain | TranslateResult | Language translation |
-| RewriteChain | RewriteResult | Text rewriting by style |
-| ProofreadChain | ProofreadResult | Grammar correction |
+| Chain          | Result Type     | Description                   |
+| -------------- | --------------- | ----------------------------- |
+| SummarizeChain | SummarizeResult | Text summarization            |
+| ClassifyChain  | ClassifyResult  | Text classification           |
+| ExtractChain   | ExtractResult   | Entity extraction             |
+| ChatChain      | ChatResult      | Conversational AI with memory |
+| TranslateChain | TranslateResult | Language translation          |
+| RewriteChain   | RewriteResult   | Text rewriting by style       |
+| ProofreadChain | ProofreadResult | Grammar correction            |
 
 ### Engine System
 
@@ -208,4 +208,4 @@ AGPL-3.0 License — see [LICENSE](./LICENSE) for details.
 
 ---
 
-*Built with conviction that AI should run where your data lives — on your device.*
+_Built with conviction that AI should run where your data lives — on your device._
