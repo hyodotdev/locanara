@@ -157,7 +157,7 @@ let result = try await model.pipeline {
         <h3>Memory: Automatic Context Management</h3>
         <p>
           On-device models typically have a{" "}
-          <strong>~4K token context window</strong> — roughly 50x smaller than
+          <strong>~4K token context window</strong> — roughly 32x smaller than
           cloud models like GPT-4. Without memory management, conversations
           break after just 5 turns because the full history won't fit in the
           prompt.
@@ -205,11 +205,11 @@ while estimateTokens(history) > 2000 {
 // not just dropped
 let memory = SummaryMemory(recentWindowSize: 4)
 
-// Turn 1-6: full detail kept
-// Turn 7+: older turns compressed
+// Turn 1-4: full detail kept
+// Turn 5+: older turns compressed
 // "Previous summary: User asked about
 //  travel plans to Tokyo..."
-// [Turn 6 full] [Turn 7 full]`}</CodeBlock>
+// [Turn 3 full] [Turn 4 full]`}</CodeBlock>
           </div>
         </div>
         <p>

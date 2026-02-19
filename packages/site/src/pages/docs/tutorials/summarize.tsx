@@ -23,7 +23,7 @@ function SummarizeTutorial() {
         <h2>1. Summarization</h2>
         <p>
           Summarize text with a configurable bullet count (1, 2, or 3). Results
-          include the summary, character counts, and confidence score.
+          include the summary and character counts.
         </p>
 
         <CodeTabs
@@ -84,7 +84,7 @@ console.log(three.summary)`,
 
         <VideoPlaceholder
           src="/features/summarize_1.mp4"
-          caption="Text input with bullet count segmented picker (1/2/3) → Summarize button → summary result with original/summary character counts and confidence score"
+          caption="Text input with bullet count segmented picker (1/2/3) → Summarize button → summary result with original/summary character counts"
         />
       </section>
 

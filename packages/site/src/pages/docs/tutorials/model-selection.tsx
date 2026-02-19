@@ -295,7 +295,7 @@ locanara.unloadModels(emptyList())`,
             {
               label: "TypeScript",
               language: "typescript",
-              code: `import { getDownloadedModels, getLoadedModel, deleteModel } from 'expo-ondevice-ai';
+              code: `import { getDownloadedModels, getLoadedModel, loadModel, deleteModel } from 'expo-ondevice-ai';
 
 // Check what's downloaded
 const downloaded = await getDownloadedModels();
@@ -304,6 +304,9 @@ console.log(downloaded);  // ['llama-3.2-1b']
 // Check what's loaded
 const loaded = await getLoadedModel();
 console.log(loaded);  // 'llama-3.2-1b'
+
+// Switch back to default before deleting
+await loadModel('');  // Unload current model
 
 // Delete the model
 await deleteModel('llama-3.2-1b');`,

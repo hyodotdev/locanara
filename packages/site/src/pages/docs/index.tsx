@@ -79,6 +79,8 @@ function Docs() {
       setExpandedReference("apis");
     } else if (path.includes("/docs/utils")) {
       setExpandedReference("utils");
+    } else {
+      setExpandedReference(null);
     }
   }, [location.pathname]);
 

@@ -399,14 +399,14 @@ class ChatViewModel {
             {
               label: "TypeScript",
               language: "typescript",
-              code: `import { useState, useCallback } from 'react'
+              code: `import { useState, useCallback, useRef } from 'react'
 import { chatStream, ChatMessage } from 'expo-ondevice-ai'
 
 function useChat(systemPrompt: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [currentResponse, setCurrentResponse] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
-  const history: ChatMessage[] = []
+  const historyRef = useRef<ChatMessage[]>([])
 
   const send = useCallback(async (message: string) => {
     setMessages(prev => [...prev, { role: 'user', content: message }])
@@ -416,18 +416,18 @@ function useChat(systemPrompt: string) {
     try {
       const result = await chatStream(message, {
         systemPrompt,
-        history,
+        history: historyRef.current,
         onChunk: (chunk) => setCurrentResponse(chunk.accumulated)
       })
       setMessages(prev => [...prev, { role: 'assistant', content: result.message }])
-      history.push({ role: 'user', content: message })
-      history.push({ role: 'assistant', content: result.message })
+      historyRef.current.push({ role: 'user', content: message })
+      historyRef.current.push({ role: 'assistant', content: result.message })
     } catch (e) {
       setMessages(prev => [...prev, { role: 'assistant', content: \`Error: \${e}\` }])
     }
     setCurrentResponse('')
     setIsStreaming(false)
-  }, [])
+  }, [systemPrompt])
 
   return { messages, currentResponse, isStreaming, send }
 }`,
