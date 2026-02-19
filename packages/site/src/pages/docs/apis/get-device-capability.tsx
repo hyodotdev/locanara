@@ -110,10 +110,10 @@ if (capability.isSupported) {
 }`}</CodeBlock>
             ),
             typescript: (
-              <CodeBlock language="typescript">{`import { Locanara } from 'react-native-locanara';
+              <CodeBlock language="typescript">{`import { getDeviceCapability } from 'expo-ondevice-ai';
 
 // Check device capability
-const capability = await Locanara.getDeviceCapability();
+const capability = await getDeviceCapability();
 
 if (capability.isSupported) {
   console.log('On-device AI is available!');
@@ -158,8 +158,10 @@ if (capability.availableFeatures.contains(FeatureType.SUMMARIZE)) {
 }`}</CodeBlock>
             ),
             typescript: (
-              <CodeBlock language="typescript">{`// Check if specific feature is available
-const capability = await Locanara.getDeviceCapability();
+              <CodeBlock language="typescript">{`import { getDeviceCapability } from 'expo-ondevice-ai';
+
+// Check if specific feature is available
+const capability = await getDeviceCapability();
 
 const canSummarize = capability.availableFeatures.includes('SUMMARIZE');
 

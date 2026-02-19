@@ -17,9 +17,8 @@ function UtilsIndex() {
       <p>
         Ready-to-use AI utility functions that ship with Locanara. Each utility
         is available as a <strong>Chain</strong> (composable with Pipeline,
-        Guardrails, Memory), as a <strong>model convenience method</strong>{" "}
-        (e.g., <code>model.summarize()</code>), and via the{" "}
-        <strong>low-level</strong> <code>executeFeature()</code> API.
+        Guardrails, Memory) and as a <strong>model convenience method</strong>{" "}
+        (e.g., <code>model.summarize()</code>).
       </p>
       <p className="type-link">
         For framework core APIs (Chain, Pipeline, Memory, Guardrail, Session,
@@ -35,10 +34,6 @@ function UtilsIndex() {
           <li>
             <strong>Model Extensions</strong>: <code>model.summarize()</code>,{" "}
             <code>model.translate()</code> — convenience methods
-          </li>
-          <li>
-            <strong>Low-Level API</strong>: <code>executeFeature()</code> —
-            direct feature execution
           </li>
         </ul>
       </TLDRBox>
@@ -464,10 +459,6 @@ function UtilsIndex() {
           <li>
             <strong>Model Extensions</strong>: <code>model.summarize()</code>,{" "}
             <code>model.translate()</code> — convenience methods
-          </li>
-          <li>
-            <strong>Low-Level API</strong>:{" "}
-            <code>executeFeature(.summarize)</code> — direct execution
           </li>
           <li>
             <strong>iOS-only</strong>: <code>getFoundationModelStatus</code>

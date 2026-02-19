@@ -60,9 +60,9 @@ val capability = locanara.getDeviceCapability()
 println(capability.supportsOnDeviceAI)
 println(capability.availableFeatures)
 
-// Check current engine
-val engine = locanara.getCurrentEngine()
-println(engine)`,
+// Check Gemini Nano / Prompt API status
+val status = locanara.getPromptApiStatus()
+println(status)  // Available, Downloadable, Downloading, or NotAvailable`,
             },
             {
               label: "TypeScript",
@@ -115,17 +115,22 @@ print("Local: \\(localResult.summary)")`,
             {
               label: "Kotlin",
               language: "kotlin",
-              code: `val locanara = Locanara.getInstance(context)
+              code: `import com.locanara.Locanara
+import com.locanara.builtin.SummarizeChain
 
-// Use native AI (Gemini Nano)
-locanara.switchToDeviceAI()
-val nativeResult = SummarizeChain().run(text)
-println("Native: \${nativeResult.summary}")
+val locanara = Locanara.getInstance(context)
 
-// Switch to downloaded model (ExecuTorch)
-locanara.switchToExternalModel("llama-3.2-1b")
-val localResult = SummarizeChain().run(text)
-println("Local: \${localResult.summary}")`,
+// Android uses Gemini Nano via ML Kit (auto-managed by OS)
+val result = SummarizeChain().run(text)
+println("Result: \${result.summary}")
+
+// If Prompt API model needs downloading
+val status = locanara.getPromptApiStatus()
+if (status is PromptApiStatus.Downloadable) {
+    locanara.downloadPromptApiModel { progress ->
+        println("Download: \${progress}")
+    }
+}`,
             },
             {
               label: "TypeScript",
@@ -179,11 +184,10 @@ for model in models {
               language: "kotlin",
               code: `val locanara = Locanara.getInstance(context)
 
-// Browse available models
-val models = locanara.getAvailableModels()
-models.forEach { model ->
-    println("\${model.name} — \${model.sizeMB}MB, \${model.quantization}")
-}`,
+// Check Gemini Nano status
+val nanoStatus = locanara.getGeminiNanoStatus()
+println("\${nanoStatus.version} — ready: \${nanoStatus.isReady}")
+println("Capabilities: \${nanoStatus.capabilities}")`,
             },
             {
               label: "TypeScript",
@@ -217,14 +221,17 @@ print(locanara.getCurrentEngine())  // .llamaCpp`,
             {
               label: "Kotlin",
               language: "kotlin",
-              code: `// Download with progress
-locanara.downloadModelWithProgress("llama-3.2-1b") { progress ->
-    println("\${(progress * 100).toInt()}%")
+              code: `// Download Prompt API model (Gemini Nano) if needed
+val status = locanara.getPromptApiStatus()
+if (status is PromptApiStatus.Downloadable) {
+    locanara.downloadPromptApiModel { progress ->
+        println("Downloading: \$progress")
+    }
 }
 
-// Load into memory (also switches engine)
-locanara.loadModel("llama-3.2-1b")
-println(locanara.getCurrentEngine())`,
+// After download, initialize Gemini Nano
+locanara.initializeGeminiNano()
+println("Gemini Nano ready: \${locanara.getGeminiNanoStatus().isReady}")`,
             },
             {
               label: "TypeScript",
@@ -277,15 +284,13 @@ try locanara.deleteModel("llama-3.2-1b")`,
               language: "kotlin",
               code: `val locanara = Locanara.getInstance(context)
 
-// Check what's downloaded
-val downloaded = locanara.getDownloadedModels()
-println(downloaded)  // ["llama-3.2-1b"]
+// Android models are managed by the OS (ML Kit / AICore)
+// Recheck Prompt API status after changes
+val status = locanara.recheckPromptApiStatus()
+println("Prompt API: \$status")
 
-// Switch back to native AI before deleting
-locanara.switchToDeviceAI()
-
-// Delete the model
-locanara.deleteModel("llama-3.2-1b")`,
+// Unload models to free memory
+locanara.unloadModels(emptyList())`,
             },
             {
               label: "TypeScript",
@@ -315,16 +320,14 @@ await deleteModel('llama-3.2-1b');`,
             engine by default — recommended for most use cases
           </li>
           <li>
-            <strong>switchToDeviceAI()</strong>: Force native AI (Apple
-            Intelligence / Gemini Nano)
+            <strong>iOS</strong>: <code>switchToDeviceAI()</code> /{" "}
+            <code>switchToExternalModel()</code> for manual engine control;{" "}
+            <code>downloadModelWithProgress()</code> / <code>loadModel()</code>{" "}
+            / <code>deleteModel()</code> for open-source model management
           </li>
           <li>
-            <strong>switchToExternalModel()</strong>: Force downloaded model
-            (llama.cpp / ExecuTorch)
-          </li>
-          <li>
-            <strong>loadModel()</strong>: Download and load open-source models
-            for offline use
+            <strong>Android</strong>: Models are OS-managed via ML Kit / AICore;
+            use <code>downloadPromptApiModel()</code> to download Gemini Nano
           </li>
           <li>All engines run entirely on-device — no cloud fallback</li>
         </ul>

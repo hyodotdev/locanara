@@ -146,7 +146,7 @@ println("Original: \${result.originalLength} chars")`}
         <CodeBlock
           language="kotlin"
           code={`import com.locanara.builtin.RewriteChain
-import com.locanara.builtin.RewriteOutputType
+import com.locanara.RewriteOutputType
 
 // Using RewriteChain
 val result = RewriteChain(style = RewriteOutputType.PROFESSIONAL).run(

@@ -122,7 +122,7 @@ const result = await chat('How do I reset my password?', {
             {
               label: "Swift",
               language: "swift",
-              code: `let memory = BufferMemory(maxTurns: 10)
+              code: `let memory = BufferMemory(maxEntries: 10)
 let chain = ChatChain(
     memory: memory,
     systemPrompt: "You are a helpful coding assistant."
@@ -135,7 +135,7 @@ print(r2.message)  // Remembers previous context`,
             {
               label: "Kotlin",
               language: "kotlin",
-              code: `val memory = BufferMemory(maxTurns = 10)
+              code: `val memory = BufferMemory(maxEntries = 10)
 val chain = ChatChain(
     memory = memory,
     systemPrompt = "You are a helpful coding assistant."
@@ -272,24 +272,32 @@ console.log('\\nFull response:', result.message)`,
               label: "Swift",
               language: "swift",
               code: `let session = Session(
-    systemPrompt: "You are a helpful assistant.",
-    memory: BufferMemory(maxTurns: 20)
+    memory: BufferMemory(maxEntries: 20)
 )
 
 let r1 = try await session.send("What is Swift?")
-print("Turn count: \\(session.turnCount)")
-session.reset()`,
+print(r1)
+
+// Continue conversation (memory tracks turns automatically)
+let r2 = try await session.send("How does it compare to Kotlin?")
+print(r2)
+
+await session.reset()`,
             },
             {
               label: "Kotlin",
               language: "kotlin",
               code: `val session = Session(
-    systemPrompt = "You are a helpful assistant.",
-    memory = BufferMemory(maxTurns = 20)
+    memory = BufferMemory(maxEntries = 20)
 )
 
 val r1 = session.send("What is Kotlin?")
-println("Turn count: \${session.turnCount}")
+println(r1)
+
+// Continue conversation (memory tracks turns automatically)
+val r2 = session.send("How does it compare to Swift?")
+println(r2)
+
 session.reset()`,
             },
             {
@@ -331,7 +339,7 @@ class ChatViewModel {
 
     init() {
         self.chain = ChatChain(
-            memory: BufferMemory(maxTurns: 20),
+            memory: BufferMemory(maxEntries: 20),
             systemPrompt: "You are a helpful assistant."
         )
     }
@@ -360,7 +368,7 @@ class ChatViewModel {
               language: "kotlin",
               code: `class ChatViewModel : ViewModel() {
     private val chain = ChatChain(
-        memory = BufferMemory(maxTurns = 20),
+        memory = BufferMemory(maxEntries = 20),
         systemPrompt = "You are a helpful assistant."
     )
 

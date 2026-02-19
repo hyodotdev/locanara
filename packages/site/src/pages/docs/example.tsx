@@ -310,7 +310,7 @@ do {
         <CodeBlock
           language="kotlin"
           code={`// Support chat with memory and streaming
-val memory = BufferMemory(maxTurns = 20)
+val memory = BufferMemory(maxEntries = 20)
 val chain = ChatChain(
     memory = memory,
     systemPrompt = "You are a helpful customer support agent for an e-commerce app."

@@ -82,49 +82,6 @@ val result = LocanaraDefaults.model.extract("John Smith meets Sarah at Apple Par
       </section>
 
       <section>
-        <AnchorLink id="signature" level="h2">
-          Low-Level API Signature
-        </AnchorLink>
-        <LanguageTabs>
-          {{
-            swift: (
-              <CodeBlock language="swift">{`func extract(
-    input: String,
-    parameters: ExtractParametersInput?
-) async throws -> ExtractResult
-
-struct ExtractParametersInput {
-    let entityTypes: [String]?    // Types to extract (nil = all)
-    let extractKeyValues: Bool?   // Whether to extract key-value pairs
-}`}</CodeBlock>
-            ),
-            kotlin: (
-              <CodeBlock language="kotlin">{`suspend fun extract(
-    input: String,
-    parameters: ExtractParametersInput? = null
-): ExtractResult
-
-data class ExtractParametersInput(
-    val entityTypes: List<String>? = null,  // Types to extract (null = all)
-    val extractKeyValues: Boolean? = null   // Whether to extract key-value pairs
-)`}</CodeBlock>
-            ),
-            typescript: (
-              <CodeBlock language="typescript">{`async function extract(
-  input: string,
-  parameters?: ExtractParametersInput
-): Promise<ExtractResult>
-
-interface ExtractParametersInput {
-  entityTypes?: string[];    // Types to extract (undefined = all)
-  extractKeyValues?: boolean;  // Whether to extract key-value pairs
-}`}</CodeBlock>
-            ),
-          }}
-        </LanguageTabs>
-      </section>
-
-      <section>
         <AnchorLink id="result" level="h2">
           Result
         </AnchorLink>
@@ -189,79 +146,6 @@ interface KeyValuePair {
   value: string;
   confidence?: number;
 }`}</CodeBlock>
-            ),
-          }}
-        </LanguageTabs>
-      </section>
-
-      <section>
-        <AnchorLink id="example" level="h2">
-          Low-Level API Example
-        </AnchorLink>
-        <LanguageTabs>
-          {{
-            swift: (
-              <CodeBlock language="swift">{`import Locanara
-
-// Extract all entities
-let result = try await LocanaraClient.shared.executeFeature(
-    ExecuteFeatureInput(
-        feature: .extract,
-        input: "John Smith will meet Sarah Johnson at Apple Park in Cupertino on December 15th, 2024."
-    )
-)
-
-if case .extract(let extraction) = result.result {
-    for entity in extraction.entities {
-        print("\\(entity.type): \\(entity.value) (\\(entity.confidence))")
-    }
-    // Output:
-    // person: John Smith (0.95)
-    // person: Sarah Johnson (0.94)
-    // organization: Apple (0.92)
-    // location: Cupertino (0.96)
-    // date: December 15th, 2024 (0.98)
-}`}</CodeBlock>
-            ),
-            kotlin: (
-              <CodeBlock language="kotlin">{`import com.locanara.Locanara
-
-// Extract all entities
-val result = locanara.executeFeature(
-    ExecuteFeatureInput(
-        feature = FeatureType.EXTRACT,
-        input = "John Smith will meet Sarah Johnson at Apple Park in Cupertino on December 15th, 2024."
-    )
-)
-
-val extraction = result.result?.extract
-extraction?.entities?.forEach { entity ->
-    println("\${entity.type}: \${entity.value} (\${entity.confidence})")
-}
-// Output:
-// person: John Smith (0.95)
-// person: Sarah Johnson (0.94)
-// organization: Apple (0.92)
-// location: Cupertino (0.96)
-// date: December 15th, 2024 (0.98)`}</CodeBlock>
-            ),
-            typescript: (
-              <CodeBlock language="typescript">{`import { Locanara } from 'react-native-locanara';
-
-// Extract all entities
-const result = await Locanara.extract({
-  input: "John Smith will meet Sarah Johnson at Apple Park in Cupertino on December 15th, 2024.",
-});
-
-result.entities.forEach(entity => {
-  console.log(\`\${entity.type}: \${entity.value} (\${entity.confidence})\`);
-});
-// Output:
-// person: John Smith (0.95)
-// person: Sarah Johnson (0.94)
-// organization: Apple (0.92)
-// location: Cupertino (0.96)
-// date: December 15th, 2024 (0.98)`}</CodeBlock>
             ),
           }}
         </LanguageTabs>
