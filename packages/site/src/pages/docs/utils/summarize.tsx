@@ -135,19 +135,6 @@ interface SummarizeParametersInput {
   autoTruncate?: boolean;  // Default: true
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`Future<SummarizeResult> summarize(
-  String input, {
-  SummarizeParametersInput? parameters,
-});
-
-class SummarizeParametersInput {
-  final SummarizeInputType? inputType;    // article or conversation
-  final SummarizeOutputType? outputType;  // oneBullet, twoBullets, threeBullets
-  final MLKitLanguage? language;
-  final bool? autoTruncate;               // Default: true
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -329,14 +316,6 @@ class SummarizeParametersInput {
   confidence?: number;    // Confidence score (0.0 - 1.0)
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`class SummarizeResult {
-  final String summary;        // Summarized text
-  final int originalLength;    // Original text character count
-  final int summaryLength;     // Summary character count
-  final double? confidence;    // Confidence score (0.0 - 1.0)
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -440,33 +419,6 @@ const result = await Locanara.summarize({
 });
 
 console.log(result.summary);
-// Output:
-// • Apple announced new on-device AI capabilities for iPhone, iPad, and Mac
-// • Features focus on privacy-first processing with improved photos, text, and Siri`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`import 'package:flutter_locanara/flutter_locanara.dart';
-
-// Initialize SDK
-await Locanara.initialize();
-
-// Basic summarization
-final result = await Locanara.summarize(
-  input: '''
-    Apple announced significant updates to its AI strategy today.
-    The company revealed new on-device AI capabilities that will
-    be available across iPhone, iPad, and Mac devices. These features
-    focus on privacy-first processing, ensuring user data never
-    leaves the device. Key highlights include improved photo analysis,
-    smarter text suggestions, and enhanced Siri capabilities.
-  ''',
-  parameters: SummarizeParametersInput(
-    inputType: SummarizeInputType.article,
-    outputType: SummarizeOutputType.twoBullets,
-  ),
-);
-
-print(result.summary);
 // Output:
 // • Apple announced new on-device AI capabilities for iPhone, iPad, and Mac
 // • Features focus on privacy-first processing with improved photos, text, and Siri`}</CodeBlock>

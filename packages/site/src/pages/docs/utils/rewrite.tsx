@@ -147,26 +147,6 @@ type RewriteOutputType =
   | 'PROFESSIONAL'  // Formal, business tone
   | 'REPHRASE';     // Different wording, same meaning`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`Future<RewriteResult> rewrite(
-  String input, {
-  required RewriteParametersInput parameters,
-});
-
-class RewriteParametersInput {
-  final RewriteOutputType outputType;  // Required: style to apply
-  final MLKitLanguage? language;
-}
-
-enum RewriteOutputType {
-  elaborate,     // Make text more detailed
-  emojify,       // Add emojis
-  shorten,       // Make text more concise
-  friendly,      // Casual, warm tone
-  professional,  // Formal, business tone
-  rephrase,      // Different wording, same meaning
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -199,14 +179,6 @@ enum RewriteOutputType {
   style?: RewriteOutputType;   // Style that was applied
   alternatives?: string[];     // Alternative suggestions
   confidence?: number;         // Confidence score (0.0 - 1.0)
-}`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`class RewriteResult {
-  final String rewrittenText;       // Primary rewritten text
-  final RewriteOutputType? style;   // Style that was applied
-  final List<String>? alternatives; // Alternative suggestions
-  final double? confidence;         // Confidence score (0.0 - 1.0)
 }`}</CodeBlock>
             ),
           }}
@@ -274,21 +246,6 @@ const result = await Locanara.rewrite({
 });
 
 console.log(result.rewrittenText);
-// Output: "I would like to schedule a meeting tomorrow to discuss
-//          the project details. Please let me know your availability."`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`import 'package:flutter_locanara/flutter_locanara.dart';
-
-// Make text more professional
-final result = await Locanara.rewrite(
-  input: "Hey! Can we meet up tomorrow to talk about the project?",
-  parameters: RewriteParametersInput(
-    outputType: RewriteOutputType.professional,
-  ),
-);
-
-print(result.rewrittenText);
 // Output: "I would like to schedule a meeting tomorrow to discuss
 //          the project details. Please let me know your availability."`}</CodeBlock>
             ),

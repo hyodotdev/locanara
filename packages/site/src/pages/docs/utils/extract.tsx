@@ -120,17 +120,6 @@ interface ExtractParametersInput {
   extractKeyValues?: boolean;  // Whether to extract key-value pairs
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`Future<ExtractResult> extract(
-  String input, {
-  ExtractParametersInput? parameters,
-});
-
-class ExtractParametersInput {
-  final List<String>? entityTypes;    // Types to extract (null = all)
-  final bool? extractKeyValues;       // Whether to extract key-value pairs
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -201,26 +190,6 @@ interface KeyValuePair {
   confidence?: number;
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`class ExtractResult {
-  final List<Entity> entities;           // Extracted entities
-  final List<KeyValuePair>? keyValuePairs;  // Extracted key-value pairs
-}
-
-class Entity {
-  final String type;       // "person", "location", "date", etc.
-  final String value;      // The extracted value
-  final double confidence; // Confidence score (0.0 - 1.0)
-  final int? startPos;     // Start position in original text
-  final int? endPos;       // End position in original text
-}
-
-class KeyValuePair {
-  final String key;
-  final String value;
-  final double? confidence;
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -287,24 +256,6 @@ const result = await Locanara.extract({
 result.entities.forEach(entity => {
   console.log(\`\${entity.type}: \${entity.value} (\${entity.confidence})\`);
 });
-// Output:
-// person: John Smith (0.95)
-// person: Sarah Johnson (0.94)
-// organization: Apple (0.92)
-// location: Cupertino (0.96)
-// date: December 15th, 2024 (0.98)`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`import 'package:flutter_locanara/flutter_locanara.dart';
-
-// Extract all entities
-final result = await Locanara.extract(
-  input: "John Smith will meet Sarah Johnson at Apple Park in Cupertino on December 15th, 2024.",
-);
-
-for (final entity in result.entities) {
-  print('\${entity.type}: \${entity.value} (\${entity.confidence})');
-}
 // Output:
 // person: John Smith (0.95)
 // person: Sarah Johnson (0.94)

@@ -71,16 +71,6 @@ interface DeviceCapability {
   modelStatus?: ModelStatus;      // Model download status (Android)
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`Future<DeviceCapability> getDeviceCapability();
-
-class DeviceCapability {
-  final bool supportsOnDeviceAI;    // Device supports on-device AI
-  final List<FeatureType> availableFeatures;  // List of available features
-  final Platform platform;          // ios or android
-  final ModelStatus? modelStatus;   // Model download status (Android)
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -133,20 +123,6 @@ if (capability.isSupported) {
   // Fall back to cloud API or disable AI features
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`import 'package:flutter_locanara/flutter_locanara.dart';
-
-// Check device capability
-final capability = await Locanara.getDeviceCapability();
-
-if (capability.isSupported) {
-  print('On-device AI is available!');
-  print('Available features: \${capability.availableFeatures}');
-} else {
-  print('On-device AI is not supported on this device');
-  // Fall back to cloud API or disable AI features
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -193,22 +169,6 @@ return (
       <Button title="Summarize" onPress={handleSummarize} />
     )}
   </View>
-);`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`// Check if specific feature is available
-final capability = await Locanara.getDeviceCapability();
-
-final canSummarize = capability.availableFeatures.contains(FeatureType.summarize);
-
-return Column(
-  children: [
-    if (canSummarize)
-      ElevatedButton(
-        onPressed: handleSummarize,
-        child: Text('Summarize'),
-      ),
-  ],
 );`}</CodeBlock>
             ),
           }}

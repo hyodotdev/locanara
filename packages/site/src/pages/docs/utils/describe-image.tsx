@@ -82,17 +82,6 @@ interface ImageDescriptionParametersInput {
   imagePath?: string;    // Path to image file
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`Future<ImageDescriptionResult> describeImage(
-  String input, {  // Description context or empty string
-  required ImageDescriptionParametersInput parameters,
-});
-
-class ImageDescriptionParametersInput {
-  final String? imageBase64;  // Base64 encoded image data
-  final String? imagePath;    // Path to image file
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -122,13 +111,6 @@ class ImageDescriptionParametersInput {
   description: string;       // Generated description
   alternatives?: string[];   // Alternative descriptions
   confidence?: number;       // Confidence score (0.0 - 1.0)
-}`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`class ImageDescriptionResult {
-  final String description;       // Generated description
-  final List<String>? alternatives; // Alternative descriptions
-  final double? confidence;       // Confidence score (0.0 - 1.0)
 }`}</CodeBlock>
             ),
           }}
@@ -215,27 +197,6 @@ const result = await Locanara.describeImage({
 });
 
 console.log(result.description);
-// Output: "A golden retriever sitting on a green lawn in a sunny backyard,
-//          with a red ball nearby and trees in the background."`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`import 'package:flutter_locanara/flutter_locanara.dart';
-import 'dart:convert';
-import 'dart:io';
-
-// Read image and convert to base64
-final bytes = await File(imagePath).readAsBytes();
-final base64String = base64Encode(bytes);
-
-// Describe the image
-final result = await Locanara.describeImage(
-  input: '',  // Optional context
-  parameters: ImageDescriptionParametersInput(
-    imageBase64: base64String,
-  ),
-);
-
-print(result.description);
 // Output: "A golden retriever sitting on a green lawn in a sunny backyard,
 //          with a red ball nearby and trees in the background."`}</CodeBlock>
             ),

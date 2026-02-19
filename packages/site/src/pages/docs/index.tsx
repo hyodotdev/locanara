@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Route, Routes, Navigate, NavLink } from "react-router-dom";
+import {
+  Route,
+  Routes,
+  Navigate,
+  NavLink,
+  useLocation,
+} from "react-router-dom";
 import { MenuDropdown } from "../../components/docs/MenuDropdown";
 
 import TypesIndex from "./types/index";
@@ -34,18 +40,14 @@ import UtilsWeb from "./utils/web";
 import Example from "./example";
 import Resources from "./resources";
 import TutorialsIndex from "./tutorials/index";
-import TutorialsIOS from "./tutorials/ios";
-import TutorialsAndroid from "./tutorials/android";
-import TutorialsWeb from "./tutorials/web";
-import IOSSummarizeTutorial from "./tutorials/ios-summarize";
-import IOSChatTutorial from "./tutorials/ios-chat";
-import IOSRewriteTutorial from "./tutorials/ios-rewrite";
-import AndroidSummarizeTutorial from "./tutorials/android-summarize";
-import AndroidChatTutorial from "./tutorials/android-chat";
-import AndroidRewriteTutorial from "./tutorials/android-rewrite";
-import WebSummarizeTutorial from "./tutorials/web-summarize";
-import WebChatTutorial from "./tutorials/web-chat";
-import WebTranslateTutorial from "./tutorials/web-translate";
+import ModelSelectionTutorial from "./tutorials/model-selection";
+import SummarizeTutorial from "./tutorials/summarize";
+import ClassifyTutorial from "./tutorials/classify";
+import ExtractTutorial from "./tutorials/extract";
+import TranslateTutorial from "./tutorials/translate";
+import ChatTutorial from "./tutorials/chat";
+import RewriteTutorial from "./tutorials/rewrite";
+import ProofreadTutorial from "./tutorials/proofread";
 import Introduction from "./introduction";
 import WhyLocanara from "./why-locanara";
 import LibrariesIndex from "./libraries/index";
@@ -53,22 +55,32 @@ import ExpoLibrary from "./libraries/expo";
 import { NotFound } from "../404";
 
 function Docs() {
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [expandedTutorial, setExpandedTutorial] = useState<string | null>(null);
   const [expandedReference, setExpandedReference] = useState<string | null>(
     null
   );
 
   const closeSidebar = () => setIsSidebarOpen(false);
 
-  const handleTutorialToggle = (sdk: string) => {
-    setExpandedTutorial((prev) => (prev === sdk ? null : sdk));
-  };
-
   const handleReferenceToggle = (ref: string) => {
     setExpandedReference((prev) => (prev === ref ? null : ref));
   };
+
+  // Auto-expand sidebar sections based on current URL
+  useEffect(() => {
+    const path = location.pathname;
+
+    // Auto-expand reference sections
+    if (path.includes("/docs/types")) {
+      setExpandedReference("types");
+    } else if (path.includes("/docs/apis")) {
+      setExpandedReference("apis");
+    } else if (path.includes("/docs/utils")) {
+      setExpandedReference("utils");
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -202,34 +214,101 @@ function Docs() {
               </NavLink>
             </li>
           </ul>
+          <h3 style={{ marginTop: "2rem" }}>Setup Guides</h3>
+          <ul>
+            <li>
+              <NavLink
+                to="/docs/ios-setup"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                iOS Setup
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/android-setup"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Android Setup
+              </NavLink>
+            </li>
+          </ul>
           <h3 style={{ marginTop: "2rem" }}>Tutorials</h3>
           <ul>
-            <MenuDropdown
-              title="iOS SDK"
-              titleTo="/docs/tutorials/ios"
-              items={[
-                { to: "/docs/ios-setup", label: "Setup Guide" },
-                { to: "/docs/tutorials/ios-summarize", label: "Summarize" },
-                { to: "/docs/tutorials/ios-chat", label: "Chat" },
-                { to: "/docs/tutorials/ios-rewrite", label: "Rewrite" },
-              ]}
-              onItemClick={closeSidebar}
-              isExpanded={expandedTutorial === "ios"}
-              onToggle={() => handleTutorialToggle("ios")}
-            />
-            <MenuDropdown
-              title="Android SDK"
-              titleTo="/docs/tutorials/android"
-              items={[
-                { to: "/docs/android-setup", label: "Setup Guide" },
-                { to: "/docs/tutorials/android-summarize", label: "Summarize" },
-                { to: "/docs/tutorials/android-chat", label: "Chat" },
-                { to: "/docs/tutorials/android-rewrite", label: "Rewrite" },
-              ]}
-              onItemClick={closeSidebar}
-              isExpanded={expandedTutorial === "android"}
-              onToggle={() => handleTutorialToggle("android")}
-            />
+            <li>
+              <NavLink
+                to="/docs/tutorials/summarize"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Summarize
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/classify"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Classify
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/extract"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Extract
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/chat"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Chat
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/translate"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Translate
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/rewrite"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Rewrite
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/proofread"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Proofread
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/model-selection"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Model Selection
+              </NavLink>
+            </li>
           </ul>
           <h3 style={{ marginTop: "2rem" }}>Libraries</h3>
           <ul>
@@ -285,38 +364,98 @@ function Docs() {
           <Route path="example" element={<Example />} />
           <Route path="resources" element={<Resources />} />
           <Route path="tutorials" element={<TutorialsIndex />} />
-          <Route path="tutorials/ios" element={<TutorialsIOS />} />
+          {/* Redirects from old getting-started URLs */}
+          <Route
+            path="tutorials/ios"
+            element={<Navigate to="/docs/ios-setup" replace />}
+          />
+          <Route
+            path="tutorials/android"
+            element={<Navigate to="/docs/android-setup" replace />}
+          />
+          <Route
+            path="tutorials/web"
+            element={<Navigate to="/docs/web-setup" replace />}
+          />
+          <Route
+            path="tutorials/model-selection"
+            element={<ModelSelectionTutorial />}
+          />
+          <Route path="tutorials/summarize" element={<SummarizeTutorial />} />
+          <Route path="tutorials/classify" element={<ClassifyTutorial />} />
+          <Route path="tutorials/extract" element={<ExtractTutorial />} />
+          <Route path="tutorials/translate" element={<TranslateTutorial />} />
+          <Route path="tutorials/chat" element={<ChatTutorial />} />
+          <Route path="tutorials/rewrite" element={<RewriteTutorial />} />
+          <Route path="tutorials/proofread" element={<ProofreadTutorial />} />
+          {/* Redirects from old per-platform tutorial URLs */}
           <Route
             path="tutorials/ios-summarize"
-            element={<IOSSummarizeTutorial />}
+            element={<Navigate to="/docs/tutorials/summarize" replace />}
           />
-          <Route path="tutorials/ios-chat" element={<IOSChatTutorial />} />
+          <Route
+            path="tutorials/ios-classify"
+            element={<Navigate to="/docs/tutorials/classify" replace />}
+          />
+          <Route
+            path="tutorials/ios-extract"
+            element={<Navigate to="/docs/tutorials/extract" replace />}
+          />
+          <Route
+            path="tutorials/ios-translate"
+            element={<Navigate to="/docs/tutorials/translate" replace />}
+          />
+          <Route
+            path="tutorials/ios-chat"
+            element={<Navigate to="/docs/tutorials/chat" replace />}
+          />
           <Route
             path="tutorials/ios-rewrite"
-            element={<IOSRewriteTutorial />}
+            element={<Navigate to="/docs/tutorials/rewrite" replace />}
           />
-          <Route path="tutorials/android" element={<TutorialsAndroid />} />
+          <Route
+            path="tutorials/ios-proofread"
+            element={<Navigate to="/docs/tutorials/proofread" replace />}
+          />
           <Route
             path="tutorials/android-summarize"
-            element={<AndroidSummarizeTutorial />}
+            element={<Navigate to="/docs/tutorials/summarize" replace />}
+          />
+          <Route
+            path="tutorials/android-classify"
+            element={<Navigate to="/docs/tutorials/classify" replace />}
+          />
+          <Route
+            path="tutorials/android-extract"
+            element={<Navigate to="/docs/tutorials/extract" replace />}
+          />
+          <Route
+            path="tutorials/android-translate"
+            element={<Navigate to="/docs/tutorials/translate" replace />}
           />
           <Route
             path="tutorials/android-chat"
-            element={<AndroidChatTutorial />}
+            element={<Navigate to="/docs/tutorials/chat" replace />}
           />
           <Route
             path="tutorials/android-rewrite"
-            element={<AndroidRewriteTutorial />}
+            element={<Navigate to="/docs/tutorials/rewrite" replace />}
           />
-          <Route path="tutorials/web" element={<TutorialsWeb />} />
+          <Route
+            path="tutorials/android-proofread"
+            element={<Navigate to="/docs/tutorials/proofread" replace />}
+          />
           <Route
             path="tutorials/web-summarize"
-            element={<WebSummarizeTutorial />}
+            element={<Navigate to="/docs/tutorials/summarize" replace />}
           />
-          <Route path="tutorials/web-chat" element={<WebChatTutorial />} />
+          <Route
+            path="tutorials/web-chat"
+            element={<Navigate to="/docs/tutorials/chat" replace />}
+          />
           <Route
             path="tutorials/web-translate"
-            element={<WebTranslateTutorial />}
+            element={<Navigate to="/docs/tutorials/translate" replace />}
           />
           <Route path="libraries" element={<LibrariesIndex />} />
           <Route path="libraries/expo" element={<ExpoLibrary />} />

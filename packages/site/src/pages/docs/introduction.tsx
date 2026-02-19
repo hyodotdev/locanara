@@ -103,7 +103,7 @@ val result = LocanaraDefaults.model.pipeline()
       <section>
         <h2 id="supported-platforms">Supported Platforms</h2>
         <div className="api-cards-grid three-columns">
-          <Link to="/docs/tutorials/ios" className="api-card">
+          <Link to="/docs/ios-setup" className="api-card">
             <div className="api-card-icon">
               <Apple className="w-6 h-6" />
             </div>
@@ -119,7 +119,7 @@ val result = LocanaraDefaults.model.pipeline()
             </p>
           </Link>
 
-          <Link to="/docs/tutorials/android" className="api-card">
+          <Link to="/docs/android-setup" className="api-card">
             <div className="api-card-icon">
               <Smartphone className="w-6 h-6" />
             </div>
@@ -135,7 +135,7 @@ val result = LocanaraDefaults.model.pipeline()
             </p>
           </Link>
 
-          <Link to="/docs/tutorials/web" className="api-card">
+          <Link to="/docs/web-setup" className="api-card">
             <div className="api-card-icon">
               <Globe className="w-6 h-6" />
             </div>
@@ -193,29 +193,27 @@ val result = LocanaraDefaults.model.pipeline()
         <p>Choose your platform to begin:</p>
         <ul>
           <li>
-            <Link to="/docs/tutorials/ios">
-              <strong>iOS SDK Tutorial</strong>
+            <Link to="/docs/ios-setup">
+              <strong>iOS Setup Guide</strong>
             </Link>{" "}
-            - Build with Apple Intelligence
+            - Apple Intelligence + llama.cpp
           </li>
           <li>
-            <Link to="/docs/tutorials/android">
-              <strong>Android SDK Tutorial</strong>
+            <Link to="/docs/android-setup">
+              <strong>Android Setup Guide</strong>
             </Link>{" "}
-            - Build with Gemini Nano
+            - Gemini Nano with ML Kit
           </li>
           <li>
-            <Link to="/docs/tutorials/web">
-              <strong>Web SDK Tutorial</strong>
+            <Link to="/docs/tutorials">
+              <strong>Feature Tutorials</strong>
             </Link>{" "}
-            - Build with Chrome Built-in AI
+            - Summarize, Classify, Chat, and more
           </li>
         </ul>
       </section>
 
-      <PageNavigation
-        next={{ to: "/docs/tutorials/ios", label: "iOS SDK Tutorial" }}
-      />
+      <PageNavigation next={{ to: "/docs/ios-setup", label: "iOS Setup" }} />
     </div>
   );
 }

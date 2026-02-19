@@ -153,23 +153,6 @@ interface ChatMessageInput {
   content: string;
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`Future<ChatResult> chat(
-  String input, {
-  ChatParametersInput? parameters,
-});
-
-class ChatParametersInput {
-  final String? conversationId;       // For multi-turn conversations
-  final String? systemPrompt;         // AI personality/instructions
-  final List<ChatMessageInput>? history;  // Previous messages
-}
-
-class ChatMessageInput {
-  final String role;    // "user", "assistant", or "system"
-  final String content;
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -202,14 +185,6 @@ class ChatMessageInput {
   conversationId?: string;      // ID for continuing conversation
   canContinue: boolean;         // Whether conversation can continue
   suggestedPrompts?: string[];  // Follow-up suggestions
-}`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`class ChatResult {
-  final String message;              // AI response
-  final String? conversationId;      // ID for continuing conversation
-  final bool canContinue;            // Whether conversation can continue
-  final List<String>? suggestedPrompts;  // Follow-up suggestions
 }`}</CodeBlock>
             ),
           }}
@@ -262,17 +237,6 @@ const result = await Locanara.chat({
 });
 
 console.log(result.message);
-// Output: "The capital of France is Paris."`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`import 'package:flutter_locanara/flutter_locanara.dart';
-
-// Simple chat
-final result = await Locanara.chat(
-  input: "What's the capital of France?",
-);
-
-print(result.message);
 // Output: "The capital of France is Paris."`}</CodeBlock>
             ),
           }}

@@ -7,120 +7,78 @@ function TutorialsIndex() {
     <div className="doc-page">
       <SEO
         title="Tutorials"
-        description="Step-by-step tutorials for implementing Locanara on iOS, Android, and Web platforms."
+        description="Step-by-step tutorials for implementing on-device AI features with Locanara SDK."
         path="/docs/tutorials"
-        keywords="Locanara tutorial, iOS tutorial, Android tutorial, Web tutorial, on-device AI"
+        keywords="Locanara tutorial, iOS tutorial, Android tutorial, on-device AI, Swift, Kotlin"
       />
       <h1>Tutorials</h1>
       <p>
         Step-by-step guides to help you implement on-device AI features using
-        Locanara. Each tutorial provides complete working code that you can
-        follow along with.
+        Locanara. Each tutorial includes code for all platforms (Swift, Kotlin,
+        TypeScript) so you can follow along regardless of your target platform.
       </p>
 
       <section>
-        <h2 id="choose-platform">Choose Your Platform</h2>
+        <h2 id="setup">Platform Setup</h2>
+        <p>
+          Before diving into feature tutorials, set up the SDK for your
+          platform.
+        </p>
         <div className="api-cards-grid">
-          <Link to="/docs/tutorials/ios" className="api-card">
-            <div className="api-card-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" />
-                <path d="M16.5 12.5c0 2.5-2 4.5-4.5 4.5s-4.5-2-4.5-4.5" />
-                <circle cx="8.5" cy="9" r="1" fill="currentColor" />
-                <circle cx="15.5" cy="9" r="1" fill="currentColor" />
-              </svg>
-            </div>
-            <h3>iOS Tutorial</h3>
+          <Link to="/docs/ios-setup" className="api-card">
+            <h3>iOS Setup</h3>
             <p>
-              Build an iOS app with Apple Intelligence features using Swift and
-              SwiftUI.
+              Install via SPM, configure Apple Intelligence or llama.cpp engine.
             </p>
           </Link>
-
-          <Link to="/docs/tutorials/android" className="api-card">
-            <div className="api-card-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <rect x="5" y="2" width="14" height="20" rx="2" />
-                <path d="M12 18h.01" />
-              </svg>
-            </div>
-            <h3>Android Tutorial</h3>
-            <p>
-              Build an Android app with Gemini Nano features using Kotlin and
-              Jetpack Compose.
-            </p>
+          <Link to="/docs/android-setup" className="api-card">
+            <h3>Android Setup</h3>
+            <p>Install via Maven Central, configure Gemini Nano with ML Kit.</p>
           </Link>
         </div>
       </section>
 
       <section>
-        <h2 id="what-youll-build">What You'll Build</h2>
-        <p>
-          Each tutorial walks you through building a complete application that
-          demonstrates:
-        </p>
-        <ul>
-          <li>
-            <strong>Device capability detection</strong> - Check if on-device AI
-            is available
-          </li>
-          <li>
-            <strong>Text summarization</strong> - Condense long text into key
-            points
-          </li>
-          <li>
-            <strong>Text classification</strong> - Categorize content into
-            labels
-          </li>
-          <li>
-            <strong>Chat interaction</strong> - Build conversational AI
-            experiences
-          </li>
-          <li>
-            <strong>Text rewriting</strong> - Change tone and style of text
-          </li>
-          <li>
-            <strong>Proofreading</strong> - Grammar and spelling correction
-          </li>
-        </ul>
-      </section>
-
-      <section>
-        <h2 id="prerequisites">Prerequisites</h2>
-        <h4>iOS</h4>
-        <ul>
-          <li>Xcode 16+</li>
-          <li>
-            iOS 17+ device (iOS 26+ for Apple Intelligence, or download a GGUF
-            model for llama.cpp engine)
-          </li>
-        </ul>
-
-        <h4>Android</h4>
-        <ul>
-          <li>Android Studio Ladybug or later</li>
-          <li>Android 14+ (API 34+) device</li>
-          <li>Pixel 8/Pro or Samsung Galaxy S24+ with Gemini Nano</li>
-        </ul>
+        <h2 id="feature-tutorials">Feature Tutorials</h2>
+        <div className="api-cards-grid">
+          <Link to="/docs/tutorials/summarize" className="api-card">
+            <h3>Summarize</h3>
+            <p>Condense long text into key bullet points.</p>
+          </Link>
+          <Link to="/docs/tutorials/classify" className="api-card">
+            <h3>Classify</h3>
+            <p>Categorize content into predefined labels.</p>
+          </Link>
+          <Link to="/docs/tutorials/extract" className="api-card">
+            <h3>Extract</h3>
+            <p>Pull structured data from unstructured text.</p>
+          </Link>
+          <Link to="/docs/tutorials/chat" className="api-card">
+            <h3>Chat</h3>
+            <p>Build conversational AI with memory and streaming.</p>
+          </Link>
+          <Link to="/docs/tutorials/translate" className="api-card">
+            <h3>Translate</h3>
+            <p>Translate text between languages on-device.</p>
+          </Link>
+          <Link to="/docs/tutorials/rewrite" className="api-card">
+            <h3>Rewrite</h3>
+            <p>Change tone and style of text.</p>
+          </Link>
+          <Link to="/docs/tutorials/proofread" className="api-card">
+            <h3>Proofread</h3>
+            <p>Grammar and spelling correction with diff tracking.</p>
+          </Link>
+          <Link to="/docs/tutorials/model-selection" className="api-card">
+            <h3>Model Selection</h3>
+            <p>Switch between AI engines and manage downloadable models.</p>
+          </Link>
+        </div>
       </section>
 
       <PageNavigation
         prev={{ to: "/docs/resources", label: "Resources" }}
-        next={{ to: "/docs/tutorials/ios", label: "iOS Tutorial" }}
+        next={{ to: "/docs/tutorials/summarize", label: "Summarize Tutorial" }}
       />
     </div>
   );

@@ -122,17 +122,6 @@ interface ClassifyParametersInput {
   maxResults?: number;    // Maximum number of classifications to return
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`Future<ClassifyResult> classify(
-  String input, {
-  ClassifyParametersInput? parameters,
-});
-
-class ClassifyParametersInput {
-  final List<String>? categories;  // Predefined categories
-  final int? maxResults;           // Maximum results to return
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -177,18 +166,6 @@ interface Classification {
   label: string;      // Category label
   score: number;      // Confidence score (0.0 - 1.0)
   metadata?: string;  // Additional metadata
-}`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`class ClassifyResult {
-  final List<Classification> classifications;  // All classifications
-  final Classification topClassification;      // Highest scoring
-}
-
-class Classification {
-  final String label;      // Category label
-  final double score;      // Confidence score (0.0 - 1.0)
-  final String? metadata;  // Additional metadata
 }`}</CodeBlock>
             ),
           }}
@@ -278,29 +255,6 @@ console.log(\`Top: \${result.topClassification.label}\`);
 result.classifications.forEach(item => {
   console.log(\`\${item.label}: \${item.score}\`);
 });
-// Output:
-// positive: 0.95
-// neutral: 0.04
-// negative: 0.01`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`import 'package:flutter_locanara/flutter_locanara.dart';
-
-// Sentiment analysis
-final result = await Locanara.classify(
-  input: "I absolutely love this product! Best purchase ever!",
-  parameters: ClassifyParametersInput(
-    categories: ['positive', 'negative', 'neutral'],
-    maxResults: 3,
-  ),
-);
-
-print('Top: \${result.topClassification.label}');
-// Output: "Top: positive"
-
-for (final item in result.classifications) {
-  print('\${item.label}: \${item.score}');
-}
 // Output:
 // positive: 0.95
 // neutral: 0.04

@@ -73,12 +73,14 @@ pre.code-block {
   overflow-x: auto;
   font-family:
     "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "Courier New", monospace;
-  font-size: 0.8125rem;
-  line-height: 1.65;
+  font-size: 0.875rem;
+  line-height: 1.7;
   tab-size: 2;
   -moz-tab-size: 2;
   color: #2d2a26;
   margin: 0;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 
 .code-block code {
@@ -87,7 +89,7 @@ pre.code-block {
   border-radius: 0;
   font-size: inherit;
   color: inherit;
-  font-weight: normal;
+  font-weight: 450;
 }
 
 /* --------------------------------------------------------------------------
@@ -256,6 +258,48 @@ pre.code-block {
   scrollbar-color: rgba(45, 42, 38, 0.15) transparent;
 }
 
+/* --------------------------------------------------------------------------
+   Code Tabs (language switcher)
+   -------------------------------------------------------------------------- */
+
+.code-tabs {
+  margin: 1rem 0 1.5rem;
+}
+
+.code-tabs .code-block-wrapper {
+  margin: 0;
+}
+
+.code-tabs-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(45, 42, 38, 0.1);
+  margin-bottom: -1px;
+}
+
+.code-tabs-btn {
+  padding: 0.4rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b6560;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.code-tabs-btn:hover {
+  color: #2d2a26;
+}
+
+.code-tabs-btn.active {
+  color: #2d2a26;
+  border-bottom-color: #2d2a26;
+}
+
 /* ==========================================================================
    Dark Mode - Monokai/Sublime-Inspired
    ========================================================================== */
@@ -413,4 +457,22 @@ pre.code-block {
 
 .dark .code-block {
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Code tabs dark mode */
+.dark .code-tabs-bar {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .code-tabs-btn {
+  color: #999;
+}
+
+.dark .code-tabs-btn:hover {
+  color: #f0f0f0;
+}
+
+.dark .code-tabs-btn.active {
+  color: #f0f0f0;
+  border-bottom-color: #f0f0f0;
 }

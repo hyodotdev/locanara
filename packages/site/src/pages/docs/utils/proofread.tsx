@@ -135,17 +135,6 @@ interface ProofreadParametersInput {
   language?: MLKitLanguage;
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`Future<ProofreadResult> proofread(
-  String input, {
-  ProofreadParametersInput? parameters,
-});
-
-class ProofreadParametersInput {
-  final ProofreadInputType? inputType;  // keyboard or voice
-  final MLKitLanguage? language;
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -202,22 +191,6 @@ interface ProofreadCorrection {
   confidence?: number;  // Confidence score (0.0 - 1.0)
   startPos?: number;    // Start position in original
   endPos?: number;      // End position in original
-}`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`class ProofreadResult {
-  final String correctedText;              // Fully corrected text
-  final List<ProofreadCorrection> corrections; // List of corrections
-  final bool hasCorrections;               // Whether any corrections were made
-}
-
-class ProofreadCorrection {
-  final String original;     // Original text segment
-  final String corrected;    // Corrected text segment
-  final String? type;        // Type: "grammar", "spelling", "punctuation"
-  final double? confidence;  // Confidence score (0.0 - 1.0)
-  final int? startPos;       // Start position in original
-  final int? endPos;         // End position in original
 }`}</CodeBlock>
             ),
           }}
@@ -306,29 +279,6 @@ console.log(result.correctedText);
 result.corrections.forEach(correction => {
   console.log(\`\${correction.original} -> \${correction.corrected} (\${correction.type})\`);
 });
-// Output:
-// Their -> They're (grammar)
-// tommorow -> tomorrow (spelling)
-// by -> buy (grammar)
-// grocerys -> groceries (spelling)`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`import 'package:flutter_locanara/flutter_locanara.dart';
-
-// Proofread keyboard input
-final result = await Locanara.proofread(
-  input: "Their going to the store tommorow to by some grocerys.",
-  parameters: ProofreadParametersInput(
-    inputType: ProofreadInputType.keyboard,
-  ),
-);
-
-print(result.correctedText);
-// Output: "They're going to the store tomorrow to buy some groceries."
-
-for (final correction in result.corrections) {
-  print('\${correction.original} -> \${correction.corrected} (\${correction.type})');
-}
 // Output:
 // Their -> They're (grammar)
 // tommorow -> tomorrow (spelling)

@@ -123,17 +123,6 @@ interface TranslateParametersInput {
   targetLanguage: string;   // Required: target language code
 }`}</CodeBlock>
             ),
-            dart: (
-              <CodeBlock language="dart">{`Future<TranslateResult> translate(
-  String input, {
-  required TranslateParametersInput parameters,
-});
-
-class TranslateParametersInput {
-  final String? sourceLanguage;  // Auto-detect if null
-  final String targetLanguage;   // Required: target language code
-}`}</CodeBlock>
-            ),
           }}
         </LanguageTabs>
       </section>
@@ -166,14 +155,6 @@ class TranslateParametersInput {
   sourceLanguage: string;   // Detected or specified source language
   targetLanguage: string;   // Target language
   confidence?: number;      // Confidence score (0.0 - 1.0)
-}`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`class TranslateResult {
-  final String translatedText;   // Translated text
-  final String sourceLanguage;   // Detected or specified source language
-  final String targetLanguage;   // Target language
-  final double? confidence;      // Confidence score (0.0 - 1.0)
 }`}</CodeBlock>
             ),
           }}
@@ -242,21 +223,6 @@ const result = await Locanara.translate({
 });
 
 console.log(result.translatedText);
-// Output: "안녕하세요, 오늘 어떻게 지내세요?"`}</CodeBlock>
-            ),
-            dart: (
-              <CodeBlock language="dart">{`import 'package:flutter_locanara/flutter_locanara.dart';
-
-// Translate English to Korean
-final result = await Locanara.translate(
-  input: "Hello, how are you today?",
-  parameters: TranslateParametersInput(
-    sourceLanguage: 'en',
-    targetLanguage: 'ko',
-  ),
-);
-
-print(result.translatedText);
 // Output: "안녕하세요, 오늘 어떻게 지내세요?"`}</CodeBlock>
             ),
           }}
