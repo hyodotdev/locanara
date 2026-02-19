@@ -31,6 +31,11 @@ const PACKAGES = [
     path: 'packages/android/package.json',
     versionKey: 'android',
     description: 'Android package'
+  },
+  {
+    path: 'libraries/expo-ondevice-ai/package.json',
+    versionKey: 'expo',
+    description: 'Expo module'
   }
 ];
 

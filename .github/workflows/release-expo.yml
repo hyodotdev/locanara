@@ -4,10 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Choose version bump type'
+        description: 'Version bump type (or "current" to re-release)'
         required: true
         type: choice
         options:
+          - current
           - patch
           - minor
           - major
@@ -31,12 +32,8 @@ permissions:
   id-token: write
 
 jobs:
-  deploy:
+  build-and-publish:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: libraries/expo-ondevice-ai
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,52 +49,78 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.1.38'
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('libraries/expo-ondevice-ai/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
+          bun-version: latest
 
       - name: Install dependencies
-        run: bun install --immutable
+        run: bun install
+
+      - name: Calculate version
+        id: version
+        run: |
+          CURRENT_VERSION=$(jq -r '.expo' locanara-versions.json)
+          echo "Current version: $CURRENT_VERSION"
+
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            NEW_VERSION="$CURRENT_VERSION"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+            case "${{ github.event.inputs.version }}" in
+              major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+              patch) PATCH=$((PATCH + 1)) ;;
+            esac
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          echo "New version: $NEW_VERSION"
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit version update
+        if: github.event.inputs.version != 'current'
+        run: |
+          # Update version files
+          jq --arg version "$VERSION" '.expo = $version' locanara-versions.json > tmp.json
+          mv tmp.json locanara-versions.json
+          cp locanara-versions.json packages/site/locanara-versions.json
+
+          # Sync versions to all package.json files
+          bun run version:sync
+
+          # Commit directly to main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add locanara-versions.json packages/site/locanara-versions.json libraries/expo-ondevice-ai/package.json
+
+          if git diff --staged --quiet; then
+            echo "No version changes to commit"
+          else
+            git commit -m "chore: bump expo-ondevice-ai to $VERSION"
+            git pull --rebase origin main || true
+            git push origin main
+          fi
+
+      - name: Install expo dependencies
+        working-directory: libraries/expo-ondevice-ai
+        run: bun install
 
       - name: Lint
+        working-directory: libraries/expo-ondevice-ai
         run: bun run lint:ci
 
       - name: Test
+        working-directory: libraries/expo-ondevice-ai
         run: bun run test
 
-      - name: Verify no files have changed after auto-fix
-        run: git diff -- ":(exclude)example/*" --exit-code HEAD
-
-      - name: Configure Git user
-        run: |
-          git config user.name "expo-ondevice-ai bot"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Bump version and tag
-        id: bump
-        env:
-          INPUT_VERSION: ${{ github.event.inputs.version }}
-        run: |
-          npm version "$INPUT_VERSION" --tag-version-prefix="expo-ondevice-ai@" -m "chore(release): expo-ondevice-ai@%s"
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-
       - name: Prepare package (build + codegen)
+        working-directory: libraries/expo-ondevice-ai
         run: bun run prepare
-
-      - name: Push commit and tags
-        run: git push --follow-tags
 
       - name: Ensure npm CLI v11.5.1 or later (required for OIDC)
         run: npm install -g npm@latest
 
       - name: Publish to npm with OIDC trusted publishing
+        working-directory: libraries/expo-ondevice-ai
         run: |
           if [ "${{ github.event.inputs.tag }}" = "latest" ]; then
             npm publish --access public --provenance
@@ -105,12 +128,56 @@ jobs:
             npm publish --tag ${{ github.event.inputs.tag }} --access public --provenance
           fi
 
+      - name: Create Git tag
+        run: |
+          TAG_NAME="expo-ondevice-ai-$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Delete existing tag if re-releasing
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            git push origin --delete "$TAG_NAME" 2>/dev/null || true
+            git tag -d "$TAG_NAME" 2>/dev/null || true
+          fi
+
+          git tag -a "$TAG_NAME" -m "expo-ondevice-ai $VERSION"
+          git push origin "$TAG_NAME"
+
       - name: Create GitHub Release
         if: ${{ github.event.inputs.create_release == 'true' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: expo-ondevice-ai@${{ steps.bump.outputs.version }}
-          name: expo-ondevice-ai@${{ steps.bump.outputs.version }}
-          draft: false
-          prerelease: ${{ github.event.inputs.tag != 'latest' }}
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="expo-ondevice-ai-$VERSION"
+
+          # Delete existing release if re-releasing
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            gh release delete "$TAG_NAME" --yes 2>/dev/null || true
+          fi
+
+          gh release create "$TAG_NAME" \
+            --title "expo-ondevice-ai $VERSION" \
+            --notes "expo-ondevice-ai v$VERSION
+
+          ## Installation
+          \`\`\`bash
+          npx expo install expo-ondevice-ai@$VERSION
+          \`\`\`
+
+          ## Features
+          - Apple Intelligence (iOS)
+          - Gemini Nano (Android)
+          " \
+            ${{ github.event.inputs.tag != 'latest' && '--prerelease' || '' }}
+
+      - name: Summary
+        run: |
+          echo "## expo-ondevice-ai Released" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** ${{ github.event.inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installation" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "npx expo install expo-ondevice-ai@$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

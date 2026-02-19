@@ -10,6 +10,7 @@ Distribution is via public package registries.
 | -------- | ----------------------- | --------------- |
 | Apple    | `Locanara`              | SPM + CocoaPods |
 | Android  | `com.locanara:locanara` | Maven Central   |
+| Expo     | `expo-ondevice-ai`      | npm             |
 
 ## Release Workflows
 
@@ -19,6 +20,7 @@ Located in `.github/workflows/`:
 | --------------------- | --------------------------- |
 | `release-apple.yml`   | Apple SDK → SPM + CocoaPods |
 | `release-android.yml` | Android SDK → Maven Central |
+| `release-expo.yml`    | Expo module → npm           |
 | `deploy-site.yml`     | Site → Firebase Hosting     |
 
 ### Workflow Inputs
@@ -29,14 +31,16 @@ Each workflow has one input:
 
 ### Required Secrets
 
-| Secret                         | Purpose                    |
-| ------------------------------ | -------------------------- |
-| `COCOAPODS_TRUNK_TOKEN`        | CocoaPods publishing       |
-| `MAVEN_CENTRAL_USERNAME`       | Maven Central username     |
-| `MAVEN_CENTRAL_PASSWORD`       | Maven Central password     |
-| `SIGNING_KEY`                  | Android signing key        |
-| `SIGNING_KEY_PASSWORD`         | Android signing password   |
-| `FIREBASE_SERVICE_ACCOUNT_*`   | Firebase deployment        |
+| Secret                       | Purpose                  |
+| ---------------------------- | ------------------------ |
+| `COCOAPODS_TRUNK_TOKEN`      | CocoaPods publishing     |
+| `MAVEN_CENTRAL_USERNAME`     | Maven Central username   |
+| `MAVEN_CENTRAL_PASSWORD`     | Maven Central password   |
+| `SIGNING_KEY`                | Android signing key      |
+| `SIGNING_KEY_PASSWORD`       | Android signing password |
+| `FIREBASE_SERVICE_ACCOUNT_*` | Firebase deployment      |
+
+> npm (expo-ondevice-ai) uses OIDC trusted publishing — no token secret needed.
 
 ## Versioning
 
@@ -44,10 +48,11 @@ Versions are tracked in `locanara-versions.json` (single source of truth):
 
 ```json
 {
-  "version": "1.0.0",      // Root package
-  "types": "1.0.0",        // GraphQL types
-  "apple": "1.0.0",        // iOS/macOS SDK
-  "android": "1.0.0"       // Android SDK
+  "version": "1.0.0", // Root package
+  "types": "1.0.0", // GraphQL types
+  "apple": "1.0.0", // iOS/macOS SDK
+  "android": "1.0.0", // Android SDK
+  "expo": "0.1.0" // Expo module (npm)
 }
 ```
 

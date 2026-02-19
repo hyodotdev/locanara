@@ -9,10 +9,10 @@ locanara-versions.json
        ↓
   [Auto-sync]
        ↓
-┌──────┴──────┬─────────────┬─────────────┐
-│             │             │             │
-package.json  gql/          android/      site/
-              package.json  package.json  locanara-versions.json
+┌──────┴──────┬─────────────┬─────────────┬─────────────┐
+│             │             │             │             │
+package.json  gql/          android/      expo/         site/
+              package.json  package.json  package.json  locanara-versions.json
 ```
 
 ## Source of Truth
@@ -21,10 +21,11 @@ package.json  gql/          android/      site/
 
 ```json
 {
-  "version": "1.0.1",      // Root package version
-  "types": "1.0.1",        // GraphQL types version
-  "apple": "1.0.1",        // iOS/macOS SDK version
-  "android": "1.0.2"       // Android SDK version
+  "version": "1.0.1", // Root package version
+  "types": "1.0.1", // GraphQL types version
+  "apple": "1.0.1", // iOS/macOS SDK version
+  "android": "1.0.2", // Android SDK version
+  "expo": "0.1.0" // Expo module version
 }
 ```
 
@@ -37,10 +38,12 @@ bun run version:sync
 ```
 
 This script:
+
 - Reads versions from `locanara-versions.json`
 - Updates `package.json` (root)
 - Updates `packages/gql/package.json`
 - Updates `packages/android/package.json`
+- Updates `libraries/expo-ondevice-ai/package.json`
 - Preserves formatting (2-space indent + trailing newline)
 
 ## Automatic Sync (CI)
@@ -74,6 +77,15 @@ All release workflows automatically sync versions before deployment:
 - Publish to CocoaPods and create GitHub release
 ```
 
+### Release Expo Workflow
+
+```yaml
+- Update locanara-versions.json (expo field)
+- Run: bun run version:sync
+- Commit all updated files
+- Publish to npm with OIDC trusted publishing
+```
+
 ## Version Bump Process
 
 1. **Trigger Release Workflow**
@@ -94,14 +106,15 @@ All release workflows automatically sync versions before deployment:
 
 ## Version Mapping
 
-| locanara-versions.json | Target File              | Field   |
-|------------------------|--------------------------|---------|
-| `version`              | `package.json`           | version |
-| `types`                | `packages/gql/package.json` | version |
-| `android`              | `packages/android/package.json` | version |
+| locanara-versions.json | Target File                               | Field   |
+| ---------------------- | ----------------------------------------- | ------- |
+| `version`              | `package.json`                            | version |
+| `types`                | `packages/gql/package.json`               | version |
+| `android`              | `packages/android/package.json`           | version |
+| `expo`                 | `libraries/expo-ondevice-ai/package.json` | version |
 
 ## Notes
 
-- **expo-ondevice-ai**: Versioned independently (not synced)
 - **Apple SDK**: Version stored in locanara-versions.json, used in podspec
+- **Expo module**: Published to npm with OIDC trusted publishing (no token secret needed)
 - **Manual updates**: Always run `bun run version:sync` after editing locanara-versions.json
