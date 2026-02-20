@@ -115,7 +115,7 @@ const result = await locanara.translate(text, {
 });
 ```
 
-Supported languages: `en`, `es`, `fr`, `de`, `ja`, `ko`, `zh`, and more.
+Supports any BCP-47 language code (e.g. `en`, `ko`, `ja`, `zh`, `es`, `fr`, `de`, `pt`, `ru`, `ar`, `hi`, etc.).
 
 ### Chat
 

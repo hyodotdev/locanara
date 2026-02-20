@@ -14,8 +14,8 @@ function TranslateTutorial() {
       />
       <h1>Translate</h1>
       <p>
-        Translate text between languages on-device. Supports 7+ languages with
-        source detection and confidence scores.
+        Translate text between languages on-device. Supports any BCP-47 language
+        code with source detection and confidence scores.
       </p>
 
       <section>
@@ -164,6 +164,17 @@ const result2 = await translate(summary.summary, { targetLanguage: 'ja' })`,
 
       <section>
         <h2>Supported Languages</h2>
+        <p>
+          Any valid{" "}
+          <a
+            href="https://www.iana.org/assignments/language-subtag-registry"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            BCP-47 language code
+          </a>{" "}
+          is supported. Common examples:
+        </p>
         <table>
           <thead>
             <tr>
@@ -213,6 +224,36 @@ const result2 = await translate(summary.summary, { targetLanguage: 'ja' })`,
                 <code>de</code>
               </td>
               <td>German</td>
+            </tr>
+            <tr>
+              <td>
+                <code>pt</code>
+              </td>
+              <td>Portuguese</td>
+            </tr>
+            <tr>
+              <td>
+                <code>it</code>
+              </td>
+              <td>Italian</td>
+            </tr>
+            <tr>
+              <td>
+                <code>ru</code>
+              </td>
+              <td>Russian</td>
+            </tr>
+            <tr>
+              <td>
+                <code>ar</code>
+              </td>
+              <td>Arabic</td>
+            </tr>
+            <tr>
+              <td>
+                <code>hi</code>
+              </td>
+              <td>Hindi</td>
             </tr>
           </tbody>
         </table>

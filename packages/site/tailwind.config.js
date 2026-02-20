@@ -175,6 +175,44 @@ export default {
             },
           },
         },
+        invert: {
+          css: {
+            color: "#f0f0f0",
+            h1: { color: "#f0f0f0" },
+            h2: { color: "#f0f0f0" },
+            h3: { color: "#f0f0f0" },
+            h4: { color: "#f0f0f0" },
+            a: {
+              color: "#f0f0f0",
+              "&:hover": { color: "#999999" },
+            },
+            strong: { color: "#f0f0f0" },
+            code: {
+              color: "#f0f0f0",
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+            },
+            th: {
+              color: "#f0f0f0",
+              backgroundColor: "rgba(255, 255, 255, 0.06)",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+            },
+            td: {
+              borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+            },
+            "tbody tr:hover": {
+              backgroundColor: "rgba(255, 255, 255, 0.04)",
+            },
+            blockquote: {
+              color: "#cccccc",
+              borderLeftColor: "rgba(255, 255, 255, 0.2)",
+            },
+            hr: {
+              borderColor: "rgba(255, 255, 255, 0.1)",
+            },
+            "ol > li::marker": { color: "#999999" },
+            "ul > li::marker": { color: "#999999" },
+          },
+        },
       },
     },
   },

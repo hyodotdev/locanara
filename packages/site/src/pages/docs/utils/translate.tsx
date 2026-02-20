@@ -122,7 +122,17 @@ val translated = model.translate("Hello", to = "ko")`}</CodeBlock>
         <AnchorLink id="supported-languages" level="h2">
           Supported Languages
         </AnchorLink>
-        <p>Common language codes:</p>
+        <p>
+          Any valid{" "}
+          <a
+            href="https://www.iana.org/assignments/language-subtag-registry"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            BCP-47 language code
+          </a>{" "}
+          is supported. Common examples:
+        </p>
         <table
           style={{
             width: "100%",
@@ -153,150 +163,39 @@ val translated = model.translate("Hello", to = "ko")`}</CodeBlock>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                <code>en</code>
-              </td>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                English
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                <code>ko</code>
-              </td>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Korean
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                <code>ja</code>
-              </td>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Japanese
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                <code>zh</code>
-              </td>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Chinese
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                <code>fr</code>
-              </td>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                French
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                <code>de</code>
-              </td>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                German
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                <code>es</code>
-              </td>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Spanish
-              </td>
-            </tr>
-            <tr>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                <code>it</code>
-              </td>
-              <td
-                style={{
-                  padding: "0.5rem",
-                  borderBottom: "1px solid var(--border-color)",
-                }}
-              >
-                Italian
-              </td>
-            </tr>
+            {[
+              ["en", "English"],
+              ["ko", "Korean"],
+              ["ja", "Japanese"],
+              ["zh", "Chinese"],
+              ["fr", "French"],
+              ["de", "German"],
+              ["es", "Spanish"],
+              ["it", "Italian"],
+              ["pt", "Portuguese"],
+              ["ru", "Russian"],
+              ["ar", "Arabic"],
+              ["hi", "Hindi"],
+            ].map(([code, name]) => (
+              <tr key={code}>
+                <td
+                  style={{
+                    padding: "0.5rem",
+                    borderBottom: "1px solid var(--border-color)",
+                  }}
+                >
+                  <code>{code}</code>
+                </td>
+                <td
+                  style={{
+                    padding: "0.5rem",
+                    borderBottom: "1px solid var(--border-color)",
+                  }}
+                >
+                  {name}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </section>
