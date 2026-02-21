@@ -22,14 +22,19 @@ export function SessionDemo() {
   const handleSend = async () => {
     if (!input.trim() || isProcessing) return;
     const msg = input.trim(); setInput(''); setIsProcessing(true);
+    // Build history synchronously before state updates to avoid stale closure
+    const currentHistory: ChatMessage[] = [
+      ...messages.map(m => ({role: m.role, content: m.content})),
+      {role: 'user' as const, content: msg},
+    ].slice(-maxMem);
     setMessages(prev => [...prev, {role: 'user', content: msg}]);
     try {
       let acc = '';
       setMessages(prev => [...prev, {role: 'assistant', content: '...'}]);
-      console.log('[DEBUG] session chatStream request:', JSON.stringify({message: msg, historyLength: ctx.length}));
+      console.log('[DEBUG] session chatStream request:', JSON.stringify({message: msg, historyLength: currentHistory.length}));
       await chatStream(msg, {
         systemPrompt: 'You are a helpful assistant. Keep responses concise.',
-        history: ctx,
+        history: currentHistory,
         onChunk: (c) => { acc = c.accumulated; setMessages(prev => { const u = [...prev]; u[u.length - 1] = {role: 'assistant', content: acc}; return u; }); },
       });
     } catch (e: any) { setMessages(prev => { const u = [...prev]; u[u.length - 1] = {role: 'assistant', content: `Error: ${e.message}`}; return u; }); }
