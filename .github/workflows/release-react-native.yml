@@ -1,0 +1,184 @@
+name: Release react-native-ondevice-ai
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type (or "current" to re-release)'
+        required: true
+        type: choice
+        options:
+          - current
+          - patch
+          - minor
+          - major
+        default: patch
+      tag:
+        description: 'npm dist-tag to publish under'
+        required: true
+        default: latest
+        type: choice
+        options:
+          - latest
+          - next
+      create_release:
+        description: 'Also create a GitHub Release from the tag'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Calculate version
+        id: version
+        run: |
+          CURRENT_VERSION=$(jq -r '.["react-native"]' locanara-versions.json)
+          echo "Current version: $CURRENT_VERSION"
+
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            NEW_VERSION="$CURRENT_VERSION"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+            case "${{ github.event.inputs.version }}" in
+              major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+              patch) PATCH=$((PATCH + 1)) ;;
+            esac
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          echo "New version: $NEW_VERSION"
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit version update
+        if: github.event.inputs.version != 'current'
+        run: |
+          # Update version files
+          jq --arg version "$VERSION" '.["react-native"] = $version' locanara-versions.json > tmp.json
+          mv tmp.json locanara-versions.json
+          cp locanara-versions.json packages/site/locanara-versions.json
+
+          # Sync versions to all package.json files
+          bun run version:sync
+
+          # Commit directly to main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add locanara-versions.json packages/site/locanara-versions.json libraries/react-native-ondevice-ai/package.json
+
+          if git diff --staged --quiet; then
+            echo "No version changes to commit"
+          else
+            git commit -m "chore: bump react-native-ondevice-ai to $VERSION"
+            git pull --rebase origin main || true
+            git push origin main
+          fi
+
+      - name: Install library dependencies
+        working-directory: libraries/react-native-ondevice-ai
+        run: bun install
+
+      - name: Lint
+        working-directory: libraries/react-native-ondevice-ai
+        run: bun run lint:ci
+
+      - name: Test
+        working-directory: libraries/react-native-ondevice-ai
+        run: bun run test
+
+      - name: Prepare package (build + codegen)
+        working-directory: libraries/react-native-ondevice-ai
+        run: bun run prepare
+
+      - name: Ensure npm CLI v11.5.1 or later (required for OIDC)
+        run: npm install -g npm@latest
+
+      - name: Publish to npm with OIDC trusted publishing
+        working-directory: libraries/react-native-ondevice-ai
+        run: |
+          if [ "${{ github.event.inputs.tag }}" = "latest" ]; then
+            npm publish --access public --provenance
+          else
+            npm publish --tag ${{ github.event.inputs.tag }} --access public --provenance
+          fi
+
+      - name: Create Git tag
+        run: |
+          TAG_NAME="react-native-ondevice-ai-$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Delete existing tag if re-releasing
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            git push origin --delete "$TAG_NAME" 2>/dev/null || true
+            git tag -d "$TAG_NAME" 2>/dev/null || true
+          fi
+
+          git tag -a "$TAG_NAME" -m "react-native-ondevice-ai $VERSION"
+          git push origin "$TAG_NAME"
+
+      - name: Create GitHub Release
+        if: ${{ github.event.inputs.create_release == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="react-native-ondevice-ai-$VERSION"
+
+          # Delete existing release if re-releasing
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            gh release delete "$TAG_NAME" --yes 2>/dev/null || true
+          fi
+
+          gh release create "$TAG_NAME" \
+            --title "react-native-ondevice-ai $VERSION" \
+            --notes "react-native-ondevice-ai v$VERSION
+
+          ## Installation
+          \`\`\`bash
+          npm install react-native-ondevice-ai@$VERSION react-native-nitro-modules
+          \`\`\`
+
+          ## Features
+          - Apple Intelligence (iOS)
+          - Gemini Nano (Android)
+          - Nitro Modules for high-performance native bridge
+          " \
+            ${{ github.event.inputs.tag != 'latest' && '--prerelease' || '' }}
+
+      - name: Summary
+        run: |
+          echo "## react-native-ondevice-ai Released" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** ${{ github.event.inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installation" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "npm install react-native-ondevice-ai@$VERSION react-native-nitro-modules" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

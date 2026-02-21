@@ -1,0 +1,17 @@
+{
+  "cxxNamespace": ["ondeviceai"],
+  "ios": {
+    "iosModuleName": "NitroOndeviceAi"
+  },
+  "android": {
+    "androidNamespace": ["ondeviceai"],
+    "androidCxxLibName": "NitroOndeviceAi"
+  },
+  "autolinking": {
+    "OndeviceAi": {
+      "swift": "HybridOndeviceAi",
+      "kotlin": "HybridOndeviceAi"
+    }
+  },
+  "ignorePaths": ["node_modules", "example"]
+}

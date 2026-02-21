@@ -16,6 +16,7 @@ struct SummarizeDemo: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var bulletCount = 1
+    @State private var inputType = "text"
 
     var body: some View {
         ScrollView {
@@ -29,6 +30,17 @@ struct SummarizeDemo: View {
                         .padding(8)
                         .background(Color.gray.opacity(0.15))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Input Type")
+                        .font(.headline)
+
+                    Picker("Input Type", selection: $inputType) {
+                        Text("Article").tag("text")
+                        Text("Conversation").tag("conversation")
+                    }
+                    .pickerStyle(.segmented)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -98,7 +110,8 @@ struct SummarizeDemo: View {
         Task {
             do {
                 let chain = SummarizeChain(
-                    bulletCount: bulletCount
+                    bulletCount: bulletCount,
+                    inputType: inputType
                 )
                 let summarizeResult = try await chain.run(inputText)
                 await MainActor.run {

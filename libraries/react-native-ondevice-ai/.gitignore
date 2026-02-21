@@ -1,0 +1,16 @@
+# Nitrogen auto-generated bridge code
+nitrogen/generated/
+
+# Build output
+lib/
+
+# Dependencies
+node_modules/
+
+# iOS
+ios/build/
+
+# Android
+android/build/
+android/.gradle/
+android/local.properties

@@ -111,7 +111,8 @@ public class ExpoOndeviceAiModule: Module {
         AsyncFunction("summarize") { (text: String, options: [String: Any]?) -> [String: Any] in
             NSLog("\(TAG) summarize() input length: \(text.count)")
             let bulletCount = ExpoOndeviceAiHelper.bulletCount(from: options)
-            let result = try await SummarizeChain(bulletCount: bulletCount).run(text)
+            let inputType = ExpoOndeviceAiHelper.inputType(from: options)
+            let result = try await SummarizeChain(bulletCount: bulletCount, inputType: inputType).run(text)
             NSLog("\(TAG) summarize() done — summary length: \(result.summaryLength)")
             return ExpoOndeviceAiSerialization.summarize(result)
         }

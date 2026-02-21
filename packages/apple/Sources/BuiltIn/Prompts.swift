@@ -4,12 +4,17 @@ import Foundation
 public enum BuiltInPrompts {
     public static let summarize = PromptTemplate(
         templateString: """
-        Summarize the following text into exactly {bulletCount} concise bullet point(s), each capturing a key point.
+        Summarize the following {inputTypeHint} into EXACTLY {bulletCount} bullet point(s). You MUST output {bulletCount} bullet point(s) — no more, no less.
+
+        Rules:
+        - Output EXACTLY {bulletCount} bullet point(s), each starting with "* "
+        - Each bullet should capture a key point concisely
+        - Do NOT output any other text before or after the bullet point(s)
 
         Text to summarize:
         <input>{text}</input>
         """,
-        inputVariables: ["text", "bulletCount"]
+        inputVariables: ["text", "bulletCount", "inputTypeHint"]
     )
 
     public static let classify = PromptTemplate(

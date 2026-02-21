@@ -18,13 +18,14 @@ import com.locanara.core.LocanaraModel
  */
 class SummarizeChain(
     private val model: LocanaraModel = LocanaraDefaults.model,
-    private val bulletCount: Int = 1
+    private val bulletCount: Int = 1,
+    private val inputType: String = "text"
 ) : Chain {
     override val name = "SummarizeChain"
 
     override suspend fun invoke(input: ChainInput): ChainOutput {
         val prompt = BuiltInPrompts.summarize.format(
-            mapOf("text" to input.text, "bulletCount" to bulletCount.toString())
+            mapOf("text" to input.text, "bulletCount" to bulletCount.toString(), "inputTypeHint" to inputType)
         )
 
         println("[SummarizeChain] input: ${input.text.take(200)}")

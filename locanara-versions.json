@@ -3,5 +3,6 @@
   "types": "1.0.1",
   "apple": "1.1.0",
   "android": "1.1.0",
-  "expo": "0.1.0"
+  "expo": "0.1.0",
+  "react-native": "0.1.0"
 }

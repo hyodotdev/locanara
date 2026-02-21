@@ -15,6 +15,7 @@ import {
 } from 'expo-ondevice-ai';
 import {useAppState} from '../../AppState';
 import {AIModelRequiredBanner} from './AIModelRequiredBanner';
+import {DebugLogPanel, type DebugLog} from '../../shared/DebugLogPanel';
 
 const DEFAULT_INPUT =
   'The new iPhone features an incredible camera system with advanced computational photography.';
@@ -28,11 +29,13 @@ export function ClassifyDemo() {
   const [result, setResult] = useState<ClassifyResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [debugLog, setDebugLog] = useState<DebugLog | null>(null);
 
   const executeClassify = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     setResult(null);
+    const start = Date.now();
 
     try {
       const categoryList = categories
@@ -40,24 +43,14 @@ export function ClassifyDemo() {
         .map((c) => c.trim())
         .filter(Boolean);
 
-      ExpoOndeviceAiLog.d('[ClassifyDemo] Starting classify');
-      ExpoOndeviceAiLog.d('[ClassifyDemo] Input:', inputText);
-      ExpoOndeviceAiLog.d(
-        '[ClassifyDemo] Categories:',
-        categoryList.join(', '),
-      );
-
-      const classifyResult = await classify(inputText, {
-        categories: categoryList,
-      });
-
-      ExpoOndeviceAiLog.d('[ClassifyDemo] Result received');
-      ExpoOndeviceAiLog.json('[ClassifyDemo] ClassifyResult', classifyResult);
+      const options = {categories: categoryList};
+      console.log('[DEBUG] classify request:', JSON.stringify(options));
+      const classifyResult = await classify(inputText, options);
+      console.log('[DEBUG] classify response:', JSON.stringify(classifyResult));
       setResult(classifyResult);
+      setDebugLog({api: 'classify', request: {text: inputText.substring(0, 100) + '...', options}, response: classifyResult, timing: Date.now() - start});
     } catch (error: any) {
-      ExpoOndeviceAiLog.error(
-        '[ClassifyDemo] Error: ' + (error.message || 'Unknown error'),
-      );
+      setDebugLog({api: 'classify', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
       setErrorMessage(error.message || 'Failed to classify');
     } finally {
       setIsLoading(false);
@@ -148,6 +141,7 @@ export function ClassifyDemo() {
             })}
           </View>
         )}
+        <DebugLogPanel log={debugLog} />
       </View>
     </ScrollView>
   );

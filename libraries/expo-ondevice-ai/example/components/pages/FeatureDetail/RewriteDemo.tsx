@@ -16,6 +16,7 @@ import {
 } from 'expo-ondevice-ai';
 import {useAppState} from '../../AppState';
 import {AIModelRequiredBanner} from './AIModelRequiredBanner';
+import {DebugLogPanel, type DebugLog} from '../../shared/DebugLogPanel';
 
 const DEFAULT_INPUT =
   'i think this product is really good and everyone should buy it';
@@ -40,28 +41,23 @@ export function RewriteDemo() {
   const [result, setResult] = useState<RewriteResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [debugLog, setDebugLog] = useState<DebugLog | null>(null);
 
   const executeRewrite = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     setResult(null);
+    const start = Date.now();
 
     try {
-      ExpoOndeviceAiLog.d('[RewriteDemo] Starting rewrite');
-      ExpoOndeviceAiLog.d('[RewriteDemo] Input:', inputText);
-      ExpoOndeviceAiLog.d('[RewriteDemo] Output type:', selectedStyle);
-
-      const rewriteResult = await rewrite(inputText, {
-        outputType: selectedStyle,
-      });
-
-      ExpoOndeviceAiLog.d('[RewriteDemo] Result received');
-      ExpoOndeviceAiLog.json('[RewriteDemo] RewriteResult', rewriteResult);
+      const options = {outputType: selectedStyle};
+      console.log('[DEBUG] rewrite request:', JSON.stringify(options));
+      const rewriteResult = await rewrite(inputText, options);
+      console.log('[DEBUG] rewrite response:', JSON.stringify(rewriteResult));
       setResult(rewriteResult);
+      setDebugLog({api: 'rewrite', request: {text: inputText.substring(0, 100) + '...', options}, response: rewriteResult, timing: Date.now() - start});
     } catch (error: any) {
-      ExpoOndeviceAiLog.error(
-        '[RewriteDemo] Error: ' + (error.message || 'Unknown error'),
-      );
+      setDebugLog({api: 'rewrite', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
       setErrorMessage(error.message || 'Failed to rewrite');
     } finally {
       setIsLoading(false);
@@ -176,6 +172,7 @@ export function RewriteDemo() {
             )}
           </View>
         )}
+        <DebugLogPanel log={debugLog} />
       </View>
     </ScrollView>
   );

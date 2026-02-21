@@ -20,6 +20,12 @@ export default function RootLayout() {
             headerBackTitle: 'Back',
           }}
         />
+        <Stack.Screen
+          name="framework/[id]"
+          options={{
+            headerBackTitle: 'Back',
+          }}
+        />
       </Stack>
     </AppStateProvider>
   );
