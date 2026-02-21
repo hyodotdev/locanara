@@ -16,6 +16,7 @@ import {
 } from 'expo-ondevice-ai';
 import {useAppState} from '../../AppState';
 import {AIModelRequiredBanner} from './AIModelRequiredBanner';
+import {DebugLogPanel, type DebugLog} from '../../shared/DebugLogPanel';
 
 const DEFAULT_INPUT = `Contact John Smith at john@example.com or call 555-123-4567. Meeting scheduled for January 15, 2025 at Apple Park, Cupertino.`;
 
@@ -33,27 +34,24 @@ export function ExtractDemo() {
   const [result, setResult] = useState<ExtractResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [debugLog, setDebugLog] = useState<DebugLog | null>(null);
 
   const executeExtract = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     setResult(null);
+    const start = Date.now();
 
     try {
-      ExpoOndeviceAiLog.d('[ExtractDemo] Starting extraction');
-      ExpoOndeviceAiLog.d('[ExtractDemo] Input:', inputText);
-      const extractResult = await extract(inputText, {
-        entityTypes: ['person', 'email', 'phone', 'date', 'location'],
-        extractKeyValues: true,
-      });
-      ExpoOndeviceAiLog.d('[ExtractDemo] Result received');
-      ExpoOndeviceAiLog.json('[ExtractDemo] ExtractResult', extractResult);
+      const options = {entityTypes: ['person', 'email', 'phone', 'date', 'location'], extractKeyValues: true};
+      console.log('[DEBUG] extract request:', JSON.stringify(options));
+      const extractResult = await extract(inputText, options);
+      console.log('[DEBUG] extract response:', JSON.stringify(extractResult));
       setResult(extractResult);
+      setDebugLog({api: 'extract', request: {text: inputText.substring(0, 100) + '...', options}, response: extractResult, timing: Date.now() - start});
     } catch (error: any) {
-      ExpoOndeviceAiLog.error(
-        '[ExtractDemo] Error: ' + (error.message || 'Unknown error'),
-      );
       setErrorMessage(error.message || 'Failed to extract entities');
+      setDebugLog({api: 'extract', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +124,7 @@ export function ExtractDemo() {
             )}
           </View>
         )}
+        <DebugLogPanel log={debugLog} />
       </View>
     </ScrollView>
   );

@@ -18,6 +18,15 @@ enum ExpoOndeviceAiHelper {
         return 1
     }
 
+    static func inputType(from options: [String: Any]?) -> String {
+        guard let opts = options,
+              let inputType = opts["inputType"] as? String,
+              inputType == "CONVERSATION" else {
+            return "text"
+        }
+        return "conversation"
+    }
+
     // MARK: - Classify
 
     static func classifyOptions(from options: [String: Any]?) -> (categories: [String], maxResults: Int) {

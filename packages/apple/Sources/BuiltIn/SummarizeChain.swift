@@ -12,19 +12,23 @@ public struct SummarizeChain: Chain {
 
     private let model: any LocanaraModel
     private let bulletCount: Int
+    private let inputTypeHint: String
 
     public init(
         model: (any LocanaraModel)? = nil,
-        bulletCount: Int = 1
+        bulletCount: Int = 1,
+        inputType: String = "text"
     ) {
         self.model = model ?? LocanaraDefaults.model
         self.bulletCount = bulletCount
+        self.inputTypeHint = inputType
     }
 
     public func invoke(_ input: ChainInput) async throws -> ChainOutput {
         let prompt = try BuiltInPrompts.summarize.format([
             "text": input.text,
-            "bulletCount": String(bulletCount)
+            "bulletCount": String(bulletCount),
+            "inputTypeHint": inputTypeHint
         ])
 
         print("[SummarizeChain] input: \(input.text.prefix(200))")

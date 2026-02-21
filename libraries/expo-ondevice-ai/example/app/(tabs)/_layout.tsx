@@ -27,6 +27,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="framework"
+        options={{
+          title: 'Framework',
+          headerTitle: 'Framework',
+          tabBarIcon: ({color, size}) => (
+            <Ionicons name="cube" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="device"
         options={{
           title: 'Device',

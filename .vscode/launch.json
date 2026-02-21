@@ -1,80 +1,77 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "🍎 Open Example App in Xcode",
-            "command": "open Example/LocanaraExample.xcodeproj",
-            "cwd": "${workspaceFolder}/packages/apple"
-        },
-        {
-            "name": "🤖 Open Gemini (Android) in Android Studio",
-            "type": "node",
-            "request": "launch",
-            "runtimeExecutable": "bash",
-            "runtimeArgs": [
-                "-lc",
-                "./scripts/open-android-studio.sh"
-            ],
-            "cwd": "${workspaceFolder}/packages/android",
-            "console": "integratedTerminal"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "📝 GQL: Generate Types",
-            "command": "bun run generate",
-            "cwd": "${workspaceFolder}/packages/gql"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "🌍 Run Site",
-            "command": "bunx convex dev & bun run dev",
-            "cwd": "${workspaceFolder}/packages/site"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "🧪 Test: Apple (Swift)",
-            "command": "swift test",
-            "cwd": "${workspaceFolder}/packages/apple"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "🧪 Test: Gemini (Android)",
-            "command": "./gradlew :locanara:test",
-            "cwd": "${workspaceFolder}/packages/android"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "📱 Expo Example: Web",
-            "command": "bunx expo start --web",
-            "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "📱 Expo Example: Dev Server",
-            "command": "bunx expo start",
-            "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "📱 Expo Example: iOS Device",
-            "command": "bun ios --device",
-            "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
-        },
-        {
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "📱 Expo Example: Android",
-            "command": "bun android",
-            "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "🍎 Open Example App in Xcode",
+      "command": "open Example/LocanaraExample.xcodeproj",
+      "cwd": "${workspaceFolder}/packages/apple"
+    },
+    {
+      "name": "🤖 Open Gemini (Android) in Android Studio",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-lc", "./scripts/open-android-studio.sh"],
+      "cwd": "${workspaceFolder}/packages/android",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "📝 GQL: Generate Types",
+      "command": "bun run generate",
+      "cwd": "${workspaceFolder}/packages/gql"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "🌍 Run Site",
+      "command": "bunx convex dev & bun run dev",
+      "cwd": "${workspaceFolder}/packages/site"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "📱 Expo: Web",
+      "command": "bunx expo start --web",
+      "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "📱 Expo: iOS",
+      "command": "bun ios --device",
+      "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "📱 Expo: Android",
+      "command": "bun android",
+      "cwd": "${workspaceFolder}/libraries/expo-ondevice-ai/example"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "📱 React Native: Start",
+      "command": "bun start",
+      "cwd": "${workspaceFolder}/libraries/react-native-ondevice-ai/example"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "📱 React Native: iOS",
+      "command": "bun ios",
+      "cwd": "${workspaceFolder}/libraries/react-native-ondevice-ai/example"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "📱 React Native: Android",
+      "command": "bun android",
+      "cwd": "${workspaceFolder}/libraries/react-native-ondevice-ai/example"
+    }
+  ]
 }

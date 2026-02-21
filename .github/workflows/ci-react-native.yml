@@ -1,0 +1,63 @@
+name: CI React Native
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'libraries/react-native-ondevice-ai/**'
+      - '.github/workflows/ci-react-native.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'libraries/react-native-ondevice-ai/**'
+      - '.github/workflows/ci-react-native.yml'
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libraries/react-native-ondevice-ai
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.1.38'
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-rn-${{ hashFiles('libraries/react-native-ondevice-ai/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-rn-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Lint
+        run: bun run lint:ci
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: npx bob build
+
+      - name: Verify build output
+        run: |
+          if [ ! -f "lib/module/index.js" ] || [ ! -f "lib/typescript/src/index.d.ts" ]; then
+            echo "Build output missing!"
+            exit 1
+          fi
+
+      - name: Verify nitrogen generated
+        run: |
+          if [ ! -d "nitrogen/generated" ]; then
+            echo "Nitrogen generated files missing!"
+            exit 1
+          fi

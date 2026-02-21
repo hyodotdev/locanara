@@ -18,6 +18,7 @@ import {
 import {useAppState} from '../../AppState';
 import {StatBadge} from '../../shared/StatBadge';
 import {AIModelRequiredBanner} from './AIModelRequiredBanner';
+import {DebugLogPanel, type DebugLog} from '../../shared/DebugLogPanel';
 
 const DEFAULT_INPUT = `Apple Intelligence is the personal intelligence system that puts powerful generative models right at the core of iPhone, iPad, and Mac. It powers incredible new features that help you write, express yourself, and get things done effortlessly. The best part? It's deeply integrated into iOS 18, iPadOS 18, and macOS Sequoia, harnessing the power of Apple silicon to understand and create language and images, take action across apps, and draw from your personal context to simplify and accelerate everyday tasks. All while protecting your privacy.`;
 
@@ -31,33 +32,23 @@ export function SummarizeDemo() {
     useState<SummarizeInputType>('ARTICLE');
   const [selectedOutputType, setSelectedOutputType] =
     useState<SummarizeOutputType>('ONE_BULLET');
+  const [debugLog, setDebugLog] = useState<DebugLog | null>(null);
 
   const executeSummarize = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     setResult(null);
+    const start = Date.now();
 
     try {
-      ExpoOndeviceAiLog.d('[SummarizeDemo] Starting summarize');
-      ExpoOndeviceAiLog.d('[SummarizeDemo] Input length:', inputText.length);
-      ExpoOndeviceAiLog.d('[SummarizeDemo] inputType:', selectedInputType);
-      ExpoOndeviceAiLog.d('[SummarizeDemo] outputType:', selectedOutputType);
-
-      const summarizeResult = await summarize(inputText, {
-        inputType: selectedInputType,
-        outputType: selectedOutputType,
-      });
-
-      ExpoOndeviceAiLog.d('[SummarizeDemo] Result received');
-      ExpoOndeviceAiLog.json(
-        '[SummarizeDemo] SummarizeResult',
-        summarizeResult,
-      );
+      const options = {inputType: selectedInputType, outputType: selectedOutputType};
+      console.log('[DEBUG] summarize request:', JSON.stringify(options));
+      const summarizeResult = await summarize(inputText, options);
+      console.log('[DEBUG] summarize response:', JSON.stringify(summarizeResult));
       setResult(summarizeResult);
+      setDebugLog({api: 'summarize', request: {text: inputText.substring(0, 100) + '...', options}, response: summarizeResult, timing: Date.now() - start});
     } catch (error: any) {
-      ExpoOndeviceAiLog.error(
-        '[SummarizeDemo] Error: ' + (error.message || 'Unknown error'),
-      );
+      setDebugLog({api: 'summarize', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
       setErrorMessage(error.message || 'Failed to summarize');
     } finally {
       setIsLoading(false);
@@ -216,6 +207,7 @@ export function SummarizeDemo() {
             </View>
           </View>
         )}
+        <DebugLogPanel log={debugLog} />
       </View>
     </ScrollView>
   );

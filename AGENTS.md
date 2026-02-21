@@ -6,7 +6,7 @@
 
 ## Project Overview
 
-Locanara is an on-device AI **framework** for iOS and Android, inspired by LangChain. It provides composable chains, memory management, guardrails, and a pipeline DSL for building production AI features using platform-native models.
+Locanara is an on-device AI **framework** for iOS, Android, and Web, inspired by LangChain. It provides composable chains, memory management, guardrails, and a pipeline DSL for building production AI features using platform-native models.
 
 ### Core Principles
 
@@ -19,6 +19,7 @@ Locanara is an on-device AI **framework** for iOS and Android, inspired by LangC
 
 - **iOS/macOS**: Apple Intelligence (Foundation Models) - iOS 18.1+, macOS 15.1+ (iOS 26+, macOS 26+ recommended)
 - **Android**: Gemini Nano (ML Kit GenAI) - Android 14+
+- **Web**: Chrome Built-in AI (Gemini Nano) - Chrome 138+
 
 ### Distribution
 
@@ -26,6 +27,7 @@ Locanara is an on-device AI **framework** for iOS and Android, inspired by LangC
 | -------- | ---------------------------------------------------------------- |
 | iOS      | `https://github.com/hyodotdev/locanara` (SPM) or CocoaPods       |
 | Android  | Maven Central: `implementation("com.locanara:locanara:VERSION")` |
+| Web      | npm: `npm install locanara`                                      |
 
 ## Project Structure
 
@@ -64,7 +66,7 @@ locanara-community/
 │   └── site/           # Website (landing + docs + community)
 ├── libraries/          # Third-party framework integrations
 │   ├── expo-ondevice-ai/       # Expo module
-│   └── react-native-ondevice-ai/ # React Native module (planned)
+│   └── react-native-ondevice-ai/ # React Native Nitro module
 └── .claude/
     ├── commands/       # Slash commands
     └── guides/         # Project guides
@@ -300,10 +302,10 @@ Third-party framework integrations that use Locanara SDK.
 
 ### Available Libraries
 
-| Library                    | Status      | Description                          |
-| -------------------------- | ----------- | ------------------------------------ |
-| `expo-ondevice-ai`         | In Progress | Expo module for on-device AI         |
-| `react-native-ondevice-ai` | Planned     | React Native module for on-device AI |
+| Library                    | Status      | Description                                |
+| -------------------------- | ----------- | ------------------------------------------ |
+| `expo-ondevice-ai`         | In Progress | Expo module for on-device AI               |
+| `react-native-ondevice-ai` | In Progress | React Native Nitro module for on-device AI |
 
 ### expo-ondevice-ai
 
@@ -324,6 +326,111 @@ bun run test      # Run tests
 - `ios/` - Swift native module
 - `plugin/` - Expo config plugin
 - `example/` - Example Expo app
+
+### react-native-ondevice-ai
+
+React Native module using Nitro Modules for bare React Native apps. Expo users should use `expo-ondevice-ai` instead.
+
+```bash
+cd libraries/react-native-ondevice-ai
+bun install
+bun run nitrogen    # Generate Nitro bridge code
+bun run lint:tsc    # TypeScript type check
+bun run test        # Run tests
+```
+
+**Structure follows react-native-iap Nitro pattern:**
+
+- `src/` - TypeScript source (specs, types, public API)
+- `src/specs/` - Nitro HybridObject interface (`OndeviceAi.nitro.ts`)
+- `android/` - Kotlin native module + CMake/C++ adapter
+- `ios/` - Swift native module
+- `nitrogen/generated/` - Auto-generated bridge code (do not edit)
+- `nitro.json` - Nitro module configuration
+
+## Nitro Module Development (react-native-ondevice-ai)
+
+### CRITICAL: Spec-First Development
+
+The Nitro Module uses **code generation** from a single spec file. **All changes MUST start from the spec file** — otherwise native implementations will be out of sync.
+
+**Source of truth**: `libraries/react-native-ondevice-ai/src/specs/OndeviceAi.nitro.ts`
+
+### When Adding or Modifying an API
+
+Follow this exact order — **never skip a step**:
+
+1. **Update the Nitro spec** (`src/specs/OndeviceAi.nitro.ts`)
+   - Add/modify interfaces and the `OndeviceAi` HybridObject method signature
+   - All types used in the HybridObject must be defined in this file
+   - Union types must have 2+ values (Nitro constraint)
+   - No `Record<K,V>` — use flat fields and convert in JS layer
+
+2. **Run nitrogen** to regenerate bridge code:
+
+   ```bash
+   cd libraries/react-native-ondevice-ai && npx nitrogen
+   ```
+
+3. **Update native implementations** — both platforms must match the spec:
+   - iOS: `ios/HybridOndeviceAi.swift` (+ `ios/OndeviceAiHelper.swift` if options parsing needed)
+   - Android: `android/.../HybridOndeviceAi.kt` (+ `android/.../OndeviceAiHelper.kt`)
+
+4. **Update the JS public API** (`src/index.ts`)
+   - Convert Nitro types → public types (e.g., flat booleans → `features` Record)
+   - Manage listener lifecycle for streaming/progress patterns
+
+5. **Update public types** (`src/types.ts`) if new types are exposed
+
+6. **Update tests** (`src/__tests__/index.test.ts`)
+   - Update mock (`src/__mocks__/react-native-nitro-modules.js`) with new methods/return values
+   - Add test cases for new functionality
+
+7. **Verify**:
+   ```bash
+   npx nitrogen && npx tsc --noEmit && bun run test
+   ```
+
+### Files That Must Stay in Sync
+
+| Spec field                   | iOS implementation                | Android implementation         | JS wrapper                 | Test mock                               |
+| ---------------------------- | --------------------------------- | ------------------------------ | -------------------------- | --------------------------------------- |
+| `OndeviceAi.nitro.ts` method | `HybridOndeviceAi.swift` override | `HybridOndeviceAi.kt` override | `src/index.ts` function    | Mock in `react-native-nitro-modules.js` |
+| Nitro struct/enum            | Auto-generated (nitrogen)         | Auto-generated (nitrogen)      | `src/types.ts` public type | Mock return value                       |
+
+### Nitro Constraints Reference
+
+- **Union types**: Must have 2+ values (single-value union = codegen error)
+- **No `Record<K,V>`**: Use flat fields, convert in JS layer
+- **Optional fields**: Use `field?: Type | null` pattern
+- **Streaming**: Listener pattern (`addXxxListener`/`removeXxxListener`), not EventEmitter
+- **All types in spec file**: Nitro codegen only reads the `.nitro.ts` file
+
+### API Parity Checklist
+
+The `react-native-ondevice-ai` public API **MUST** be identical to `expo-ondevice-ai`. When modifying either library, update both:
+
+| Function                              | Both libraries must expose                    |
+| ------------------------------------- | --------------------------------------------- |
+| `initialize()`                        | `Promise<InitializeResult>`                   |
+| `getDeviceCapability()`               | `Promise<DeviceCapability>`                   |
+| `summarize(text, options?)`           | `Promise<SummarizeResult>`                    |
+| `classify(text, options?)`            | `Promise<ClassifyResult>`                     |
+| `extract(text, options?)`             | `Promise<ExtractResult>`                      |
+| `chat(message, options?)`             | `Promise<ChatResult>`                         |
+| `chatStream(message, options?)`       | `Promise<ChatResult>` with `onChunk` callback |
+| `translate(text, options)`            | `Promise<TranslateResult>`                    |
+| `rewrite(text, options)`              | `Promise<RewriteResult>`                      |
+| `proofread(text, options?)`           | `Promise<ProofreadResult>`                    |
+| `getAvailableModels()`                | `Promise<DownloadableModelInfo[]>`            |
+| `getDownloadedModels()`               | `Promise<string[]>`                           |
+| `getLoadedModel()`                    | `Promise<string \| null>`                     |
+| `getCurrentEngine()`                  | `Promise<InferenceEngine>`                    |
+| `downloadModel(id, onProgress?)`      | `Promise<boolean>`                            |
+| `loadModel(id)`                       | `Promise<void>`                               |
+| `deleteModel(id)`                     | `Promise<void>`                               |
+| `getPromptApiStatus()`                | `Promise<string>`                             |
+| `downloadPromptApiModel(onProgress?)` | `Promise<boolean>`                            |
 
 ## Publishing & Deployment (STRICTLY FORBIDDEN)
 

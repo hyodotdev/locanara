@@ -15,6 +15,7 @@ import {
 } from 'expo-ondevice-ai';
 import {useAppState} from '../../AppState';
 import {AIModelRequiredBanner} from './AIModelRequiredBanner';
+import {DebugLogPanel, type DebugLog} from '../../shared/DebugLogPanel';
 
 const DEFAULT_INPUT = 'Hello, how are you today?';
 
@@ -35,31 +36,23 @@ export function TranslateDemo() {
   const [result, setResult] = useState<TranslateResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [debugLog, setDebugLog] = useState<DebugLog | null>(null);
 
   const executeTranslate = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     setResult(null);
+    const start = Date.now();
 
     try {
-      ExpoOndeviceAiLog.d('[TranslateDemo] Starting translate');
-      ExpoOndeviceAiLog.d('[TranslateDemo] Input:', inputText);
-      ExpoOndeviceAiLog.d('[TranslateDemo] Target language:', targetLanguage);
-
-      const translateResult = await translate(inputText, {
-        targetLanguage,
-      });
-
-      ExpoOndeviceAiLog.d('[TranslateDemo] Result received');
-      ExpoOndeviceAiLog.json(
-        '[TranslateDemo] TranslateResult',
-        translateResult,
-      );
+      const options = {targetLanguage};
+      console.log('[DEBUG] translate request:', JSON.stringify(options));
+      const translateResult = await translate(inputText, options);
+      console.log('[DEBUG] translate response:', JSON.stringify(translateResult));
       setResult(translateResult);
+      setDebugLog({api: 'translate', request: {text: inputText.substring(0, 100) + '...', options}, response: translateResult, timing: Date.now() - start});
     } catch (error: any) {
-      ExpoOndeviceAiLog.error(
-        '[TranslateDemo] Error: ' + (error.message || 'Unknown error'),
-      );
+      setDebugLog({api: 'translate', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
       setErrorMessage(error.message || 'Failed to translate');
     } finally {
       setIsLoading(false);
@@ -148,6 +141,7 @@ export function TranslateDemo() {
             </View>
           </View>
         )}
+        <DebugLogPanel log={debugLog} />
       </View>
     </ScrollView>
   );

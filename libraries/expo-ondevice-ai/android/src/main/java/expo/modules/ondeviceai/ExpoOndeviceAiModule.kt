@@ -160,7 +160,8 @@ class ExpoOndeviceAiModule : Module() {
                 scope.launch {
                     try {
                         val bulletCount = ExpoOndeviceAiHelper.bulletCount(options)
-                        val result = SummarizeChain(bulletCount = bulletCount).run(text)
+                        val inputType = ExpoOndeviceAiHelper.inputType(options)
+                        val result = SummarizeChain(bulletCount = bulletCount, inputType = inputType).run(text)
                         promise.resolve(ExpoOndeviceAiSerialization.summarize(result))
                     } catch (e: Exception) {
                         promise.reject("ERR_SUMMARIZE", e.message, e)

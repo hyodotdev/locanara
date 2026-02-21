@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 fun SummarizeScreen(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf(SampleTexts.APPLE_INTELLIGENCE.trim()) }
     var bulletCount by remember { mutableIntStateOf(1) }
+    var inputType by remember { mutableStateOf("text") }
     var result by remember { mutableStateOf<SummarizeResult?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -53,8 +54,8 @@ fun SummarizeScreen(onNavigateBack: () -> Unit) {
             result = null
             scope.launch {
                 try {
-                    println("[SummarizeScreen] input: ${inputText.take(200)}, bulletCount: $bulletCount")
-                    val chain = SummarizeChain(bulletCount = bulletCount)
+                    println("[SummarizeScreen] input: ${inputText.take(200)}, bulletCount: $bulletCount, inputType: $inputType")
+                    val chain = SummarizeChain(bulletCount = bulletCount, inputType = inputType)
                     result = chain.run(inputText)
                     println("[SummarizeScreen] result: ${result?.summary?.take(200)}")
                 } catch (e: Exception) {
@@ -68,6 +69,30 @@ fun SummarizeScreen(onNavigateBack: () -> Unit) {
         onNavigateBack = onNavigateBack,
         executeButtonText = "Summarize",
         additionalInputs = {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Input Type",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                FilterChip(
+                    selected = inputType == "text",
+                    onClick = { inputType = "text" },
+                    label = { Text("Article") }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                FilterChip(
+                    selected = inputType == "conversation",
+                    onClick = { inputType = "conversation" },
+                    label = { Text("Conversation") }
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
