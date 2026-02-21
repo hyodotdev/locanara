@@ -9,6 +9,7 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
 
     // MARK: - Listener Storage
 
+    private let listenerQueue = DispatchQueue(label: "com.locanara.ondeviceai.listeners")
     private var chatStreamListeners: [(NitroChatStreamChunk) -> Void] = []
     private var modelDownloadProgressListeners: [(NitroModelDownloadProgress) -> Void] = []
 
@@ -170,7 +171,8 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
                     accumulated: accumulated,
                     isFinal: false
                 )
-                for listener in self.chatStreamListeners {
+                let listeners = self.listenerQueue.sync { self.chatStreamListeners }
+                for listener in listeners {
                     listener(streamChunk)
                 }
             }
@@ -181,7 +183,8 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
                 accumulated: accumulated,
                 isFinal: true
             )
-            for listener in self.chatStreamListeners {
+            let finalListeners = self.listenerQueue.sync { self.chatStreamListeners }
+            for listener in finalListeners {
                 listener(finalChunk)
             }
 
@@ -194,11 +197,11 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
     }
 
     func addChatStreamListener(listener: @escaping (NitroChatStreamChunk) -> Void) {
-        chatStreamListeners.append(listener)
+        listenerQueue.sync { chatStreamListeners.append(listener) }
     }
 
     func removeChatStreamListener(listener: @escaping (NitroChatStreamChunk) -> Void) {
-        chatStreamListeners.removeAll { $0 as AnyObject === listener as AnyObject }
+        listenerQueue.sync { chatStreamListeners.removeAll { $0 as AnyObject === listener as AnyObject } }
     }
 
     // MARK: - Model Management
@@ -257,7 +260,8 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
                     progress: progress.progress,
                     state: self.mapDownloadState(progress.state)
                 )
-                for listener in self.modelDownloadProgressListeners {
+                let listeners = self.listenerQueue.sync { self.modelDownloadProgressListeners }
+                for listener in listeners {
                     listener(p)
                 }
             }
@@ -266,11 +270,11 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
     }
 
     func addModelDownloadProgressListener(listener: @escaping (NitroModelDownloadProgress) -> Void) {
-        modelDownloadProgressListeners.append(listener)
+        listenerQueue.sync { modelDownloadProgressListeners.append(listener) }
     }
 
     func removeModelDownloadProgressListener(listener: @escaping (NitroModelDownloadProgress) -> Void) {
-        modelDownloadProgressListeners.removeAll { $0 as AnyObject === listener as AnyObject }
+        listenerQueue.sync { modelDownloadProgressListeners.removeAll { $0 as AnyObject === listener as AnyObject } }
     }
 
     func loadModel(modelId: String) throws -> Promise<Void> {

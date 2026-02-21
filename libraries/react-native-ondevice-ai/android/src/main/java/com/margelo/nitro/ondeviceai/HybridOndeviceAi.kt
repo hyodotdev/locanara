@@ -36,9 +36,9 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(job + Dispatchers.Main)
 
-    // Listener storage
-    private val chatStreamListeners = mutableListOf<(NitroChatStreamChunk) -> Unit>()
-    private val modelDownloadProgressListeners = mutableListOf<(NitroModelDownloadProgress) -> Unit>()
+    // Listener storage (thread-safe)
+    private val chatStreamListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroChatStreamChunk) -> Unit>()
+    private val modelDownloadProgressListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroModelDownloadProgress) -> Unit>()
 
     // ──────────────────────────────────────────────────────────────────
     // Initialization

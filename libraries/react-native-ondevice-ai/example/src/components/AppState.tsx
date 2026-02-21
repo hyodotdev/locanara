@@ -270,23 +270,7 @@ export function AppStateProvider({children}: {children: ReactNode}) {
       setSdkState('initialized');
 
       // Load model info after initialization
-      try {
-        const [models, downloaded, loaded, engine] = await Promise.all([
-          getAvailableModels(),
-          getDownloadedModels(),
-          getLoadedModel(),
-          getCurrentEngine(),
-        ]);
-        setModelState((prev) => ({
-          ...prev,
-          availableModels: models,
-          downloadedModelIds: downloaded,
-          loadedModelId: loaded,
-          currentEngine: engine,
-        }));
-      } catch {
-        // Model management may not be available
-      }
+      await refreshModels();
     } catch (error: any) {
       setSdkState('error');
       setErrorMessage(error.message || 'Failed to initialize SDK');

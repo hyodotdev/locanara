@@ -42,15 +42,13 @@ export function AgentDemo() {
       console.log('[DEBUG] agent chat request:', JSON.stringify({query: query.substring(0, 100), contextLength: context.length}));
       const result = await chat(query, {systemPrompt: `You are a helpful assistant. Answer based on this context:\n\n${context}\n\nKeep your answer concise (2-3 sentences).`});
       console.log('[DEBUG] agent chat response:', JSON.stringify(result));
-      s2.observation = result.message;
-      setSteps(prev => { const u = [...prev]; u[u.length - 1] = s2; return u; });
+      setSteps(prev => { const u = [...prev]; u[u.length - 1] = {...u[u.length - 1], observation: result.message}; return u; });
 
       if (result.message.length > 200) {
         const s3: ReasoningStep = {step: 3, thought: 'The response is long. Let me summarize.', action: 'SummarizeChain', observation: ''};
         setSteps(prev => [...prev, s3]);
         const sr = await summarize(result.message);
-        s3.observation = sr.summary;
-        setSteps(prev => { const u = [...prev]; u[u.length - 1] = s3; return u; });
+        setSteps(prev => { const u = [...prev]; u[u.length - 1] = {...u[u.length - 1], observation: sr.summary}; return u; });
         setFinalAnswer(sr.summary);
       } else { setFinalAnswer(result.message); }
       setProcessingTime(Date.now() - start);

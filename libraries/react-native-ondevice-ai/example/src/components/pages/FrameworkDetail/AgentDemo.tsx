@@ -115,10 +115,9 @@ export function AgentDemo() {
       });
       console.log('[DEBUG] agent chat response:', JSON.stringify(result));
 
-      processStep.observation = result.message;
       setSteps((prev) => {
         const updated = [...prev];
-        updated[updated.length - 1] = processStep;
+        updated[updated.length - 1] = {...updated[updated.length - 1], observation: result.message};
         return updated;
       });
 
@@ -133,10 +132,9 @@ export function AgentDemo() {
         setSteps((prev) => [...prev, sumStep]);
 
         const sumResult = await summarize(result.message);
-        sumStep.observation = sumResult.summary;
         setSteps((prev) => {
           const updated = [...prev];
-          updated[updated.length - 1] = sumStep;
+          updated[updated.length - 1] = {...updated[updated.length - 1], observation: sumResult.summary};
           return updated;
         });
         setFinalAnswer(sumResult.summary);

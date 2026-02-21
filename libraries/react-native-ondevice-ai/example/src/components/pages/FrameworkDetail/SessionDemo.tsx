@@ -43,16 +43,22 @@ export function SessionDemo() {
     setInput('');
     setIsProcessing(true);
 
+    // Build history from current messages before state updates
+    const currentHistory: ChatMessage[] = [
+      ...messages.map((m) => ({role: m.role, content: m.content})),
+      {role: 'user' as const, content: userMessage},
+    ].slice(-maxMemoryEntries);
+
     setMessages((prev) => [...prev, {role: 'user', content: userMessage}]);
 
     try {
       let accumulated = '';
       setMessages((prev) => [...prev, {role: 'assistant', content: '...'}]);
 
-      console.log('[DEBUG] session chatStream request:', JSON.stringify({message: userMessage, historyLength: contextHistory.length}));
+      console.log('[DEBUG] session chatStream request:', JSON.stringify({message: userMessage, historyLength: currentHistory.length}));
       await chatStream(userMessage, {
         systemPrompt: 'You are a helpful assistant. Keep responses concise.',
-        history: contextHistory,
+        history: currentHistory,
         onChunk: (chunk) => {
           accumulated = chunk.accumulated;
           setMessages((prev) => {

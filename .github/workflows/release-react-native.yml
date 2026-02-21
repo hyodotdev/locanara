@@ -96,7 +96,7 @@ jobs:
             echo "No version changes to commit"
           else
             git commit -m "chore: bump react-native-ondevice-ai to $VERSION"
-            git pull --rebase origin main || true
+            git pull --rebase origin main
             git push origin main
           fi
 
