@@ -5,13 +5,11 @@ on:
     branches: [main]
     paths:
       - 'libraries/expo-ondevice-ai/**'
-      - 'packages/web/**'
       - '.github/workflows/ci-expo.yml'
   pull_request:
     branches: [main]
     paths:
       - 'libraries/expo-ondevice-ai/**'
-      - 'packages/web/**'
       - '.github/workflows/ci-expo.yml'
 
 jobs:
@@ -84,9 +82,17 @@ jobs:
         working-directory: libraries/expo-ondevice-ai
         run: bun install
 
+      - name: Build library and plugin
+        working-directory: libraries/expo-ondevice-ai
+        run: bun run build
+
       - name: Install example dependencies
         working-directory: libraries/expo-ondevice-ai/example
         run: bun install
+
+      - name: Prebuild Android
+        working-directory: libraries/expo-ondevice-ai/example
+        run: bunx expo prebuild --platform android --clean
 
       - name: Build Android
         working-directory: libraries/expo-ondevice-ai/example/android
@@ -113,9 +119,17 @@ jobs:
         working-directory: libraries/expo-ondevice-ai
         run: bun install
 
+      - name: Build library and plugin
+        working-directory: libraries/expo-ondevice-ai
+        run: bun run build
+
       - name: Install example dependencies
         working-directory: libraries/expo-ondevice-ai/example
         run: bun install
+
+      - name: Prebuild iOS
+        working-directory: libraries/expo-ondevice-ai/example
+        run: bunx expo prebuild --platform ios --clean
 
       - name: Cache CocoaPods
         uses: actions/cache@v4

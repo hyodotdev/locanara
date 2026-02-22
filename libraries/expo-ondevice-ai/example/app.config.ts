@@ -39,6 +39,7 @@ export default ({config}: ConfigContext): ExpoConfig => {
         '../app.plugin.js',
         {
           enableLocalDev: true,
+          enableLlamaCpp: !process.env.CI,
           localPath: {
             ios: LOCAL_LOCANARA_PATHS.ios,
             android: LOCAL_LOCANARA_PATHS.android,

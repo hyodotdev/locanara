@@ -122,6 +122,15 @@ jobs:
         working-directory: libraries/react-native-ondevice-ai/example
         run: bun install
 
+      - name: Fix circular symlink
+        working-directory: libraries/react-native-ondevice-ai/example
+        run: |
+          # bun creates a symlink node_modules/react-native-ondevice-ai -> ../../
+          # which includes example/ creating an infinite loop that breaks CocoaPods.
+          # Replace with a shallow copy excluding example/ to break the cycle.
+          rm node_modules/react-native-ondevice-ai
+          rsync -a --exclude='example' --exclude='node_modules' ../../ node_modules/react-native-ondevice-ai/
+
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
