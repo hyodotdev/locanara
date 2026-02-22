@@ -62,6 +62,7 @@ export class Locanara {
   private _writer: ChromeWriter | null = null;
   private _writerOptionsKey: string | null = null;
   private _languageModel: ChromeLanguageModelSession | null = null;
+  private _languageModelOptionsKey: string | null = null;
   private _languageDetector: ChromeLanguageDetector | null = null;
 
   private constructor(options: LocanaraOptions = {}) {
@@ -486,7 +487,16 @@ export class Locanara {
     }
 
     try {
-      if (!this._languageModel) {
+      const optionsKey = JSON.stringify({
+        systemPrompt: options.systemPrompt,
+        temperature: options.temperature,
+        topK: options.topK,
+        initialPrompts: options.initialPrompts,
+      });
+
+      if (!this._languageModel || this._languageModelOptionsKey !== optionsKey) {
+        this._languageModel?.destroy();
+
         const initialPrompts: Array<{ role: string; content: string }> = [];
 
         if (options.systemPrompt) {
@@ -512,6 +522,7 @@ export class Locanara {
             initialPrompts.length > 0 ? initialPrompts : undefined,
           monitor: this.createMonitor(),
         })) as ChromeLanguageModelSession;
+        this._languageModelOptionsKey = optionsKey;
       }
 
       const response = await this._languageModel.prompt(message);
@@ -535,7 +546,15 @@ export class Locanara {
     }
 
     try {
-      if (!this._languageModel) {
+      const optionsKey = JSON.stringify({
+        systemPrompt: options.systemPrompt,
+        temperature: options.temperature,
+        topK: options.topK,
+      });
+
+      if (!this._languageModel || this._languageModelOptionsKey !== optionsKey) {
+        this._languageModel?.destroy();
+
         const initialPrompts: Array<{ role: string; content: string }> = [];
 
         if (options.systemPrompt) {
@@ -552,6 +571,7 @@ export class Locanara {
             initialPrompts.length > 0 ? initialPrompts : undefined,
           monitor: this.createMonitor(),
         })) as ChromeLanguageModelSession;
+        this._languageModelOptionsKey = optionsKey;
       }
 
       const stream = this._languageModel.promptStreaming(message);
@@ -582,6 +602,7 @@ export class Locanara {
     if (this._languageModel) {
       this._languageModel.destroy();
       this._languageModel = null;
+      this._languageModelOptionsKey = null;
     }
   }
 

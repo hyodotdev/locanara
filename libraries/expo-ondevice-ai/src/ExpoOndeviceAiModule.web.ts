@@ -117,7 +117,7 @@ const ExpoOndeviceAiModule = {
         chat: hasLanguageModel,
         translate: hasTranslator,
         rewrite: hasRewriter,
-        proofread: hasWriter,
+        proofread: hasLanguageModel || hasWriter,
       },
     };
   },
