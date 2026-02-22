@@ -10,8 +10,8 @@ enum OndeviceAiHelper {
     static func bulletCount(from options: NitroSummarizeOptions?) -> Int {
         guard let outputType = options?.outputType else { return 1 }
         switch outputType {
-        case .TWO_BULLETS: return 2
-        case .THREE_BULLETS: return 3
+        case .twoBullets: return 2
+        case .threeBullets: return 3
         default: return 1
         }
     }
@@ -19,7 +19,7 @@ enum OndeviceAiHelper {
     static func inputType(from options: NitroSummarizeOptions?) -> String {
         guard let inputType = options?.inputType else { return "text" }
         switch inputType {
-        case .CONVERSATION: return "conversation"
+        case .conversation: return "conversation"
         default: return "text"
         }
     }
@@ -27,24 +27,42 @@ enum OndeviceAiHelper {
     // MARK: - Classify
 
     static func classifyOptions(from options: NitroClassifyOptions?) -> (categories: [String], maxResults: Int) {
-        let categories = options?.categories ?? ["positive", "negative", "neutral"]
-        let maxResults = options?.maxResults.flatMap { Int(exactly: $0) } ?? 3
+        let categories: [String]
+        if case .second(let arr) = options?.categories {
+            categories = arr
+        } else {
+            categories = ["positive", "negative", "neutral"]
+        }
+        let maxResults: Int
+        if case .second(let v) = options?.maxResults {
+            maxResults = Int(v)
+        } else {
+            maxResults = 3
+        }
         return (categories, maxResults)
     }
 
     // MARK: - Extract
 
     static func entityTypes(from options: NitroExtractOptions?) -> [String] {
-        options?.entityTypes ?? ["person", "location", "date", "organization"]
+        if case .second(let arr) = options?.entityTypes {
+            return arr
+        }
+        return ["person", "location", "date", "organization"]
     }
 
     // MARK: - Chat
 
     static func chatOptions(from options: NitroChatOptions?) -> (systemPrompt: String, memory: (any Memory)?) {
-        let systemPrompt = options?.systemPrompt ?? "You are a friendly, helpful assistant."
+        let systemPrompt: String
+        if case .second(let s) = options?.systemPrompt {
+            systemPrompt = s
+        } else {
+            systemPrompt = "You are a friendly, helpful assistant."
+        }
 
         var memory: (any Memory)? = nil
-        if let history = options?.history, !history.isEmpty {
+        if case .second(let history) = options?.history, !history.isEmpty {
             memory = PrefilledMemory(history: history)
         }
 
@@ -61,12 +79,12 @@ enum OndeviceAiHelper {
 
     static func rewriteStyle(from options: NitroRewriteOptions) -> RewriteOutputType {
         switch options.outputType {
-        case .ELABORATE: return .elaborate
-        case .EMOJIFY: return .emojify
-        case .SHORTEN: return .shorten
-        case .FRIENDLY: return .friendly
-        case .PROFESSIONAL: return .professional
-        case .REPHRASE: return .rephrase
+        case .elaborate: return .elaborate
+        case .emojify: return .emojify
+        case .shorten: return .shorten
+        case .friendly: return .friendly
+        case .professional: return .professional
+        case .rephrase: return .rephrase
         }
     }
 }
@@ -80,7 +98,7 @@ final class PrefilledMemory: Memory, @unchecked Sendable {
 
     init(history: [NitroChatMessage]) {
         self.entries = history.map { msg in
-            MemoryEntry(role: msg.role.rawValue, content: msg.content)
+            MemoryEntry(role: msg.role.stringValue, content: msg.content)
         }
     }
 

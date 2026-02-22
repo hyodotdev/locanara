@@ -245,10 +245,10 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
         return Promise.async {
             let engine = self.client.getCurrentEngine()
             switch engine {
-            case .foundationModels: return .foundation_models
-            case .llamaCpp: return .llama_cpp
+            case .foundationModels: return .foundationModels
+            case .llamaCpp: return .llamaCpp
             case .mlx: return .mlx
-            case .coreMl: return .core_ml
+            case .coreMl: return .coreMl
             default: return .none
             }
         }
