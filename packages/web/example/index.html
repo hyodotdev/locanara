@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="./icon.png">
+  <title>Locanara Web SDK Example</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #F2F2F7;
+      color: #000;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      display: none;
+      align-items: center;
+      padding: 1rem;
+      background: #F8F8FA;
+      border-bottom: 1px solid #C6C6C8;
+    }
+
+    .header.visible {
+      display: flex;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: #007AFF;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .header-title {
+      flex: 1;
+      text-align: center;
+      font-weight: 600;
+      margin-right: 60px;
+    }
+
+    /* Content Area */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      padding-bottom: 80px;
+    }
+
+    .content.no-padding {
+      padding: 0;
+      padding-bottom: 80px;
+    }
+
+    /* Tab Bar */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      background: #F8F8FA;
+      border-top: 1px solid #C6C6C8;
+      padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+    }
+
+    .tab-bar.hidden {
+      display: none;
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.5rem;
+      cursor: pointer;
+      color: #999;
+      border: none;
+      background: none;
+      font-size: 0.75rem;
+    }
+
+    .tab-item.active {
+      color: #007AFF;
+    }
+
+    .tab-item svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* List Styles */
+    .list {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .list-section {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: #F2F2F7;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid #E5E5EA;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .list-item:last-child {
+      border-bottom: none;
+    }
+
+    .list-item:hover {
+      background: #F2F2F7;
+    }
+
+    .list-item.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .list-item.disabled:hover {
+      background: transparent;
+    }
+
+    .list-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      color: #007AFF;
+    }
+
+    .list-item.disabled .list-icon {
+      color: #999;
+    }
+
+    .list-text {
+      flex: 1;
+    }
+
+    .list-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .list-subtitle {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .list-chevron {
+      color: #C7C7CC;
+    }
+
+    .list-lock {
+      color: #C7C7CC;
+    }
+
+    /* AI Status Banner */
+    .ai-banner {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      gap: 12px;
+    }
+
+    .ai-banner-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ai-banner-icon.success {
+      color: #34C759;
+    }
+
+    .ai-banner-icon.warning {
+      color: #FF9500;
+    }
+
+    .ai-banner-icon.error {
+      color: #FF3B30;
+    }
+
+    .ai-banner-text {
+      flex: 1;
+    }
+
+    .ai-banner-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .ai-banner-subtitle {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .ai-banner-action {
+      display: none;
+      cursor: pointer;
+      padding: 0.5rem 0.75rem;
+      background: #007AFF;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .ai-banner-action.visible {
+      display: block;
+    }
+
+    /* Info Row */
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.875rem 1rem;
+      border-bottom: 1px solid #E5E5EA;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      color: #000;
+    }
+
+    .info-value {
+      color: #666;
+    }
+
+    .info-value.success {
+      color: #34C759;
+    }
+
+    .info-value.error {
+      color: #FF3B30;
+    }
+
+    .info-value.warning {
+      color: #FF9500;
+    }
+
+    /* Feature Detail Page */
+    .detail-page {
+      display: none;
+      padding: 1rem;
+    }
+
+    .detail-page.active {
+      display: block;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .card h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      padding: 1rem;
+      font-size: 0.95rem;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    textarea::placeholder {
+      color: #999;
+    }
+
+    textarea:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+    }
+
+    button {
+      background: #007AFF;
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.85;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .result {
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 0.75rem;
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+      color: #000;
+      max-height: 300px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+
+    .result.empty {
+      color: #999;
+      font-style: italic;
+    }
+
+    .result.error {
+      color: #FF3B30;
+      background: rgba(255, 59, 48, 0.08);
+    }
+
+    .result.formatted {
+      white-space: normal;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .result.formatted ul {
+      list-style: disc;
+      padding-left: 1.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .result.formatted li {
+      margin-bottom: 0.5rem;
+    }
+
+    .result.formatted p {
+      margin-bottom: 0.5rem;
+    }
+
+    .result.formatted strong {
+      font-weight: 600;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    /* Section Layout (matches iOS) */
+    .section {
+      margin-bottom: 1.25rem;
+    }
+
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #000;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Segmented Control (matches iOS) */
+    .segmented-control {
+      display: flex;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      padding: 2px;
+    }
+
+    .segment {
+      flex: 1;
+      padding: 0.5rem 0.25rem;
+      background: transparent;
+      border: none;
+      color: #666;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      text-align: center;
+    }
+
+    .segment:hover {
+      color: #333;
+    }
+
+    .segment.active {
+      background: #fff;
+      color: #007AFF;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Full-width action button */
+    .action-btn {
+      width: 100%;
+      padding: 0.875rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Stats Row (matches iOS StatBadge) */
+    .stats-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .stat-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 6px;
+      padding: 0.375rem 0.625rem;
+      font-size: 0.8rem;
+    }
+
+    .stat-label {
+      color: #666;
+    }
+
+    .stat-value {
+      color: #000;
+      font-weight: 500;
+    }
+
+    /* Result section header */
+    .result-section {
+      margin-top: 1.5rem;
+    }
+
+    /* Custom Dropdown */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: #000;
+      cursor: pointer;
+      min-width: 120px;
+      transition: background 0.2s;
+    }
+
+    .dropdown-toggle:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .dropdown.open .dropdown-toggle {
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+    }
+
+    .dropdown-toggle span {
+      flex: 1;
+    }
+
+    .dropdown-toggle .icon {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+      color: #666;
+    }
+
+    .dropdown.open .dropdown-toggle .icon {
+      transform: rotate(180deg);
+    }
+
+    .dropdown-toggle .icon svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: #fff;
+      border: 1px solid #E5E5EA;
+      border-radius: 8px;
+      min-width: 100%;
+      z-index: 100;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .dropdown.open .dropdown-menu {
+      display: block;
+    }
+
+    .dropdown-item {
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #000;
+      transition: background 0.15s;
+    }
+
+    .dropdown-item:hover {
+      background: #F2F2F7;
+    }
+
+    .dropdown-item.selected {
+      background: #007AFF;
+      color: #fff;
+    }
+
+    .dropdown-item:first-child {
+      border-radius: 7px 7px 0 0;
+    }
+
+    .dropdown-item:last-child {
+      border-radius: 0 0 7px 7px;
+    }
+
+    .arrow-text {
+      color: #999;
+      font-size: 1.2rem;
+    }
+
+    input[type="text"], input[type="file"] {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      color: #000;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    input[type="text"]::placeholder {
+      color: #999;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+    }
+
+    /* Settings Styles */
+    .settings-section {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .settings-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid #E5E5EA;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .settings-item:last-child {
+      border-bottom: none;
+    }
+
+    .settings-item:hover {
+      background: #F2F2F7;
+    }
+
+    .settings-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      color: #007AFF;
+    }
+
+    .settings-text {
+      flex: 1;
+    }
+
+    .settings-arrow {
+      color: #C7C7CC;
+    }
+
+    .settings-value {
+      color: #666;
+      margin-right: 8px;
+    }
+
+    /* Setup Guide (collapsed by default) */
+    .setup-guide {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .setup-guide-header {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      cursor: pointer;
+    }
+
+    .setup-guide-header:hover {
+      background: #F2F2F7;
+    }
+
+    .setup-guide-title {
+      flex: 1;
+      font-weight: 600;
+    }
+
+    .setup-guide-arrow {
+      transition: transform 0.3s;
+      color: #C7C7CC;
+    }
+
+    .setup-guide-arrow.open {
+      transform: rotate(180deg);
+    }
+
+    .setup-guide-content {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.3s ease-out;
+    }
+
+    .setup-guide-content.open {
+      grid-template-rows: 1fr;
+    }
+
+    .setup-guide-inner {
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .setup-guide-inner-content {
+      padding: 1rem;
+      padding-top: 0;
+    }
+
+    .setup-step {
+      background: #F2F2F7;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    .setup-step-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .setup-step-desc {
+      color: #666;
+      font-size: 0.85rem;
+    }
+
+    .setup-step code {
+      color: #007AFF;
+      background: rgba(0, 122, 255, 0.1);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      font-family: monospace;
+      cursor: pointer;
+    }
+
+    .setup-requirements {
+      background: rgba(0, 122, 255, 0.08);
+      border: 1px solid rgba(0, 122, 255, 0.3);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+    }
+
+    /* API Debug */
+    .api-debug {
+      background: #F2F2F7;
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .api-debug-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.25rem 0;
+      border-bottom: 1px solid #E5E5EA;
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+
+    .api-debug-row:last-child {
+      border-bottom: none;
+    }
+
+    /* Progress */
+    .progress-container {
+      display: none;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #E5E5EA;
+    }
+
+    .progress-container.visible {
+      display: block;
+    }
+
+    .progress-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #E5E5EA;
+      border-top-color: #007AFF;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .progress-bar-container {
+      background: #E5E5EA;
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      background: #007AFF;
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header (for detail pages) -->
+  <div class="header" id="header">
+    <button class="back-btn" id="back-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+      Back
+    </button>
+    <span class="header-title" id="header-title">Feature</span>
+  </div>
+
+  <!-- Content Area -->
+  <div class="content" id="content">
+    <!-- Tab: Features -->
+    <div class="tab-content active" id="tab-features">
+      <!-- AI Status Banner -->
+      <div class="list" style="margin-bottom: 1rem;">
+        <div class="ai-banner" id="ai-banner">
+          <div class="ai-banner-icon" id="ai-banner-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+          </div>
+          <div class="ai-banner-text" style="flex: 1;">
+            <div class="ai-banner-title" id="ai-banner-title">Checking AI Status...</div>
+            <div class="ai-banner-subtitle" id="ai-banner-subtitle">Please wait</div>
+          </div>
+          <div class="ai-banner-action" id="ai-banner-action" onclick="goToSettingsSetup()">
+            Setup
+          </div>
+        </div>
+      </div>
+
+      <!-- Features List -->
+      <div class="list-section">Available Features</div>
+      <div class="list" id="features-list">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+
+    <!-- Tab: Device -->
+    <div class="tab-content" id="tab-device">
+      <div class="list-section">Browser</div>
+      <div class="list">
+        <div class="info-row">
+          <span class="info-label">Browser</span>
+          <span class="info-value" id="device-browser">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Platform</span>
+          <span class="info-value" id="device-platform">-</span>
+        </div>
+      </div>
+
+      <div class="list-section" style="margin-top: 1rem;">AI Capabilities</div>
+      <div class="list">
+        <div class="info-row">
+          <span class="info-label">Chrome Built-in AI</span>
+          <span class="info-value" id="device-ai-status">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">LanguageModel API</span>
+          <span class="info-value" id="device-lm-api">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Summarizer API</span>
+          <span class="info-value" id="device-summarizer">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Translator API</span>
+          <span class="info-value" id="device-translator">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Rewriter API</span>
+          <span class="info-value" id="device-rewriter">-</span>
+        </div>
+      </div>
+
+      <div class="list-section" style="margin-top: 1rem;">SDK</div>
+      <div class="list">
+        <div class="info-row">
+          <span class="info-label">Locanara Version</span>
+          <span class="info-value" id="device-sdk-version">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">SDK State</span>
+          <span class="info-value" id="device-sdk-state">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Settings -->
+    <div class="tab-content" id="tab-settings">
+      <!-- Setup Guide (at top) -->
+      <div class="list-section">Setup Guide</div>
+      <div class="setup-guide" style="margin-bottom: 1rem;">
+        <div class="setup-guide-header" onclick="toggleSetupGuide()">
+          <span class="setup-guide-title">How to Enable Chrome Built-in AI</span>
+          <svg class="setup-guide-arrow" id="setup-arrow" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 10l5 5 5-5z"/>
+          </svg>
+        </div>
+        <div class="setup-guide-content" id="setup-content">
+          <div class="setup-guide-inner">
+            <div class="setup-guide-inner-content">
+              <div class="setup-step">
+                <div class="setup-step-title">1. Use Chrome 140+ (Latest Stable recommended)</div>
+                <div class="setup-step-desc">Download latest from <a href="https://www.google.com/chrome/" target="_blank" rel="noopener noreferrer" style="color: #6366f1;">chrome.com</a></div>
+              </div>
+              <div class="setup-step">
+                <div class="setup-step-title">2. Enable Flags (click URL to copy)</div>
+                <div class="setup-step-desc">
+                  <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li><code onclick="copyToClipboard('chrome://flags/#optimization-guide-on-device-model', this)">chrome://flags/#optimization-guide-on-device-model</code> -> Enabled</li>
+                    <li><code onclick="copyToClipboard('chrome://flags/#prompt-api-for-gemini-nano', this)">chrome://flags/#prompt-api-for-gemini-nano</code> -> Enabled</li>
+                    <li><code onclick="copyToClipboard('chrome://flags/#enable-experimental-web-platform-features', this)">chrome://flags/#enable-experimental-web-platform-features</code> -> Enabled</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="setup-step">
+                <div class="setup-step-title">3. Restart Chrome</div>
+                <div class="setup-step-desc">Click "Relaunch" button or close and reopen Chrome completely.</div>
+              </div>
+              <div class="setup-step">
+                <div class="setup-step-title">4. Verify Model Status</div>
+                <div class="setup-step-desc">Go to <code onclick="copyToClipboard('chrome://on-device-internals', this)">chrome://on-device-internals</code> -> Model Status tab</div>
+              </div>
+              <div class="setup-step">
+                <div class="setup-step-title">5. Download Model (if needed)</div>
+                <div class="setup-step-desc">If model is not available, click the button below:</div>
+                <button id="download-model-btn" onclick="triggerModelDownload()" style="margin-top: 0.5rem; padding: 0.5rem 1rem; font-size: 0.85rem;">
+                  Download Gemini Nano Model
+                </button>
+                <div id="download-model-status" style="margin-top: 0.5rem; font-size: 0.8rem; color: #888;"></div>
+              </div>
+              <div class="setup-requirements">
+                <strong>Requirements:</strong> Windows 10+, macOS 13+, Linux. 22GB+ free disk space. GPU with 4GB+ VRAM or CPU with 16GB+ RAM.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-section">Chrome Built-in AI</div>
+      <div class="settings-section">
+        <div class="info-row">
+          <span class="info-label">Chrome AI Settings</span>
+          <code onclick="copyToClipboard('chrome://flags/#optimization-guide-on-device-model', this)" style="color: #6366f1; background: #333; padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Copy URL</code>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Model Status</span>
+          <code onclick="copyToClipboard('chrome://on-device-internals', this)" style="color: #6366f1; background: #333; padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Copy URL</code>
+        </div>
+      </div>
+
+      <div class="list-section" style="margin-top: 1rem;">About</div>
+      <div class="settings-section">
+        <div class="info-row">
+          <span class="info-label">Version</span>
+          <span class="info-value" id="settings-version">-</span>
+        </div>
+        <a href="https://github.com/locanara/locanara" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">
+          <div class="settings-item">
+            <div class="settings-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+            </div>
+            <div class="settings-text">GitHub</div>
+            <div class="settings-arrow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Feature Detail Pages -->
+    <!-- Summarize -->
+    <!-- Summarize -->
+    <div class="detail-page" id="page-summarize">
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Input Text</div>
+          <textarea id="summarize-input" placeholder="Enter text to summarize...">Apple Intelligence is the personal intelligence system that puts powerful generative models right at the core of iPhone, iPad, and Mac. It powers incredible new features that help you write, express yourself, and get things done effortlessly. The best part? It's deeply integrated into iOS 18, iPadOS 18, and macOS Sequoia, harnessing the power of Apple silicon to understand and create language and images, take action across apps, and draw from your personal context to simplify and accelerate everyday tasks. All while protecting your privacy.</textarea>
+        </div>
+        <div class="section">
+          <div class="section-title">Input Type</div>
+          <div class="segmented-control" data-id="summarize-input-type" data-value="ARTICLE">
+            <button class="segment active" data-value="ARTICLE">Article</button>
+            <button class="segment" data-value="CONVERSATION">Conversation</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">Output Type</div>
+          <div class="segmented-control" data-id="summarize-output-type" data-value="ONE_BULLET">
+            <button class="segment active" data-value="ONE_BULLET">1 Bullet</button>
+            <button class="segment" data-value="TWO_BULLETS">2 Bullets</button>
+            <button class="segment" data-value="THREE_BULLETS">3 Bullets</button>
+          </div>
+        </div>
+        <button class="action-btn" id="summarize-btn">Summarize</button>
+        <div class="result-section">
+          <div class="section-title" id="summarize-result-title" style="display: none;">Result</div>
+          <div id="summarize-result" class="result empty">Result will appear here...</div>
+          <div id="summarize-stats" class="stats-row" style="display: none;">
+            <div class="stat-badge"><span class="stat-label">Original</span><span class="stat-value" id="summarize-stat-original">-</span></div>
+            <div class="stat-badge"><span class="stat-label">Summary</span><span class="stat-value" id="summarize-stat-summary">-</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Classify -->
+    <div class="detail-page" id="page-classify">
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Input Text</div>
+          <textarea id="classify-input" placeholder="Enter text to classify...">The new iPhone features an incredible camera system with advanced computational photography.</textarea>
+        </div>
+        <div class="section">
+          <div class="section-title">Categories</div>
+          <input type="text" id="classify-categories" placeholder="Categories (comma-separated)" value="Technology, Sports, Entertainment, Business, Health" style="width: 100%; background: rgba(0,0,0,0.05); border: none; border-radius: 8px; color: #000; padding: 0.75rem; font-size: 0.95rem;">
+        </div>
+        <button class="action-btn" id="classify-btn">Classify</button>
+        <div class="result-section">
+          <div id="classify-result" class="result empty">Result will appear here...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extract -->
+    <div class="detail-page" id="page-extract">
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Input Text</div>
+          <textarea id="extract-input" placeholder="Enter text to extract entities from...">Contact John Smith at john@example.com or call 555-123-4567. Meeting scheduled for January 15, 2025 at Apple Park, Cupertino.</textarea>
+        </div>
+        <button class="action-btn" id="extract-btn">Extract Entities</button>
+        <div class="result-section">
+          <div id="extract-result" class="result empty">Result will appear here...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="detail-page" id="page-chat">
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Message</div>
+          <textarea id="chat-input" placeholder="Enter your message..." style="min-height: 80px;">What are the benefits of on-device AI compared to cloud-based AI?</textarea>
+        </div>
+        <div class="controls" style="gap: 0.5rem;">
+          <button class="action-btn" id="chat-btn" style="flex: 1; margin-bottom: 0;">Send</button>
+          <button class="action-btn" id="chat-reset-btn" style="flex: 0 0 auto; background: #8E8E93; margin-bottom: 0; width: auto; padding: 0.875rem 1.25rem;">Reset</button>
+        </div>
+        <div class="result-section">
+          <div id="chat-result" class="result empty">Response will appear here...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Translate -->
+    <div class="detail-page" id="page-translate">
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Input Text</div>
+          <textarea id="translate-input" placeholder="Enter text to translate...">Hello, how are you today?</textarea>
+        </div>
+        <div class="section">
+          <div class="section-title">Languages</div>
+          <div class="controls" style="margin-bottom: 0;">
+            <div class="dropdown" data-id="translate-source" data-value="en">
+              <div class="dropdown-toggle">
+                <span>English</span>
+                <div class="icon"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-item selected" data-value="en">English</div>
+                <div class="dropdown-item" data-value="es">Spanish</div>
+                <div class="dropdown-item" data-value="fr">French</div>
+                <div class="dropdown-item" data-value="de">German</div>
+                <div class="dropdown-item" data-value="ja">Japanese</div>
+                <div class="dropdown-item" data-value="ko">Korean</div>
+                <div class="dropdown-item" data-value="zh">Chinese</div>
+              </div>
+            </div>
+            <span class="arrow-text">-></span>
+            <div class="dropdown" data-id="translate-target" data-value="ko">
+              <div class="dropdown-toggle">
+                <span>Korean</span>
+                <div class="icon"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-item" data-value="en">English</div>
+                <div class="dropdown-item" data-value="es">Spanish</div>
+                <div class="dropdown-item" data-value="fr">French</div>
+                <div class="dropdown-item" data-value="de">German</div>
+                <div class="dropdown-item" data-value="ja">Japanese</div>
+                <div class="dropdown-item selected" data-value="ko">Korean</div>
+                <div class="dropdown-item" data-value="zh">Chinese</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="action-btn" id="translate-btn">Translate</button>
+        <div class="result-section">
+          <div id="translate-result" class="result empty">Result will appear here...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rewrite -->
+    <div class="detail-page" id="page-rewrite">
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Input Text</div>
+          <textarea id="rewrite-input" placeholder="Enter text to rewrite...">i think this product is really good and everyone should buy it</textarea>
+        </div>
+        <div class="section">
+          <div class="section-title">Tone</div>
+          <div class="segmented-control" data-id="rewrite-tone" data-value="AS_IS">
+            <button class="segment active" data-value="AS_IS">As Is</button>
+            <button class="segment" data-value="MORE_FORMAL">Formal</button>
+            <button class="segment" data-value="MORE_CASUAL">Casual</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">Length</div>
+          <div class="segmented-control" data-id="rewrite-length" data-value="AS_IS">
+            <button class="segment" data-value="SHORTER">Shorter</button>
+            <button class="segment active" data-value="AS_IS">As Is</button>
+            <button class="segment" data-value="LONGER">Longer</button>
+          </div>
+        </div>
+        <button class="action-btn" id="rewrite-btn">Rewrite</button>
+        <div class="result-section">
+          <div id="rewrite-result" class="result empty">Result will appear here...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Proofread -->
+    <div class="detail-page" id="page-proofread">
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Input Text</div>
+          <textarea id="proofread-input" placeholder="Enter text to proofread...">I recieve your message and will definately respond untill tommorow. Thier was a wierd occurence.</textarea>
+        </div>
+        <button class="action-btn" id="proofread-btn">Proofread</button>
+        <div class="result-section">
+          <div id="proofread-result" class="result empty">Result will appear here...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Describe Image -->
+    <div class="detail-page" id="page-describeimage">
+      <div class="card">
+        <div class="section">
+          <div class="section-title">Select Image</div>
+          <input type="file" id="image-input" accept="image/*" style="margin-bottom: 0.5rem; color: #888;">
+          <div id="image-preview" style="display: none; margin-top: 0.75rem; text-align: center;">
+            <img id="preview-img" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #E5E5EA;">
+          </div>
+        </div>
+        <button class="action-btn" id="describeimage-btn">Describe Image</button>
+        <div class="result-section">
+          <div id="describeimage-result" class="result empty">Result will appear here...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar" id="tab-bar">
+    <button class="tab-item active" data-tab="features">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M9.5 9.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm5-4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm2.5-5.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm-10 0c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/>
+      </svg>
+      Features
+    </button>
+    <button class="tab-item" data-tab="device">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M15.5 1h-8C6.12 1 5 2.12 5 3.5v17C5 21.88 6.12 23 7.5 23h8c1.38 0 2.5-1.12 2.5-2.5v-17C18 2.12 16.88 1 15.5 1zm-4 21c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5-4H7V4h9v14z"/>
+      </svg>
+      Device
+    </button>
+    <button class="tab-item" data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94 0 .31.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+      </svg>
+      Settings
+    </button>
+  </div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

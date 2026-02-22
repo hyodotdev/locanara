@@ -19,6 +19,7 @@ npx expo install expo-ondevice-ai
 - Expo SDK 52+
 - iOS 26+ (Apple Intelligence)
 - Android 14+ (Gemini Nano)
+- Web: Chrome 138+ (Chrome Built-in AI / Gemini Nano)
 
 ## Usage
 

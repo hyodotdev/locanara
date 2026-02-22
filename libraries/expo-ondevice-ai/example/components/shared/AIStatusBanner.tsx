@@ -50,7 +50,11 @@ export function AIStatusBanner() {
       <View style={[styles.container, styles.checking]}>
         <Ionicons name="hourglass" size={20} color="#007AFF" />
         <View style={styles.content}>
-          <Text style={styles.title}>Checking Apple Intelligence...</Text>
+          <Text style={styles.title}>
+            {Platform.OS === 'web'
+              ? 'Checking Chrome Built-in AI...'
+              : 'Checking Apple Intelligence...'}
+          </Text>
           <Text style={styles.subtitle}>
             Please wait while checking device capabilities
           </Text>
@@ -63,7 +67,11 @@ export function AIStatusBanner() {
   if (isModelReady) {
     const engineLabel =
       ENGINE_LABELS[modelState.currentEngine] ??
-      (Platform.OS === 'ios' ? 'Apple Intelligence' : 'Gemini Nano');
+      (Platform.OS === 'web'
+        ? 'Chrome Built-in AI'
+        : Platform.OS === 'ios'
+          ? 'Apple Intelligence'
+          : 'Gemini Nano');
 
     return (
       <>
@@ -87,6 +95,22 @@ export function AIStatusBanner() {
     );
   }
 
+  // Web: Chrome Built-in AI not available
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.container, styles.notSupported]}>
+        <Ionicons name="warning" size={20} color="#FF3B30" />
+        <View style={styles.content}>
+          <Text style={styles.title}>Chrome Built-in AI Not Available</Text>
+          <Text style={styles.subtitle}>
+            Requires Chrome 138+ with Gemini Nano enabled. Check
+            chrome://flags/#optimization-guide-on-device-model
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   // Device supports Apple Intelligence but model not ready
   if (capability?.supportsAppleIntelligence) {
     return (
@@ -105,15 +129,16 @@ export function AIStatusBanner() {
     );
   }
 
-  // Device does not support Apple Intelligence
+  // Device does not support on-device AI
   return (
     <View style={[styles.container, styles.notSupported]}>
       <Ionicons name="warning" size={20} color="#FF3B30" />
       <View style={styles.content}>
         <Text style={styles.title}>Device Not Supported</Text>
         <Text style={styles.subtitle}>
-          This device does not support Apple Intelligence. Requires iPhone 15
-          Pro or newer with iOS 18.1+
+          {Platform.OS === 'ios'
+            ? 'This device does not support Apple Intelligence. Requires iPhone 15 Pro or newer with iOS 18.1+'
+            : 'This device does not support Gemini Nano. Requires Android 14+'}
         </Text>
       </View>
     </View>

@@ -26,6 +26,7 @@ const ENTITY_COLORS: Record<string, string> = {
   phone: '#34C759',
   date: '#AF52DE',
   location: '#FF3B30',
+  organization: '#5856D6',
 };
 
 export function ExtractDemo() {
