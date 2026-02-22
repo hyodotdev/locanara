@@ -17,7 +17,7 @@ export type RewriteOutputType =
   | 'PROFESSIONAL'
   | 'REPHRASE';
 export type ProofreadInputType = 'KEYBOARD' | 'VOICE';
-export type Platform = 'IOS' | 'ANDROID';
+export type Platform = 'IOS' | 'ANDROID' | 'WEB';
 
 export type InferenceEngine =
   | 'foundation_models'

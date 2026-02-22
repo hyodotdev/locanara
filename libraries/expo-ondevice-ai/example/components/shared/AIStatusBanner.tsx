@@ -53,7 +53,9 @@ export function AIStatusBanner() {
           <Text style={styles.title}>
             {Platform.OS === 'web'
               ? 'Checking Chrome Built-in AI...'
-              : 'Checking Apple Intelligence...'}
+              : Platform.OS === 'ios'
+                ? 'Checking Apple Intelligence...'
+                : 'Checking Gemini Nano...'}
           </Text>
           <Text style={styles.subtitle}>
             Please wait while checking device capabilities

@@ -18,7 +18,7 @@ export type RewriteOutputType =
   | 'PROFESSIONAL'
   | 'REPHRASE';
 export type ProofreadInputType = 'KEYBOARD' | 'VOICE';
-export type Platform = 'IOS' | 'ANDROID';
+export type Platform = 'IOS' | 'ANDROID' | 'WEB';
 
 /**
  * Device capability information for on-device AI

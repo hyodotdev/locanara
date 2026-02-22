@@ -4,7 +4,7 @@
 
 Location: `libraries/expo-ondevice-ai/`
 
-Expo module wrapping the Locanara native SDKs for React Native/Expo apps. Provides TypeScript API for all 7 AI features plus model management, with native modules bridging to Locanara chains on iOS, Android, and web (Chrome Built-in AI).
+Expo module wrapping the Locanara native SDKs for React Native/Expo apps. Provides TypeScript API for all 8 AI features plus model management, with native modules bridging to Locanara chains on iOS, Android, and web (Chrome Built-in AI).
 
 ## Requirements
 

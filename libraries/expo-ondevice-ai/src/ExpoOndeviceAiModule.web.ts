@@ -28,6 +28,7 @@ import type {
 let cachedSummarizer: any = null;
 let cachedSummarizerKey: string = '';
 let cachedLanguageModel: any = null;
+let cachedSystemPrompt: string | undefined = undefined;
 const cachedTranslators = new Map<string, any>();
 let cachedRewriter: any = null;
 let cachedWriter: any = null;
@@ -108,7 +109,7 @@ const ExpoOndeviceAiModule = {
     return {
       isSupported: hasSummarizer || hasLanguageModel || hasTranslator,
       isModelReady: hasSummarizer || hasLanguageModel,
-      platform: 'IOS' as const, // closest match; web is not in the native enum
+      platform: 'WEB' as const,
       features: {
         summarize: hasSummarizer,
         classify: hasLanguageModel,
@@ -236,14 +237,17 @@ const ExpoOndeviceAiModule = {
     const lm = getLanguageModelAPI();
     if (!lm) throw new Error('LanguageModel API not available in this browser');
 
-    if (!cachedLanguageModel) {
+    const newSystemPrompt = options?.systemPrompt;
+    if (!cachedLanguageModel || newSystemPrompt !== cachedSystemPrompt) {
+      cachedLanguageModel?.destroy?.();
       const initialPrompts: Array<{role: string; content: string}> = [];
-      if (options?.systemPrompt) {
-        initialPrompts.push({role: 'system', content: options.systemPrompt});
+      if (newSystemPrompt) {
+        initialPrompts.push({role: 'system', content: newSystemPrompt});
       }
       cachedLanguageModel = await lm.create({
         initialPrompts: initialPrompts.length > 0 ? initialPrompts : undefined,
       });
+      cachedSystemPrompt = newSystemPrompt;
     }
 
     const response = await cachedLanguageModel.prompt(message);
@@ -267,14 +271,17 @@ const ExpoOndeviceAiModule = {
     const lm = getLanguageModelAPI();
     if (!lm) throw new Error('LanguageModel API not available in this browser');
 
-    if (!cachedLanguageModel) {
+    const newSystemPrompt = options?.systemPrompt;
+    if (!cachedLanguageModel || newSystemPrompt !== cachedSystemPrompt) {
+      cachedLanguageModel?.destroy?.();
       const initialPrompts: Array<{role: string; content: string}> = [];
-      if (options?.systemPrompt) {
-        initialPrompts.push({role: 'system', content: options.systemPrompt});
+      if (newSystemPrompt) {
+        initialPrompts.push({role: 'system', content: newSystemPrompt});
       }
       cachedLanguageModel = await lm.create({
         initialPrompts: initialPrompts.length > 0 ? initialPrompts : undefined,
       });
+      cachedSystemPrompt = newSystemPrompt;
     }
 
     // Use promptStreaming if available
