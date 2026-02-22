@@ -248,7 +248,7 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
             case .foundationModels: return .foundationModels
             case .llamaCpp: return .llamaCpp
             case .mlx: return .mlx
-            case .coreMl: return .coreMl
+            case .coreML: return .coreMl
             default: return .none
             }
         }
