@@ -3,7 +3,7 @@
  * Unified interface for Chrome Built-in AI (Gemini Nano)
  */
 
-import { LocanaraError } from "./Errors";
+import { LocanaraError } from './Errors'
 import {
   type ChatOptions,
   type ChatResult,
@@ -35,38 +35,38 @@ import {
   type WriteResult,
   WriterLength,
   WriterTone,
-} from "./Types";
+} from './Types'
 
 export type DownloadProgressCallback = (progress: {
-  loaded: number;
-  total: number;
-}) => void;
+  loaded: number
+  total: number
+}) => void
 
 export interface LocanaraOptions {
-  onDownloadProgress?: DownloadProgressCallback;
+  onDownloadProgress?: DownloadProgressCallback
 }
 
 /**
  * Locanara - Unified On-Device AI SDK for Web (Chrome Built-in AI)
  */
 export class Locanara {
-  private static _instance: Locanara | null = null;
-  private _options: LocanaraOptions;
+  private static _instance: Locanara | null = null
+  private _options: LocanaraOptions
 
   // Cached instances
-  private _summarizer: ChromeSummarizer | null = null;
-  private _summarizerOptionsKey: string | null = null;
-  private _translators: Map<string, ChromeTranslator> = new Map();
-  private _rewriter: ChromeRewriter | null = null;
-  private _rewriterOptionsKey: string | null = null;
-  private _writer: ChromeWriter | null = null;
-  private _writerOptionsKey: string | null = null;
-  private _languageModel: ChromeLanguageModelSession | null = null;
-  private _languageModelOptionsKey: string | null = null;
-  private _languageDetector: ChromeLanguageDetector | null = null;
+  private _summarizer: ChromeSummarizer | null = null
+  private _summarizerOptionsKey: string | null = null
+  private _translators: Map<string, ChromeTranslator> = new Map()
+  private _rewriter: ChromeRewriter | null = null
+  private _rewriterOptionsKey: string | null = null
+  private _writer: ChromeWriter | null = null
+  private _writerOptionsKey: string | null = null
+  private _languageModel: ChromeLanguageModelSession | null = null
+  private _languageModelOptionsKey: string | null = null
+  private _languageDetector: ChromeLanguageDetector | null = null
 
   private constructor(options: LocanaraOptions = {}) {
-    this._options = options;
+    this._options = options
   }
 
   /**
@@ -74,9 +74,9 @@ export class Locanara {
    */
   static getInstance(options?: LocanaraOptions): Locanara {
     if (!Locanara._instance) {
-      Locanara._instance = new Locanara(options);
+      Locanara._instance = new Locanara(options)
     }
-    return Locanara._instance;
+    return Locanara._instance
   }
 
   /**
@@ -84,8 +84,8 @@ export class Locanara {
    */
   static resetInstance(): void {
     if (Locanara._instance) {
-      Locanara._instance.destroy();
-      Locanara._instance = null;
+      Locanara._instance.destroy()
+      Locanara._instance = null
     }
   }
 
@@ -98,162 +98,155 @@ export class Locanara {
    */
   async getDeviceCapability(): Promise<DeviceCapability> {
     const features: {
-      feature: FeatureType;
-      availability: FeatureAvailability;
-    }[] = [];
+      feature: FeatureType
+      availability: FeatureAvailability
+    }[] = []
 
     // Check Summarizer
     features.push({
       feature: FeatureType.SUMMARIZE,
-      availability: await this.checkAvailability("Summarizer"),
-    });
+      availability: await this.checkAvailability('Summarizer'),
+    })
 
     // Check Translator (basic check without language pair)
     features.push({
       feature: FeatureType.TRANSLATE,
       availability: this.checkTranslatorAvailability(),
-    });
+    })
 
     // Check LanguageModel (for Chat, Classify, Extract)
-    const chatAvailability = await this.checkLanguageModelAvailability();
+    const chatAvailability = await this.checkLanguageModelAvailability()
     features.push({
       feature: FeatureType.CHAT,
       availability: chatAvailability,
-    });
+    })
     features.push({
       feature: FeatureType.CLASSIFY,
       availability: chatAvailability,
-    });
+    })
     features.push({
       feature: FeatureType.EXTRACT,
       availability: chatAvailability,
-    });
+    })
     features.push({
       feature: FeatureType.DESCRIBE_IMAGE,
       availability: chatAvailability,
-    });
+    })
 
     // Check Rewriter
     features.push({
       feature: FeatureType.REWRITE,
-      availability: await this.checkAvailability("Rewriter"),
-    });
+      availability: await this.checkAvailability('Rewriter'),
+    })
 
     // Check Writer (used for Proofread)
     features.push({
       feature: FeatureType.PROOFREAD,
-      availability: await this.checkAvailability("Writer"),
-    });
+      availability: await this.checkAvailability('Writer'),
+    })
 
     return {
       platform: Platform.WEB,
-      supportsOnDeviceAI: features.some(
-        (f) => f.availability === FeatureAvailability.AVAILABLE,
-      ),
+      supportsOnDeviceAI: features.some((f) => f.availability === FeatureAvailability.AVAILABLE),
       availableFeatures: features,
-    };
+    }
   }
 
   private async checkAvailability(
-    api: "Summarizer" | "Rewriter" | "Writer",
+    api: 'Summarizer' | 'Rewriter' | 'Writer',
   ): Promise<FeatureAvailability> {
     try {
       const apiClass = (window as unknown as Record<string, unknown>)[api] as
         | { availability?: () => Promise<string> }
-        | undefined;
-      if (!apiClass || typeof apiClass.availability !== "function") {
-        return FeatureAvailability.UNAVAILABLE;
+        | undefined
+      if (!apiClass || typeof apiClass.availability !== 'function') {
+        return FeatureAvailability.UNAVAILABLE
       }
 
       const status = await Promise.race([
         apiClass.availability(),
-        new Promise<string>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), 3000),
-        ),
-      ]);
+        new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+      ])
 
       switch (status) {
-        case "available":
-        case "readily":
-          return FeatureAvailability.AVAILABLE;
-        case "downloadable":
-        case "after-download":
-          return FeatureAvailability.DOWNLOADABLE;
+        case 'available':
+        case 'readily':
+          return FeatureAvailability.AVAILABLE
+        case 'downloadable':
+        case 'after-download':
+          return FeatureAvailability.DOWNLOADABLE
         default:
-          return FeatureAvailability.UNAVAILABLE;
+          return FeatureAvailability.UNAVAILABLE
       }
     } catch {
-      return FeatureAvailability.UNAVAILABLE;
+      return FeatureAvailability.UNAVAILABLE
     }
   }
 
   private getLanguageModelAPI():
     | {
-        availability?: () => Promise<string>;
-        create?: (options: unknown) => Promise<unknown>;
+        availability?: () => Promise<string>
+        create?: (options: unknown) => Promise<unknown>
       }
     | undefined {
     // Try window.LanguageModel first (newer API)
     // LanguageModel is a class/constructor, so typeof is "function"
-    const lm = (window as unknown as Record<string, unknown>).LanguageModel;
-    if (lm && (typeof lm === "object" || typeof lm === "function")) {
+    const lm = (window as unknown as Record<string, unknown>).LanguageModel
+    if (lm && (typeof lm === 'object' || typeof lm === 'function')) {
       return lm as {
-        availability?: () => Promise<string>;
-        create?: (options: unknown) => Promise<unknown>;
-      };
+        availability?: () => Promise<string>
+        create?: (options: unknown) => Promise<unknown>
+      }
     }
 
     // Try window.ai.languageModel (older API)
     const ai = (window as unknown as Record<string, unknown>).ai as
       | Record<string, unknown>
-      | undefined;
-    if (ai && typeof ai === "object" && ai.languageModel) {
+      | undefined
+    if (ai && typeof ai === 'object' && ai.languageModel) {
       return ai.languageModel as {
-        availability?: () => Promise<string>;
-        create?: (options: unknown) => Promise<unknown>;
-      };
+        availability?: () => Promise<string>
+        create?: (options: unknown) => Promise<unknown>
+      }
     }
 
-    return undefined;
+    return undefined
   }
 
   private async checkLanguageModelAvailability(): Promise<FeatureAvailability> {
     try {
-      const lm = this.getLanguageModelAPI();
-      if (!lm || typeof lm.availability !== "function") {
-        return FeatureAvailability.UNAVAILABLE;
+      const lm = this.getLanguageModelAPI()
+      if (!lm || typeof lm.availability !== 'function') {
+        return FeatureAvailability.UNAVAILABLE
       }
 
       const status = await Promise.race([
         lm.availability(),
-        new Promise<string>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), 3000),
-        ),
-      ]);
+        new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+      ])
 
       switch (status) {
-        case "readily":
-        case "available":
-          return FeatureAvailability.AVAILABLE;
-        case "after-download":
-        case "downloading":
-        case "downloadable":
-          return FeatureAvailability.DOWNLOADABLE;
+        case 'readily':
+        case 'available':
+          return FeatureAvailability.AVAILABLE
+        case 'after-download':
+        case 'downloading':
+        case 'downloadable':
+          return FeatureAvailability.DOWNLOADABLE
         default:
-          return FeatureAvailability.UNAVAILABLE;
+          return FeatureAvailability.UNAVAILABLE
       }
     } catch {
-      return FeatureAvailability.UNAVAILABLE;
+      return FeatureAvailability.UNAVAILABLE
     }
   }
 
   private checkTranslatorAvailability(): FeatureAvailability {
-    const translator = (window as unknown as Record<string, unknown>)
-      .Translator;
-    if (translator && typeof translator === "object") {
-      return FeatureAvailability.AVAILABLE;
+    const translator = (window as unknown as Record<string, unknown>).Translator
+    if (translator && typeof translator === 'object') {
+      return FeatureAvailability.AVAILABLE
     }
-    return FeatureAvailability.UNAVAILABLE;
+    return FeatureAvailability.UNAVAILABLE
   }
 
   // ============================================================================
@@ -263,12 +256,9 @@ export class Locanara {
   /**
    * Summarize text
    */
-  async summarize(
-    text: string,
-    options: SummarizeOptions = {},
-  ): Promise<SummarizeResult> {
+  async summarize(text: string, options: SummarizeOptions = {}): Promise<SummarizeResult> {
     if (!window.Summarizer) {
-      throw LocanaraError.notSupported("Summarizer");
+      throw LocanaraError.notSupported('Summarizer')
     }
 
     try {
@@ -278,45 +268,42 @@ export class Locanara {
         format: options.format,
         expectedInputLanguages: options.expectedInputLanguages,
         outputLanguage: options.outputLanguage,
-      });
+      })
 
       if (!this._summarizer || this._summarizerOptionsKey !== optionsKey) {
-        this._summarizer?.destroy();
+        this._summarizer?.destroy()
         this._summarizer = await window.Summarizer.create({
           type: this.mapSummarizeType(options.type),
           length: this.mapSummarizeLength(options.length),
           format: this.mapSummarizeFormat(options.format),
           sharedContext: options.context,
-          expectedInputLanguages: options.expectedInputLanguages ?? ["en"],
-          outputLanguage: options.outputLanguage ?? "en",
+          expectedInputLanguages: options.expectedInputLanguages ?? ['en'],
+          outputLanguage: options.outputLanguage ?? 'en',
           monitor: this.createMonitor(),
-        });
-        this._summarizerOptionsKey = optionsKey;
+        })
+        this._summarizerOptionsKey = optionsKey
       }
 
       const summary = await this._summarizer.summarize(text, {
         context: options.context,
-      });
+      })
 
       return {
         summary,
         originalLength: text.length,
         summaryLength: summary.length,
-      };
+      }
     } catch (error) {
-      throw LocanaraError.executionFailed("summarize", error);
+      throw LocanaraError.executionFailed('summarize', error)
     }
   }
 
   /**
    * Summarize text with streaming
    */
-  async *summarizeStreaming(
-    text: string,
-    options: SummarizeOptions = {},
-  ): AsyncGenerator<string> {
+  async *summarizeStreaming(text: string, options: SummarizeOptions = {}): AsyncGenerator<string> {
     if (!window.Summarizer) {
-      throw LocanaraError.notSupported("Summarizer");
+      throw LocanaraError.notSupported('Summarizer')
     }
 
     try {
@@ -326,76 +313,70 @@ export class Locanara {
         format: options.format,
         expectedInputLanguages: options.expectedInputLanguages,
         outputLanguage: options.outputLanguage,
-      });
+      })
 
       if (!this._summarizer || this._summarizerOptionsKey !== optionsKey) {
-        this._summarizer?.destroy();
+        this._summarizer?.destroy()
         this._summarizer = await window.Summarizer.create({
           type: this.mapSummarizeType(options.type),
           length: this.mapSummarizeLength(options.length),
           format: this.mapSummarizeFormat(options.format),
           sharedContext: options.context,
-          expectedInputLanguages: options.expectedInputLanguages ?? ["en"],
-          outputLanguage: options.outputLanguage ?? "en",
+          expectedInputLanguages: options.expectedInputLanguages ?? ['en'],
+          outputLanguage: options.outputLanguage ?? 'en',
           monitor: this.createMonitor(),
-        });
-        this._summarizerOptionsKey = optionsKey;
+        })
+        this._summarizerOptionsKey = optionsKey
       }
 
       const stream = this._summarizer.summarizeStreaming(text, {
         context: options.context,
-      });
+      })
 
       for await (const chunk of stream) {
-        yield chunk;
+        yield chunk
       }
     } catch (error) {
-      throw LocanaraError.executionFailed("summarizeStreaming", error);
+      throw LocanaraError.executionFailed('summarizeStreaming', error)
     }
   }
 
-  private mapSummarizeType(
-    type?: SummarizeType,
-  ): "key-points" | "tldr" | "teaser" | "headline" {
+  private mapSummarizeType(type?: SummarizeType): 'key-points' | 'tldr' | 'teaser' | 'headline' {
     switch (type) {
       case SummarizeType.KEY_POINTS:
-        return "key-points";
+        return 'key-points'
       case SummarizeType.TLDR:
-        return "tldr";
+        return 'tldr'
       case SummarizeType.TEASER:
-        return "teaser";
+        return 'teaser'
       case SummarizeType.HEADLINE:
-        return "headline";
+        return 'headline'
       default:
-        return "key-points";
+        return 'key-points'
     }
   }
 
-  private mapSummarizeLength(
-    length?: SummarizeLength,
-  ): "short" | "medium" | "long" {
+  private mapSummarizeLength(length?: SummarizeLength): 'short' | 'medium' | 'long' {
     switch (length) {
       case SummarizeLength.SHORT:
-        return "short";
+        return 'short'
       case SummarizeLength.MEDIUM:
-        return "medium";
+        return 'medium'
       case SummarizeLength.LONG:
-        return "long";
+        return 'long'
       default:
-        return "medium";
+        return 'medium'
     }
   }
 
-  private mapSummarizeFormat(
-    format?: SummarizeFormat,
-  ): "markdown" | "plain-text" {
+  private mapSummarizeFormat(format?: SummarizeFormat): 'markdown' | 'plain-text' {
     switch (format) {
       case SummarizeFormat.MARKDOWN:
-        return "markdown";
+        return 'markdown'
       case SummarizeFormat.PLAIN_TEXT:
-        return "plain-text";
+        return 'plain-text'
       default:
-        return "markdown";
+        return 'markdown'
     }
   }
 
@@ -406,15 +387,12 @@ export class Locanara {
   /**
    * Translate text
    */
-  async translate(
-    text: string,
-    options: TranslateOptions,
-  ): Promise<TranslateResult> {
+  async translate(text: string, options: TranslateOptions): Promise<TranslateResult> {
     if (!window.Translator) {
-      throw LocanaraError.notSupported("Translator");
+      throw LocanaraError.notSupported('Translator')
     }
 
-    const key = `${options.sourceLanguage}-${options.targetLanguage}`;
+    const key = `${options.sourceLanguage}-${options.targetLanguage}`
 
     try {
       if (!this._translators.has(key)) {
@@ -422,35 +400,32 @@ export class Locanara {
           sourceLanguage: options.sourceLanguage,
           targetLanguage: options.targetLanguage,
           monitor: this.createMonitor(),
-        });
-        this._translators.set(key, translator);
+        })
+        this._translators.set(key, translator)
       }
 
-      const translator = this._translators.get(key)!;
-      const translatedText = await translator.translate(text);
+      const translator = this._translators.get(key)!
+      const translatedText = await translator.translate(text)
 
       return {
         translatedText,
         sourceLanguage: options.sourceLanguage,
         targetLanguage: options.targetLanguage,
-      };
+      }
     } catch (error) {
-      throw LocanaraError.executionFailed("translate", error);
+      throw LocanaraError.executionFailed('translate', error)
     }
   }
 
   /**
    * Translate text with streaming
    */
-  async *translateStreaming(
-    text: string,
-    options: TranslateOptions,
-  ): AsyncGenerator<string> {
+  async *translateStreaming(text: string, options: TranslateOptions): AsyncGenerator<string> {
     if (!window.Translator) {
-      throw LocanaraError.notSupported("Translator");
+      throw LocanaraError.notSupported('Translator')
     }
 
-    const key = `${options.sourceLanguage}-${options.targetLanguage}`;
+    const key = `${options.sourceLanguage}-${options.targetLanguage}`
 
     try {
       if (!this._translators.has(key)) {
@@ -458,18 +433,18 @@ export class Locanara {
           sourceLanguage: options.sourceLanguage,
           targetLanguage: options.targetLanguage,
           monitor: this.createMonitor(),
-        });
-        this._translators.set(key, translator);
+        })
+        this._translators.set(key, translator)
       }
 
-      const translator = this._translators.get(key)!;
-      const stream = translator.translateStreaming(text);
+      const translator = this._translators.get(key)!
+      const stream = translator.translateStreaming(text)
 
       for await (const chunk of stream) {
-        yield chunk;
+        yield chunk
       }
     } catch (error) {
-      throw LocanaraError.executionFailed("translateStreaming", error);
+      throw LocanaraError.executionFailed('translateStreaming', error)
     }
   }
 
@@ -481,9 +456,9 @@ export class Locanara {
    * Send a chat message
    */
   async chat(message: string, options: ChatOptions = {}): Promise<ChatResult> {
-    const lmAPI = this.getLanguageModelAPI();
-    if (!lmAPI || typeof lmAPI.create !== "function") {
-      throw LocanaraError.notSupported("LanguageModel");
+    const lmAPI = this.getLanguageModelAPI()
+    if (!lmAPI || typeof lmAPI.create !== 'function') {
+      throw LocanaraError.notSupported('LanguageModel')
     }
 
     try {
@@ -492,18 +467,18 @@ export class Locanara {
         temperature: options.temperature,
         topK: options.topK,
         initialPrompts: options.initialPrompts,
-      });
+      })
 
       if (!this._languageModel || this._languageModelOptionsKey !== optionsKey) {
-        this._languageModel?.destroy();
+        this._languageModel?.destroy()
 
-        const initialPrompts: Array<{ role: string; content: string }> = [];
+        const initialPrompts: Array<{ role: string; content: string }> = []
 
         if (options.systemPrompt) {
           initialPrompts.push({
-            role: "system",
+            role: 'system',
             content: options.systemPrompt,
-          });
+          })
         }
 
         if (options.initialPrompts) {
@@ -512,37 +487,33 @@ export class Locanara {
               role: p.role,
               content: p.content,
             })),
-          );
+          )
         }
 
         this._languageModel = (await lmAPI.create({
           temperature: options.temperature,
           topK: options.topK,
-          initialPrompts:
-            initialPrompts.length > 0 ? initialPrompts : undefined,
+          initialPrompts: initialPrompts.length > 0 ? initialPrompts : undefined,
           monitor: this.createMonitor(),
-        })) as ChromeLanguageModelSession;
-        this._languageModelOptionsKey = optionsKey;
+        })) as ChromeLanguageModelSession
+        this._languageModelOptionsKey = optionsKey
       }
 
-      const response = await this._languageModel.prompt(message);
+      const response = await this._languageModel.prompt(message)
 
-      return { response };
+      return { response }
     } catch (error) {
-      throw LocanaraError.executionFailed("chat", error);
+      throw LocanaraError.executionFailed('chat', error)
     }
   }
 
   /**
    * Send a chat message with streaming
    */
-  async *chatStreaming(
-    message: string,
-    options: ChatOptions = {},
-  ): AsyncGenerator<string> {
-    const lmAPI = this.getLanguageModelAPI();
-    if (!lmAPI || typeof lmAPI.create !== "function") {
-      throw LocanaraError.notSupported("LanguageModel");
+  async *chatStreaming(message: string, options: ChatOptions = {}): AsyncGenerator<string> {
+    const lmAPI = this.getLanguageModelAPI()
+    if (!lmAPI || typeof lmAPI.create !== 'function') {
+      throw LocanaraError.notSupported('LanguageModel')
     }
 
     try {
@@ -550,48 +521,47 @@ export class Locanara {
         systemPrompt: options.systemPrompt,
         temperature: options.temperature,
         topK: options.topK,
-      });
+      })
 
       if (!this._languageModel || this._languageModelOptionsKey !== optionsKey) {
-        this._languageModel?.destroy();
+        this._languageModel?.destroy()
 
-        const initialPrompts: Array<{ role: string; content: string }> = [];
+        const initialPrompts: Array<{ role: string; content: string }> = []
 
         if (options.systemPrompt) {
           initialPrompts.push({
-            role: "system",
+            role: 'system',
             content: options.systemPrompt,
-          });
+          })
         }
 
         this._languageModel = (await lmAPI.create({
           temperature: options.temperature,
           topK: options.topK,
-          initialPrompts:
-            initialPrompts.length > 0 ? initialPrompts : undefined,
+          initialPrompts: initialPrompts.length > 0 ? initialPrompts : undefined,
           monitor: this.createMonitor(),
-        })) as ChromeLanguageModelSession;
-        this._languageModelOptionsKey = optionsKey;
+        })) as ChromeLanguageModelSession
+        this._languageModelOptionsKey = optionsKey
       }
 
-      const stream = this._languageModel.promptStreaming(message);
-      const reader = stream.getReader();
+      const stream = this._languageModel.promptStreaming(message)
+      const reader = stream.getReader()
 
       try {
         while (true) {
-          const result = await reader.read();
+          const result = await reader.read()
           if (result.done) {
-            break;
+            break
           }
           if (result.value) {
-            yield result.value;
+            yield result.value
           }
         }
       } finally {
-        reader.releaseLock();
+        reader.releaseLock()
       }
     } catch (error) {
-      throw LocanaraError.executionFailed("chatStreaming", error);
+      throw LocanaraError.executionFailed('chatStreaming', error)
     }
   }
 
@@ -600,9 +570,9 @@ export class Locanara {
    */
   async resetChat(): Promise<void> {
     if (this._languageModel) {
-      this._languageModel.destroy();
-      this._languageModel = null;
-      this._languageModelOptionsKey = null;
+      this._languageModel.destroy()
+      this._languageModel = null
+      this._languageModelOptionsKey = null
     }
   }
 
@@ -613,12 +583,9 @@ export class Locanara {
   /**
    * Rewrite text
    */
-  async rewrite(
-    text: string,
-    options: RewriteOptions = {},
-  ): Promise<RewriteResult> {
+  async rewrite(text: string, options: RewriteOptions = {}): Promise<RewriteResult> {
     if (!window.Rewriter) {
-      throw LocanaraError.notSupported("Rewriter");
+      throw LocanaraError.notSupported('Rewriter')
     }
 
     try {
@@ -626,44 +593,38 @@ export class Locanara {
         tone: options.tone,
         length: options.length,
         format: options.format,
-      });
+      })
 
       if (!this._rewriter || this._rewriterOptionsKey !== optionsKey) {
-        this._rewriter?.destroy();
+        this._rewriter?.destroy()
         this._rewriter = await window.Rewriter.create({
           tone: this.mapRewriteTone(options.tone),
           length: this.mapRewriteLength(options.length),
           format: options.format
-            ? (this.mapSummarizeFormat(options.format) as
-                | "markdown"
-                | "plain-text"
-                | "as-is")
-            : "as-is",
+            ? (this.mapSummarizeFormat(options.format) as 'markdown' | 'plain-text' | 'as-is')
+            : 'as-is',
           sharedContext: options.context,
           monitor: this.createMonitor(),
-        });
-        this._rewriterOptionsKey = optionsKey;
+        })
+        this._rewriterOptionsKey = optionsKey
       }
 
       const rewrittenText = await this._rewriter.rewrite(text, {
         context: options.context,
-      });
+      })
 
-      return { rewrittenText };
+      return { rewrittenText }
     } catch (error) {
-      throw LocanaraError.executionFailed("rewrite", error);
+      throw LocanaraError.executionFailed('rewrite', error)
     }
   }
 
   /**
    * Rewrite text with streaming
    */
-  async *rewriteStreaming(
-    text: string,
-    options: RewriteOptions = {},
-  ): AsyncGenerator<string> {
+  async *rewriteStreaming(text: string, options: RewriteOptions = {}): AsyncGenerator<string> {
     if (!window.Rewriter) {
-      throw LocanaraError.notSupported("Rewriter");
+      throw LocanaraError.notSupported('Rewriter')
     }
 
     try {
@@ -671,57 +632,53 @@ export class Locanara {
         tone: options.tone,
         length: options.length,
         format: options.format,
-      });
+      })
 
       if (!this._rewriter || this._rewriterOptionsKey !== optionsKey) {
-        this._rewriter?.destroy();
+        this._rewriter?.destroy()
         this._rewriter = await window.Rewriter.create({
           tone: this.mapRewriteTone(options.tone),
           length: this.mapRewriteLength(options.length),
           monitor: this.createMonitor(),
-        });
-        this._rewriterOptionsKey = optionsKey;
+        })
+        this._rewriterOptionsKey = optionsKey
       }
 
       const stream = this._rewriter.rewriteStreaming(text, {
         context: options.context,
-      });
+      })
 
       for await (const chunk of stream) {
-        yield chunk;
+        yield chunk
       }
     } catch (error) {
-      throw LocanaraError.executionFailed("rewriteStreaming", error);
+      throw LocanaraError.executionFailed('rewriteStreaming', error)
     }
   }
 
-  private mapRewriteTone(
-    tone?: RewriteTone,
-  ): "more-formal" | "as-is" | "more-casual" {
+  private mapRewriteTone(tone?: RewriteTone): 'more-formal' | 'as-is' | 'more-casual' {
     switch (tone) {
       case RewriteTone.MORE_FORMAL:
-        return "more-formal";
+        return 'more-formal'
       case RewriteTone.AS_IS:
-        return "as-is";
+        return 'as-is'
       case RewriteTone.MORE_CASUAL:
-        return "more-casual";
+        return 'more-casual'
       default:
-        return "as-is";
+        return 'as-is'
     }
   }
 
-  private mapRewriteLength(
-    length?: RewriteLength,
-  ): "shorter" | "as-is" | "longer" {
+  private mapRewriteLength(length?: RewriteLength): 'shorter' | 'as-is' | 'longer' {
     switch (length) {
       case RewriteLength.SHORTER:
-        return "shorter";
+        return 'shorter'
       case RewriteLength.AS_IS:
-        return "as-is";
+        return 'as-is'
       case RewriteLength.LONGER:
-        return "longer";
+        return 'longer'
       default:
-        return "as-is";
+        return 'as-is'
     }
   }
 
@@ -732,50 +689,45 @@ export class Locanara {
   /**
    * Classify text into categories
    */
-  async classify(
-    text: string,
-    options: ClassifyOptions,
-  ): Promise<ClassifyResult> {
-    const lmAPI = this.getLanguageModelAPI();
-    if (!lmAPI || typeof lmAPI.create !== "function") {
-      throw LocanaraError.notSupported("LanguageModel");
+  async classify(text: string, options: ClassifyOptions): Promise<ClassifyResult> {
+    const lmAPI = this.getLanguageModelAPI()
+    if (!lmAPI || typeof lmAPI.create !== 'function') {
+      throw LocanaraError.notSupported('LanguageModel')
     }
 
     if (!options.categories || options.categories.length === 0) {
-      throw LocanaraError.invalidInput(
-        "Categories are required for classification",
-      );
+      throw LocanaraError.invalidInput('Categories are required for classification')
     }
 
     try {
       const session = (await lmAPI.create({
         monitor: this.createMonitor(),
-      })) as ChromeLanguageModelSession;
+      })) as ChromeLanguageModelSession
 
       const prompt = `Classify the following text into one of these categories: ${options.categories.join(
-        ", ",
+        ', ',
       )}.
-${options.context ? `Context: ${options.context}` : ""}
+${options.context ? `Context: ${options.context}` : ''}
 
 Text to classify:
 ${text}
 
-Respond with ONLY the category name, nothing else.`;
+Respond with ONLY the category name, nothing else.`
 
-      const response = await session.prompt(prompt);
-      session.destroy();
+      const response = await session.prompt(prompt)
+      session.destroy()
 
-      const category = response.trim();
+      const category = response.trim()
       const isValidCategory = options.categories.some(
         (c) => c.toLowerCase() === category.toLowerCase(),
-      );
+      )
 
       return {
         category: isValidCategory ? category : options.categories[0]!,
         confidence: isValidCategory ? 0.9 : 0.5,
-      };
+      }
     } catch (error) {
-      throw LocanaraError.executionFailed("classify", error);
+      throw LocanaraError.executionFailed('classify', error)
     }
   }
 
@@ -786,43 +738,40 @@ Respond with ONLY the category name, nothing else.`;
   /**
    * Extract entities from text
    */
-  async extract(
-    text: string,
-    options: ExtractOptions = {},
-  ): Promise<ExtractResult> {
-    const lmAPI = this.getLanguageModelAPI();
-    if (!lmAPI || typeof lmAPI.create !== "function") {
-      throw LocanaraError.notSupported("LanguageModel");
+  async extract(text: string, options: ExtractOptions = {}): Promise<ExtractResult> {
+    const lmAPI = this.getLanguageModelAPI()
+    if (!lmAPI || typeof lmAPI.create !== 'function') {
+      throw LocanaraError.notSupported('LanguageModel')
     }
 
     try {
       const session = (await lmAPI.create({
         monitor: this.createMonitor(),
-      })) as ChromeLanguageModelSession;
+      })) as ChromeLanguageModelSession
 
       const schemaDescription = options.schema
         ? `Extract the following fields: ${JSON.stringify(options.schema)}`
-        : "Extract key entities like names, dates, locations, organizations, and other important information";
+        : 'Extract key entities like names, dates, locations, organizations, and other important information'
 
       const prompt = `${schemaDescription}
-${options.context ? `Context: ${options.context}` : ""}
+${options.context ? `Context: ${options.context}` : ''}
 
 Text:
 ${text}
 
-Respond with a valid JSON object containing the extracted entities.`;
+Respond with a valid JSON object containing the extracted entities.`
 
-      const response = await session.prompt(prompt);
-      session.destroy();
+      const response = await session.prompt(prompt)
+      session.destroy()
 
       try {
-        const entities = JSON.parse(response);
-        return { entities };
+        const entities = JSON.parse(response)
+        return { entities }
       } catch {
-        return { entities: { raw: response } };
+        return { entities: { raw: response } }
       }
     } catch (error) {
-      throw LocanaraError.executionFailed("extract", error);
+      throw LocanaraError.executionFailed('extract', error)
     }
   }
 
@@ -833,38 +782,35 @@ Respond with a valid JSON object containing the extracted entities.`;
   /**
    * Proofread text for grammar and spelling
    */
-  async proofread(
-    text: string,
-    options: ProofreadOptions = {},
-  ): Promise<ProofreadResult> {
+  async proofread(text: string, options: ProofreadOptions = {}): Promise<ProofreadResult> {
     if (!window.Writer) {
-      throw LocanaraError.notSupported("Writer");
+      throw LocanaraError.notSupported('Writer')
     }
 
     try {
       if (!this._writer) {
         this._writer = await window.Writer.create({
           monitor: this.createMonitor(),
-        });
+        })
       }
 
       const prompt = `Proofread and correct the following text. Fix grammar, spelling, and punctuation errors while preserving the original meaning.
-${options.context ? `Context: ${options.context}` : ""}
+${options.context ? `Context: ${options.context}` : ''}
 
 Text:
-${text}`;
+${text}`
 
-      const correctedText = await this._writer.write(prompt);
+      const correctedText = await this._writer.write(prompt)
 
-      const hasCorrections = correctedText !== text;
+      const hasCorrections = correctedText !== text
 
       return {
         correctedText,
         corrections: [], // Chrome API doesn't provide detailed corrections
         hasCorrections,
-      };
+      }
     } catch (error) {
-      throw LocanaraError.executionFailed("proofread", error);
+      throw LocanaraError.executionFailed('proofread', error)
     }
   }
 
@@ -879,80 +825,66 @@ ${text}`;
     image: Blob | HTMLImageElement | HTMLCanvasElement | ImageData,
     options: DescribeImageOptions = {},
   ): Promise<DescribeImageResult> {
-    const lmAPI = this.getLanguageModelAPI();
-    if (!lmAPI || typeof lmAPI.create !== "function") {
-      throw LocanaraError.notSupported("LanguageModel");
+    const lmAPI = this.getLanguageModelAPI()
+    if (!lmAPI || typeof lmAPI.create !== 'function') {
+      throw LocanaraError.notSupported('LanguageModel')
     }
 
     try {
       const session = (await lmAPI.create({
         monitor: this.createMonitor(),
-      })) as ChromeLanguageModelSession;
+      })) as ChromeLanguageModelSession
 
-      let imageBlob: Blob;
+      let imageBlob: Blob
       if (image instanceof Blob) {
-        imageBlob = image;
-      } else if (
-        image instanceof HTMLImageElement ||
-        image instanceof HTMLCanvasElement
-      ) {
-        const canvas =
-          image instanceof HTMLCanvasElement
-            ? image
-            : await this.imageToCanvas(image);
+        imageBlob = image
+      } else if (image instanceof HTMLImageElement || image instanceof HTMLCanvasElement) {
+        const canvas = image instanceof HTMLCanvasElement ? image : await this.imageToCanvas(image)
         imageBlob = await new Promise<Blob>((resolve, reject) => {
           canvas.toBlob(
-            (blob) =>
-              blob
-                ? resolve(blob)
-                : reject(new Error("Failed to convert to blob")),
-            "image/png",
-          );
-        });
+            (blob) => (blob ? resolve(blob) : reject(new Error('Failed to convert to blob'))),
+            'image/png',
+          )
+        })
       } else {
         // ImageData
-        const canvas = document.createElement("canvas");
-        canvas.width = image.width;
-        canvas.height = image.height;
-        const ctx = canvas.getContext("2d")!;
-        ctx.putImageData(image, 0, 0);
+        const canvas = document.createElement('canvas')
+        canvas.width = image.width
+        canvas.height = image.height
+        const ctx = canvas.getContext('2d')!
+        ctx.putImageData(image, 0, 0)
         imageBlob = await new Promise<Blob>((resolve, reject) => {
           canvas.toBlob(
-            (blob) =>
-              blob
-                ? resolve(blob)
-                : reject(new Error("Failed to convert to blob")),
-            "image/png",
-          );
-        });
+            (blob) => (blob ? resolve(blob) : reject(new Error('Failed to convert to blob'))),
+            'image/png',
+          )
+        })
       }
 
       const prompt = options.context
         ? `Describe this image. Context: ${options.context}`
-        : "Describe this image in detail.";
+        : 'Describe this image in detail.'
 
       const response = await session.prompt([
-        { role: "user", content: imageBlob },
-        { role: "user", content: prompt },
-      ]);
+        { role: 'user', content: imageBlob },
+        { role: 'user', content: prompt },
+      ])
 
-      session.destroy();
+      session.destroy()
 
-      return { description: response };
+      return { description: response }
     } catch (error) {
-      throw LocanaraError.executionFailed("describeImage", error);
+      throw LocanaraError.executionFailed('describeImage', error)
     }
   }
 
-  private async imageToCanvas(
-    image: HTMLImageElement,
-  ): Promise<HTMLCanvasElement> {
-    const canvas = document.createElement("canvas");
-    canvas.width = image.naturalWidth || image.width;
-    canvas.height = image.naturalHeight || image.height;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(image, 0, 0);
-    return canvas;
+  private async imageToCanvas(image: HTMLImageElement): Promise<HTMLCanvasElement> {
+    const canvas = document.createElement('canvas')
+    canvas.width = image.naturalWidth || image.width
+    canvas.height = image.naturalHeight || image.height
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(image, 0, 0)
+    return canvas
   }
 
   // ============================================================================
@@ -964,19 +896,19 @@ ${text}`;
    */
   async detectLanguage(text: string): Promise<DetectLanguageResult[]> {
     if (!window.LanguageDetector) {
-      throw LocanaraError.notSupported("LanguageDetector");
+      throw LocanaraError.notSupported('LanguageDetector')
     }
 
     try {
       if (!this._languageDetector) {
         this._languageDetector = await window.LanguageDetector.create({
           monitor: this.createMonitor(),
-        });
+        })
       }
 
-      return await this._languageDetector.detect(text);
+      return await this._languageDetector.detect(text)
     } catch (error) {
-      throw LocanaraError.executionFailed("detectLanguage", error);
+      throw LocanaraError.executionFailed('detectLanguage', error)
     }
   }
 
@@ -987,12 +919,9 @@ ${text}`;
   /**
    * Generate text based on a prompt
    */
-  async write(
-    prompt: string,
-    options: WriteOptions = {},
-  ): Promise<WriteResult> {
+  async write(prompt: string, options: WriteOptions = {}): Promise<WriteResult> {
     if (!window.Writer) {
-      throw LocanaraError.notSupported("Writer");
+      throw LocanaraError.notSupported('Writer')
     }
 
     try {
@@ -1000,41 +929,36 @@ ${text}`;
         tone: options.tone,
         length: options.length,
         format: options.format,
-      });
+      })
 
       if (!this._writer || this._writerOptionsKey !== optionsKey) {
-        this._writer?.destroy();
+        this._writer?.destroy()
         this._writer = await window.Writer.create({
           tone: this.mapWriterTone(options.tone),
           length: this.mapWriterLength(options.length),
-          format: options.format
-            ? this.mapSummarizeFormat(options.format)
-            : "markdown",
+          format: options.format ? this.mapSummarizeFormat(options.format) : 'markdown',
           sharedContext: options.context,
           monitor: this.createMonitor(),
-        });
-        this._writerOptionsKey = optionsKey;
+        })
+        this._writerOptionsKey = optionsKey
       }
 
       const text = await this._writer.write(prompt, {
         context: options.context,
-      });
+      })
 
-      return { text };
+      return { text }
     } catch (error) {
-      throw LocanaraError.executionFailed("write", error);
+      throw LocanaraError.executionFailed('write', error)
     }
   }
 
   /**
    * Generate text with streaming
    */
-  async *writeStreaming(
-    prompt: string,
-    options: WriteOptions = {},
-  ): AsyncGenerator<string> {
+  async *writeStreaming(prompt: string, options: WriteOptions = {}): AsyncGenerator<string> {
     if (!window.Writer) {
-      throw LocanaraError.notSupported("Writer");
+      throw LocanaraError.notSupported('Writer')
     }
 
     try {
@@ -1042,53 +966,53 @@ ${text}`;
         tone: options.tone,
         length: options.length,
         format: options.format,
-      });
+      })
 
       if (!this._writer || this._writerOptionsKey !== optionsKey) {
-        this._writer?.destroy();
+        this._writer?.destroy()
         this._writer = await window.Writer.create({
           tone: this.mapWriterTone(options.tone),
           length: this.mapWriterLength(options.length),
           monitor: this.createMonitor(),
-        });
-        this._writerOptionsKey = optionsKey;
+        })
+        this._writerOptionsKey = optionsKey
       }
 
       const stream = this._writer.writeStreaming(prompt, {
         context: options.context,
-      });
+      })
 
       for await (const chunk of stream) {
-        yield chunk;
+        yield chunk
       }
     } catch (error) {
-      throw LocanaraError.executionFailed("writeStreaming", error);
+      throw LocanaraError.executionFailed('writeStreaming', error)
     }
   }
 
-  private mapWriterTone(tone?: WriterTone): "formal" | "neutral" | "casual" {
+  private mapWriterTone(tone?: WriterTone): 'formal' | 'neutral' | 'casual' {
     switch (tone) {
       case WriterTone.FORMAL:
-        return "formal";
+        return 'formal'
       case WriterTone.NEUTRAL:
-        return "neutral";
+        return 'neutral'
       case WriterTone.CASUAL:
-        return "casual";
+        return 'casual'
       default:
-        return "neutral";
+        return 'neutral'
     }
   }
 
-  private mapWriterLength(length?: WriterLength): "short" | "medium" | "long" {
+  private mapWriterLength(length?: WriterLength): 'short' | 'medium' | 'long' {
     switch (length) {
       case WriterLength.SHORT:
-        return "short";
+        return 'short'
       case WriterLength.MEDIUM:
-        return "medium";
+        return 'medium'
       case WriterLength.LONG:
-        return "long";
+        return 'long'
       default:
-        return "medium";
+        return 'medium'
     }
   }
 
@@ -1097,17 +1021,17 @@ ${text}`;
   // ============================================================================
 
   private createMonitor(): ((m: EventTarget) => void) | undefined {
-    if (!this._options.onDownloadProgress) return undefined;
+    if (!this._options.onDownloadProgress) return undefined
 
     return (monitor: EventTarget) => {
-      monitor.addEventListener("downloadprogress", ((
+      monitor.addEventListener('downloadprogress', ((
         e: Event & { loaded?: number; total?: number },
       ) => {
-        const loaded = e.loaded ?? 0;
-        const total = e.total ?? 1;
-        this._options.onDownloadProgress?.({ loaded, total });
-      }) as EventListener);
-    };
+        const loaded = e.loaded ?? 0
+        const total = e.total ?? 1
+        this._options.onDownloadProgress?.({ loaded, total })
+      }) as EventListener)
+    }
   }
 
   // ============================================================================
@@ -1153,28 +1077,28 @@ ${text}`;
    * Destroy all cached instances and free resources
    */
   destroy(): void {
-    this._summarizer?.destroy();
-    this._summarizer = null;
-    this._summarizerOptionsKey = null;
+    this._summarizer?.destroy()
+    this._summarizer = null
+    this._summarizerOptionsKey = null
 
     for (const translator of this._translators.values()) {
-      translator.destroy();
+      translator.destroy()
     }
-    this._translators.clear();
+    this._translators.clear()
 
-    this._rewriter?.destroy();
-    this._rewriter = null;
-    this._rewriterOptionsKey = null;
+    this._rewriter?.destroy()
+    this._rewriter = null
+    this._rewriterOptionsKey = null
 
-    this._writer?.destroy();
-    this._writer = null;
-    this._writerOptionsKey = null;
+    this._writer?.destroy()
+    this._writer = null
+    this._writerOptionsKey = null
 
-    this._languageModel?.destroy();
-    this._languageModel = null;
+    this._languageModel?.destroy()
+    this._languageModel = null
 
-    this._languageDetector = null;
+    this._languageDetector = null
   }
 }
 
-export default Locanara;
+export default Locanara
