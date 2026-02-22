@@ -175,6 +175,10 @@ jobs:
         working-directory: libraries/expo-ondevice-ai
         run: bun install
 
+      - name: Build library
+        working-directory: libraries/expo-ondevice-ai
+        run: bun run build
+
       - name: Install example dependencies
         working-directory: libraries/expo-ondevice-ai/example
         run: bun install
