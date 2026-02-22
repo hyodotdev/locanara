@@ -66,9 +66,16 @@ async function checkAvailability(api: string): Promise<boolean> {
     if (typeof obj.availability === 'function') {
       const status = await Promise.race([
         obj.availability(),
-        new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        new Promise<string>((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 3000),
+        ),
       ]);
-      return status === 'available' || status === 'readily' || status === 'downloadable' || status === 'after-download';
+      return (
+        status === 'available' ||
+        status === 'readily' ||
+        status === 'downloadable' ||
+        status === 'after-download'
+      );
     }
     // If API object exists but has no .availability, assume available (e.g. Translator)
     return typeof obj === 'object' || typeof obj === 'function';
@@ -97,9 +104,15 @@ const ExpoOndeviceAiModule = {
       try {
         const s = await Promise.race([
           lm.availability(),
-          new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+          new Promise<string>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 3000),
+          ),
         ]);
-        hasLanguageModel = s === 'readily' || s === 'available' || s === 'downloadable' || s === 'after-download';
+        hasLanguageModel =
+          s === 'readily' ||
+          s === 'available' ||
+          s === 'downloadable' ||
+          s === 'after-download';
       } catch {
         // API exists but check failed — still assume available
         hasLanguageModel = !!lm;
@@ -122,9 +135,13 @@ const ExpoOndeviceAiModule = {
     };
   },
 
-  async summarize(text: string, options?: SummarizeOptions): Promise<SummarizeResult> {
+  async summarize(
+    text: string,
+    options?: SummarizeOptions,
+  ): Promise<SummarizeResult> {
     const Summarizer = (globalThis as any).Summarizer;
-    if (!Summarizer) throw new Error('Summarizer API not available in this browser');
+    if (!Summarizer)
+      throw new Error('Summarizer API not available in this browser');
 
     // Always request key-points with enough length, then trim to desired bullet count
     const optionsKey = 'key-points:long';
@@ -142,16 +159,17 @@ const ExpoOndeviceAiModule = {
 
     // Trim to desired bullet count
     const bulletCount =
-      options?.outputType === 'ONE_BULLET' ? 1
-      : options?.outputType === 'TWO_BULLETS' ? 2
-      : 3;
+      options?.outputType === 'ONE_BULLET'
+        ? 1
+        : options?.outputType === 'TWO_BULLETS'
+          ? 2
+          : 3;
     const bullets = raw
       .split('\n')
       .map((l: string) => l.trim())
       .filter((l: string) => l.startsWith('*') || l.startsWith('-'));
-    const summary = bullets.length > 0
-      ? bullets.slice(0, bulletCount).join('\n')
-      : raw;
+    const summary =
+      bullets.length > 0 ? bullets.slice(0, bulletCount).join('\n') : raw;
 
     return {
       summary,
@@ -160,11 +178,18 @@ const ExpoOndeviceAiModule = {
     };
   },
 
-  async classify(text: string, options?: ClassifyOptions): Promise<ClassifyResult> {
+  async classify(
+    text: string,
+    options?: ClassifyOptions,
+  ): Promise<ClassifyResult> {
     const lm = getLanguageModelAPI();
     if (!lm) throw new Error('LanguageModel API not available in this browser');
 
-    const categories = options?.categories ?? ['positive', 'negative', 'neutral'];
+    const categories = options?.categories ?? [
+      'positive',
+      'negative',
+      'neutral',
+    ];
     const session = await lm.create({});
     const prompt = `Classify the following text into one of these categories: ${categories.join(', ')}.\n\nText: ${text}\n\nRespond with ONLY the category name.`;
     const response = await session.prompt(prompt);
@@ -176,12 +201,20 @@ const ExpoOndeviceAiModule = {
     );
 
     return {
-      classifications: [{label: isValid ? category : categories[0], score: isValid ? 0.9 : 0.5}],
-      topClassification: {label: isValid ? category : categories[0], score: isValid ? 0.9 : 0.5},
+      classifications: [
+        {label: isValid ? category : categories[0], score: isValid ? 0.9 : 0.5},
+      ],
+      topClassification: {
+        label: isValid ? category : categories[0],
+        score: isValid ? 0.9 : 0.5,
+      },
     };
   },
 
-  async extract(text: string, _options?: ExtractOptions): Promise<ExtractResult> {
+  async extract(
+    text: string,
+    _options?: ExtractOptions,
+  ): Promise<ExtractResult> {
     const lm = getLanguageModelAPI();
     if (!lm) throw new Error('LanguageModel API not available in this browser');
 
@@ -192,29 +225,59 @@ const ExpoOndeviceAiModule = {
 
     // Normalize type names to match iOS/Android SDK
     const typeNormalize: Record<string, string> = {
-      person: 'person', persons: 'person', people: 'person', name: 'person', names: 'person',
-      email: 'email', emails: 'email',
-      phone: 'phone', phones: 'phone', phone_number: 'phone', phone_numbers: 'phone',
-      date: 'date', dates: 'date',
-      location: 'location', locations: 'location', place: 'location', places: 'location',
-      organization: 'organization', organizations: 'organization', org: 'organization', orgs: 'organization',
+      person: 'person',
+      persons: 'person',
+      people: 'person',
+      name: 'person',
+      names: 'person',
+      email: 'email',
+      emails: 'email',
+      phone: 'phone',
+      phones: 'phone',
+      phone_number: 'phone',
+      phone_numbers: 'phone',
+      date: 'date',
+      dates: 'date',
+      location: 'location',
+      locations: 'location',
+      place: 'location',
+      places: 'location',
+      organization: 'organization',
+      organizations: 'organization',
+      org: 'organization',
+      orgs: 'organization',
       contact: 'email',
     };
     const confidenceMap: Record<string, number> = {
-      person: 0.95, email: 0.98, phone: 0.97, date: 0.96, location: 0.92, organization: 0.90,
+      person: 0.95,
+      email: 0.98,
+      phone: 0.97,
+      date: 0.96,
+      location: 0.92,
+      organization: 0.9,
     };
 
     try {
-      const jsonStr = response.replace(/^```(?:json)?\s*\n?/m, '').replace(/\n?```\s*$/m, '').trim();
+      const jsonStr = response
+        .replace(/^```(?:json)?\s*\n?/m, '')
+        .replace(/\n?```\s*$/m, '')
+        .trim();
       const parsed = JSON.parse(jsonStr);
 
-      const entities: Array<{type: string; value: string; confidence: number}> = [];
+      const entities: {type: string; value: string; confidence: number}[] = [];
       const walk = (obj: any, parentKey?: string) => {
         if (Array.isArray(obj)) {
           obj.forEach((item) => {
             if (typeof item === 'string') {
-              const normalized = typeNormalize[(parentKey ?? '').toLowerCase()] ?? parentKey ?? 'unknown';
-              entities.push({type: normalized, value: item, confidence: confidenceMap[normalized] ?? 0.85});
+              const normalized =
+                typeNormalize[(parentKey ?? '').toLowerCase()] ??
+                parentKey ??
+                'unknown';
+              entities.push({
+                type: normalized,
+                value: item,
+                confidence: confidenceMap[normalized] ?? 0.85,
+              });
             } else {
               walk(item, parentKey);
             }
@@ -222,8 +285,15 @@ const ExpoOndeviceAiModule = {
         } else if (typeof obj === 'object' && obj !== null) {
           Object.entries(obj).forEach(([key, value]) => walk(value, key));
         } else {
-          const normalized = typeNormalize[(parentKey ?? '').toLowerCase()] ?? parentKey ?? 'unknown';
-          entities.push({type: normalized, value: String(obj), confidence: confidenceMap[normalized] ?? 0.85});
+          const normalized =
+            typeNormalize[(parentKey ?? '').toLowerCase()] ??
+            parentKey ??
+            'unknown';
+          entities.push({
+            type: normalized,
+            value: String(obj),
+            confidence: confidenceMap[normalized] ?? 0.85,
+          });
         }
       };
       walk(parsed);
@@ -240,7 +310,7 @@ const ExpoOndeviceAiModule = {
     const newSystemPrompt = options?.systemPrompt;
     if (!cachedLanguageModel || newSystemPrompt !== cachedSystemPrompt) {
       cachedLanguageModel?.destroy?.();
-      const initialPrompts: Array<{role: string; content: string}> = [];
+      const initialPrompts: {role: string; content: string}[] = [];
       if (newSystemPrompt) {
         initialPrompts.push({role: 'system', content: newSystemPrompt});
       }
@@ -258,7 +328,8 @@ const ExpoOndeviceAiModule = {
   },
 
   addListener(eventName: string, listener: (data: any) => void) {
-    if (!eventListeners.has(eventName)) eventListeners.set(eventName, new Set());
+    if (!eventListeners.has(eventName))
+      eventListeners.set(eventName, new Set());
     eventListeners.get(eventName)!.add(listener);
     return {remove: () => eventListeners.get(eventName)?.delete(listener)};
   },
@@ -267,14 +338,17 @@ const ExpoOndeviceAiModule = {
     // No-op, cleanup handled by subscription.remove()
   },
 
-  async chatStream(message: string, options?: ChatOptions): Promise<ChatResult> {
+  async chatStream(
+    message: string,
+    options?: ChatOptions,
+  ): Promise<ChatResult> {
     const lm = getLanguageModelAPI();
     if (!lm) throw new Error('LanguageModel API not available in this browser');
 
     const newSystemPrompt = options?.systemPrompt;
     if (!cachedLanguageModel || newSystemPrompt !== cachedSystemPrompt) {
       cachedLanguageModel?.destroy?.();
-      const initialPrompts: Array<{role: string; content: string}> = [];
+      const initialPrompts: {role: string; content: string}[] = [];
       if (newSystemPrompt) {
         initialPrompts.push({role: 'system', content: newSystemPrompt});
       }
@@ -300,7 +374,11 @@ const ExpoOndeviceAiModule = {
         } else {
           // Delta: just the new portion
           accumulated += text;
-          emitEvent('onChatStreamChunk', {delta: text, accumulated, isFinal: false});
+          emitEvent('onChatStreamChunk', {
+            delta: text,
+            accumulated,
+            isFinal: false,
+          });
         }
       }
 
@@ -310,13 +388,21 @@ const ExpoOndeviceAiModule = {
 
     // Fallback to non-streaming
     const response = await cachedLanguageModel.prompt(message);
-    emitEvent('onChatStreamChunk', {delta: response, accumulated: response, isFinal: true});
+    emitEvent('onChatStreamChunk', {
+      delta: response,
+      accumulated: response,
+      isFinal: true,
+    });
     return {message: response, canContinue: true};
   },
 
-  async translate(text: string, options: TranslateOptions): Promise<TranslateResult> {
+  async translate(
+    text: string,
+    options: TranslateOptions,
+  ): Promise<TranslateResult> {
     const Translator = (globalThis as any).Translator;
-    if (!Translator) throw new Error('Translator API not available in this browser');
+    if (!Translator)
+      throw new Error('Translator API not available in this browser');
 
     const key = `${options.sourceLanguage ?? 'en'}-${options.targetLanguage}`;
     if (!cachedTranslators.has(key)) {
@@ -339,7 +425,8 @@ const ExpoOndeviceAiModule = {
 
   async rewrite(text: string, options: RewriteOptions): Promise<RewriteResult> {
     const Rewriter = (globalThis as any).Rewriter;
-    if (!Rewriter) throw new Error('Rewriter API not available in this browser');
+    if (!Rewriter)
+      throw new Error('Rewriter API not available in this browser');
 
     const toneMap: Record<string, string> = {
       FRIENDLY: 'more-casual',
@@ -367,7 +454,10 @@ const ExpoOndeviceAiModule = {
     };
   },
 
-  async proofread(text: string, _options?: ProofreadOptions): Promise<ProofreadResult> {
+  async proofread(
+    text: string,
+    _options?: ProofreadOptions,
+  ): Promise<ProofreadResult> {
     // Prefer LanguageModel for structured proofreading (returns corrections list)
     const lm = getLanguageModelAPI();
     if (lm) {
@@ -385,7 +475,10 @@ ${text}`;
       session.destroy();
 
       try {
-        const jsonStr = response.replace(/^```(?:json)?\s*\n?/m, '').replace(/\n?```\s*$/m, '').trim();
+        const jsonStr = response
+          .replace(/^```(?:json)?\s*\n?/m, '')
+          .replace(/\n?```\s*$/m, '')
+          .trim();
         const parsed = JSON.parse(jsonStr);
         const correctedText = parsed.correctedText ?? text;
         const corrections = Array.isArray(parsed.corrections)
@@ -408,7 +501,10 @@ ${text}`;
 
     // Fallback to Writer API with word-diff
     const Writer = (globalThis as any).Writer;
-    if (!Writer) throw new Error('Writer or LanguageModel API not available in this browser');
+    if (!Writer)
+      throw new Error(
+        'Writer or LanguageModel API not available in this browser',
+      );
 
     if (!cachedWriter) {
       cachedWriter = await Writer.create({});
@@ -419,7 +515,12 @@ ${text}`;
     );
 
     // Compute simple word-diff to populate corrections
-    const corrections: Array<{original: string; corrected: string; type: string; confidence: number}> = [];
+    const corrections: {
+      original: string;
+      corrected: string;
+      type: string;
+      confidence: number;
+    }[] = [];
     const origWords = text.split(/\s+/);
     const corrWords = correctedText.split(/\s+/);
     if (origWords.length === corrWords.length) {

@@ -19,12 +19,11 @@ object ExpoOndeviceAiHelper {
         }
     }
 
-    fun inputType(options: Map<String, Any>?): String {
-        return when (options?.get("inputType") as? String) {
+    fun inputType(options: Map<String, Any>?): String =
+        when (options?.get("inputType") as? String) {
             "CONVERSATION" -> "conversation"
             else -> "text"
         }
-    }
 
     // endregion
 

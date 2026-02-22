@@ -48,9 +48,19 @@ export function ClassifyDemo() {
       const classifyResult = await classify(inputText, options);
       console.log('[DEBUG] classify response:', JSON.stringify(classifyResult));
       setResult(classifyResult);
-      setDebugLog({api: 'classify', request: {text: inputText.substring(0, 100) + '...', options}, response: classifyResult, timing: Date.now() - start});
+      setDebugLog({
+        api: 'classify',
+        request: {text: inputText.substring(0, 100) + '...', options},
+        response: classifyResult,
+        timing: Date.now() - start,
+      });
     } catch (error: any) {
-      setDebugLog({api: 'classify', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
+      setDebugLog({
+        api: 'classify',
+        request: {text: inputText.substring(0, 100) + '...'},
+        response: {error: error.message},
+        timing: Date.now() - start,
+      });
       setErrorMessage(error.message || 'Failed to classify');
     } finally {
       setIsLoading(false);

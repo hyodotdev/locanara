@@ -122,7 +122,9 @@ function addSPMPackageToMainProject(project: any): void {
 function addEmbedLlamaFrameworkPhase(project: any): void {
   const appTarget = project.getFirstTarget();
   if (!appTarget?.firstTarget) {
-    console.warn('[expo-ondevice-ai] Could not find app target for embed phase');
+    console.warn(
+      '[expo-ondevice-ai] Could not find app target for embed phase',
+    );
     return;
   }
 
@@ -572,9 +574,7 @@ const withOndeviceAi: ConfigPlugin<ExpoOndeviceAiPluginOptions | void> = (
     // Android: Build local SDK AAR and install to mavenLocal.
     if (androidPath) {
       const resolvedAndroidPath = path.resolve(androidPath);
-      logOnce(
-        `[expo-ondevice-ai] Local Android SDK: ${resolvedAndroidPath}`,
-      );
+      logOnce(`[expo-ondevice-ai] Local Android SDK: ${resolvedAndroidPath}`);
 
       config = withDangerousMod(config, [
         'android',

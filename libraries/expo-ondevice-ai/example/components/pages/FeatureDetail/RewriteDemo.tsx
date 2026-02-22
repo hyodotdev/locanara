@@ -55,9 +55,19 @@ export function RewriteDemo() {
       const rewriteResult = await rewrite(inputText, options);
       console.log('[DEBUG] rewrite response:', JSON.stringify(rewriteResult));
       setResult(rewriteResult);
-      setDebugLog({api: 'rewrite', request: {text: inputText.substring(0, 100) + '...', options}, response: rewriteResult, timing: Date.now() - start});
+      setDebugLog({
+        api: 'rewrite',
+        request: {text: inputText.substring(0, 100) + '...', options},
+        response: rewriteResult,
+        timing: Date.now() - start,
+      });
     } catch (error: any) {
-      setDebugLog({api: 'rewrite', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
+      setDebugLog({
+        api: 'rewrite',
+        request: {text: inputText.substring(0, 100) + '...'},
+        response: {error: error.message},
+        timing: Date.now() - start,
+      });
       setErrorMessage(error.message || 'Failed to rewrite');
     } finally {
       setIsLoading(false);

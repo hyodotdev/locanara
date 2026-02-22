@@ -44,15 +44,28 @@ export function ExtractDemo() {
     const start = Date.now();
 
     try {
-      const options = {entityTypes: ['person', 'email', 'phone', 'date', 'location'], extractKeyValues: true};
+      const options = {
+        entityTypes: ['person', 'email', 'phone', 'date', 'location'],
+        extractKeyValues: true,
+      };
       console.log('[DEBUG] extract request:', JSON.stringify(options));
       const extractResult = await extract(inputText, options);
       console.log('[DEBUG] extract response:', JSON.stringify(extractResult));
       setResult(extractResult);
-      setDebugLog({api: 'extract', request: {text: inputText.substring(0, 100) + '...', options}, response: extractResult, timing: Date.now() - start});
+      setDebugLog({
+        api: 'extract',
+        request: {text: inputText.substring(0, 100) + '...', options},
+        response: extractResult,
+        timing: Date.now() - start,
+      });
     } catch (error: any) {
       setErrorMessage(error.message || 'Failed to extract entities');
-      setDebugLog({api: 'extract', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
+      setDebugLog({
+        api: 'extract',
+        request: {text: inputText.substring(0, 100) + '...'},
+        response: {error: error.message},
+        timing: Date.now() - start,
+      });
     } finally {
       setIsLoading(false);
     }
