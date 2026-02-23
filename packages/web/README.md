@@ -4,7 +4,7 @@ Locanara SDK for Chrome Built-in AI (Gemini Nano)
 
 ## Requirements
 
-- **Chrome 131+** with Built-in AI enabled
+- **Chrome 138+** with Built-in AI enabled
 - Chrome Canary or Dev channel recommended for testing
 
 ## Setup
@@ -266,7 +266,7 @@ bun run build
 
 | Browser        | Support       |
 | -------------- | ------------- |
-| Chrome 131+    | Full support  |
+| Chrome 138+    | Full support  |
 | Chrome Canary  | Full support  |
 | Chrome Dev     | Full support  |
 | Other browsers | Not supported |

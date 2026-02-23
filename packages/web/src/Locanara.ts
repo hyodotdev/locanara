@@ -546,6 +546,7 @@ export class Locanara {
 
       const stream = this._languageModel.promptStreaming(message)
       const reader = stream.getReader()
+      let accumulated = ''
 
       try {
         while (true) {
@@ -554,7 +555,18 @@ export class Locanara {
             break
           }
           if (result.value) {
-            yield result.value
+            const text = typeof result.value === 'string' ? result.value : String(result.value)
+            // Chrome may return cumulative or delta text depending on version
+            if (text.length >= accumulated.length && text.startsWith(accumulated)) {
+              // Cumulative: chunk contains all previous content
+              const delta = text.slice(accumulated.length)
+              accumulated = text
+              if (delta) yield delta
+            } else {
+              // Delta: just the new portion
+              accumulated += text
+              yield text
+            }
           }
         }
       } finally {
