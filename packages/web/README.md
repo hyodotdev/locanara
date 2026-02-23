@@ -46,29 +46,16 @@ await window.Summarizer?.availability(); // Should return 'available'
 
 ## Installation
 
-### GitHub Packages (Pro)
-
-Create `.npmrc` file in your project root:
-
 ```bash
-@locanara:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
-```
-
-Install the package:
-
-```bash
-npm install @locanara/web
+npm install locanara
 # or
-bun add @locanara/web
+bun add locanara
 ```
-
-> **Note**: You need a GitHub token with `read:packages` scope. [Generate token here](https://github.com/settings/tokens)
 
 ## Quick Start
 
 ```typescript
-import { Locanara } from "@locanara/web";
+import { Locanara } from "locanara";
 
 // Get singleton instance
 const locanara = Locanara.getInstance();
@@ -98,7 +85,7 @@ console.log(response.response);
 ### Summarize
 
 ```typescript
-import { SummarizeType, SummarizeLength } from "@locanara/web";
+import { SummarizeType, SummarizeLength } from "locanara";
 
 const result = await locanara.summarize(text, {
   type: SummarizeType.KEY_POINTS, // KEY_POINTS | TLDR | TEASER | HEADLINE
@@ -133,7 +120,7 @@ await locanara.resetChat();
 ### Rewrite
 
 ```typescript
-import { RewriteTone, RewriteLength } from "@locanara/web";
+import { RewriteTone, RewriteLength } from "locanara";
 
 const result = await locanara.rewrite(text, {
   tone: RewriteTone.MORE_FORMAL, // AS_IS | MORE_FORMAL | MORE_CASUAL
@@ -197,7 +184,7 @@ const locanara = Locanara.getInstance({
 ## Error Handling
 
 ```typescript
-import { LocanaraError, LocanaraErrorCode } from "@locanara/web";
+import { LocanaraError, LocanaraErrorCode } from "locanara";
 
 try {
   const result = await locanara.summarize(text);

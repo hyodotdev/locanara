@@ -24,19 +24,142 @@ import type {
   InferenceEngine,
 } from './types';
 
-// Cached Chrome AI instances
-let cachedSummarizer: any = null;
-let cachedSummarizerKey: string = '';
-let cachedLanguageModel: any = null;
+// ============================================================================
+// Chrome Built-in AI Type Definitions
+// ============================================================================
+
+interface ChromeSummarizerConstructor {
+  availability(): Promise<string>;
+  create(options?: {
+    type?: 'key-points' | 'tldr' | 'teaser' | 'headline';
+    length?: 'short' | 'medium' | 'long';
+    format?: 'markdown' | 'plain-text';
+  }): Promise<ChromeSummarizer>;
+}
+
+interface ChromeSummarizer {
+  summarize(text: string): Promise<string>;
+  destroy(): void;
+}
+
+interface ChromeTranslatorConstructor {
+  create(options: {
+    sourceLanguage: string;
+    targetLanguage: string;
+  }): Promise<ChromeTranslator>;
+}
+
+interface ChromeTranslator {
+  translate(text: string): Promise<string>;
+  destroy(): void;
+}
+
+interface ChromeRewriterConstructor {
+  availability(): Promise<string>;
+  create(options?: {
+    tone?: 'more-formal' | 'as-is' | 'more-casual';
+    length?: 'shorter' | 'as-is' | 'longer';
+  }): Promise<ChromeRewriter>;
+}
+
+interface ChromeRewriter {
+  rewrite(text: string): Promise<string>;
+  destroy(): void;
+}
+
+interface ChromeWriterConstructor {
+  availability(): Promise<string>;
+  create(options?: Record<string, unknown>): Promise<ChromeWriter>;
+}
+
+interface ChromeWriter {
+  write(prompt: string): Promise<string>;
+  destroy(): void;
+}
+
+interface ChromeLanguageModelConstructor {
+  availability(): Promise<string>;
+  create(options?: {
+    initialPrompts?: Array<{role: string; content: string}>;
+  }): Promise<ChromeLanguageModelSession>;
+}
+
+interface ChromeLanguageModelSession {
+  prompt(message: string): Promise<string>;
+  promptStreaming(message: string): AsyncIterable<string>;
+  destroy(): void;
+}
+
+// ============================================================================
+// Chrome AI API Accessors
+// ============================================================================
+
+function getSummarizerAPI(): ChromeSummarizerConstructor | undefined {
+  const s = (globalThis as Record<string, unknown>).Summarizer;
+  if (s && (typeof s === 'object' || typeof s === 'function'))
+    return s as unknown as ChromeSummarizerConstructor;
+  return undefined;
+}
+
+function getTranslatorAPI(): ChromeTranslatorConstructor | undefined {
+  const t = (globalThis as Record<string, unknown>).Translator;
+  if (t && (typeof t === 'object' || typeof t === 'function'))
+    return t as unknown as ChromeTranslatorConstructor;
+  return undefined;
+}
+
+function getRewriterAPI(): ChromeRewriterConstructor | undefined {
+  const r = (globalThis as Record<string, unknown>).Rewriter;
+  if (r && (typeof r === 'object' || typeof r === 'function'))
+    return r as unknown as ChromeRewriterConstructor;
+  return undefined;
+}
+
+function getWriterAPI(): ChromeWriterConstructor | undefined {
+  const w = (globalThis as Record<string, unknown>).Writer;
+  if (w && (typeof w === 'object' || typeof w === 'function'))
+    return w as unknown as ChromeWriterConstructor;
+  return undefined;
+}
+
+function getLanguageModelAPI(): ChromeLanguageModelConstructor | undefined {
+  // Try globalThis.LanguageModel first (newer API)
+  const lm = (globalThis as Record<string, unknown>).LanguageModel;
+  if (lm && (typeof lm === 'object' || typeof lm === 'function'))
+    return lm as unknown as ChromeLanguageModelConstructor;
+  // Try globalThis.ai.languageModel (older API)
+  const ai = (globalThis as Record<string, unknown>).ai as
+    | Record<string, unknown>
+    | undefined;
+  if (ai && typeof ai === 'object' && ai.languageModel)
+    return ai.languageModel as unknown as ChromeLanguageModelConstructor;
+  return undefined;
+}
+
+// ============================================================================
+// Cached Chrome AI Instances
+// ============================================================================
+
+const MAX_CACHED_TRANSLATORS = 10;
+
+let cachedSummarizer: ChromeSummarizer | null = null;
+let cachedSummarizerKey = '';
+let cachedLanguageModel: ChromeLanguageModelSession | null = null;
 let cachedSystemPrompt: string | undefined = undefined;
-const cachedTranslators = new Map<string, any>();
-let cachedRewriter: any = null;
-let cachedWriter: any = null;
+const cachedTranslators = new Map<string, ChromeTranslator>();
+let cachedRewriter: ChromeRewriter | null = null;
+let cachedWriter: ChromeWriter | null = null;
 
 // Simple event emitter for web (mimics Expo native module EventEmitter)
-const eventListeners = new Map<string, Set<(data: any) => void>>();
+const eventListeners = new Map<string, Set<(data: ChatStreamChunkData) => void>>();
 
-function emitEvent(eventName: string, data: any) {
+interface ChatStreamChunkData {
+  delta: string;
+  accumulated: string;
+  isFinal: boolean;
+}
+
+function emitEvent(eventName: string, data: ChatStreamChunkData) {
   const listeners = eventListeners.get(eventName);
   if (listeners) {
     for (const listener of listeners) {
@@ -45,24 +168,21 @@ function emitEvent(eventName: string, data: any) {
   }
 }
 
-function getLanguageModelAPI(): any {
-  const lm = (globalThis as any).LanguageModel;
-  if (lm && (typeof lm === 'object' || typeof lm === 'function')) return lm;
-  const ai = (globalThis as any).ai;
-  if (ai && typeof ai === 'object' && ai.languageModel) return ai.languageModel;
-  return undefined;
-}
+// ============================================================================
+// Availability Helpers
+// ============================================================================
 
 function hasAPI(api: string): boolean {
-  const obj = (globalThis as any)[api];
+  const obj = (globalThis as Record<string, unknown>)[api];
   return !!obj && (typeof obj === 'object' || typeof obj === 'function');
 }
 
 async function checkAvailability(api: string): Promise<boolean> {
   try {
-    const obj = (globalThis as any)[api];
+    const obj = (globalThis as Record<string, unknown>)[api] as
+      | {availability?: () => Promise<string>}
+      | undefined;
     if (!obj) return false;
-    // If .availability exists, check it with a timeout
     if (typeof obj.availability === 'function') {
       const status = await Promise.race([
         obj.availability(),
@@ -77,13 +197,15 @@ async function checkAvailability(api: string): Promise<boolean> {
         status === 'after-download'
       );
     }
-    // If API object exists but has no .availability, assume available (e.g. Translator)
     return typeof obj === 'object' || typeof obj === 'function';
   } catch {
-    // API exists but availability check failed/timed out — still mark as available
     return hasAPI(api);
   }
 }
+
+// ============================================================================
+// Module Implementation
+// ============================================================================
 
 const ExpoOndeviceAiModule = {
   async initialize(): Promise<InitializeResult> {
@@ -114,7 +236,6 @@ const ExpoOndeviceAiModule = {
           s === 'downloadable' ||
           s === 'after-download';
       } catch {
-        // API exists but check failed — still assume available
         hasLanguageModel = !!lm;
       }
     }
@@ -139,14 +260,13 @@ const ExpoOndeviceAiModule = {
     text: string,
     options?: SummarizeOptions,
   ): Promise<SummarizeResult> {
-    const Summarizer = (globalThis as any).Summarizer;
+    const Summarizer = getSummarizerAPI();
     if (!Summarizer)
       throw new Error('Summarizer API not available in this browser');
 
-    // Always request key-points with enough length, then trim to desired bullet count
     const optionsKey = 'key-points:long';
     if (!cachedSummarizer || cachedSummarizerKey !== optionsKey) {
-      cachedSummarizer?.destroy?.();
+      cachedSummarizer?.destroy();
       cachedSummarizer = await Summarizer.create({
         type: 'key-points',
         length: 'long',
@@ -157,7 +277,6 @@ const ExpoOndeviceAiModule = {
 
     const raw = await cachedSummarizer.summarize(text);
 
-    // Trim to desired bullet count
     const bulletCount =
       options?.outputType === 'ONE_BULLET'
         ? 1
@@ -223,7 +342,6 @@ const ExpoOndeviceAiModule = {
     const response = await session.prompt(prompt);
     session.destroy();
 
-    // Normalize type names to match iOS/Android SDK
     const typeNormalize: Record<string, string> = {
       person: 'person',
       persons: 'person',
@@ -265,7 +383,7 @@ const ExpoOndeviceAiModule = {
       const parsed = JSON.parse(jsonStr);
 
       const entities: {type: string; value: string; confidence: number}[] = [];
-      const walk = (obj: any, parentKey?: string) => {
+      const walk = (obj: unknown, parentKey?: string) => {
         if (Array.isArray(obj)) {
           obj.forEach((item) => {
             if (typeof item === 'string') {
@@ -283,7 +401,9 @@ const ExpoOndeviceAiModule = {
             }
           });
         } else if (typeof obj === 'object' && obj !== null) {
-          Object.entries(obj).forEach(([key, value]) => walk(value, key));
+          Object.entries(obj as Record<string, unknown>).forEach(([key, value]) =>
+            walk(value, key),
+          );
         } else {
           const normalized =
             typeNormalize[(parentKey ?? '').toLowerCase()] ??
@@ -309,7 +429,7 @@ const ExpoOndeviceAiModule = {
 
     const newSystemPrompt = options?.systemPrompt;
     if (!cachedLanguageModel || newSystemPrompt !== cachedSystemPrompt) {
-      cachedLanguageModel?.destroy?.();
+      cachedLanguageModel?.destroy();
       const initialPrompts: {role: string; content: string}[] = [];
       if (newSystemPrompt) {
         initialPrompts.push({role: 'system', content: newSystemPrompt});
@@ -327,7 +447,7 @@ const ExpoOndeviceAiModule = {
     };
   },
 
-  addListener(eventName: string, listener: (data: any) => void) {
+  addListener(eventName: string, listener: (data: ChatStreamChunkData) => void) {
     if (!eventListeners.has(eventName))
       eventListeners.set(eventName, new Set());
     eventListeners.get(eventName)!.add(listener);
@@ -347,7 +467,7 @@ const ExpoOndeviceAiModule = {
 
     const newSystemPrompt = options?.systemPrompt;
     if (!cachedLanguageModel || newSystemPrompt !== cachedSystemPrompt) {
-      cachedLanguageModel?.destroy?.();
+      cachedLanguageModel?.destroy();
       const initialPrompts: {role: string; content: string}[] = [];
       if (newSystemPrompt) {
         initialPrompts.push({role: 'system', content: newSystemPrompt});
@@ -358,7 +478,6 @@ const ExpoOndeviceAiModule = {
       cachedSystemPrompt = newSystemPrompt;
     }
 
-    // Use promptStreaming if available
     if (typeof cachedLanguageModel.promptStreaming === 'function') {
       const stream = cachedLanguageModel.promptStreaming(message);
       let accumulated = '';
@@ -367,12 +486,10 @@ const ExpoOndeviceAiModule = {
         const text = typeof chunk === 'string' ? chunk : String(chunk);
         // Chrome may return cumulative or delta text depending on version
         if (text.length >= accumulated.length && text.startsWith(accumulated)) {
-          // Cumulative: chunk already contains all previous content
           const delta = text.slice(accumulated.length);
           accumulated = text;
           emitEvent('onChatStreamChunk', {delta, accumulated, isFinal: false});
         } else {
-          // Delta: just the new portion
           accumulated += text;
           emitEvent('onChatStreamChunk', {
             delta: text,
@@ -400,12 +517,18 @@ const ExpoOndeviceAiModule = {
     text: string,
     options: TranslateOptions,
   ): Promise<TranslateResult> {
-    const Translator = (globalThis as any).Translator;
+    const Translator = getTranslatorAPI();
     if (!Translator)
       throw new Error('Translator API not available in this browser');
 
     const key = `${options.sourceLanguage ?? 'en'}-${options.targetLanguage}`;
     if (!cachedTranslators.has(key)) {
+      // Evict oldest entry if cache is full
+      if (cachedTranslators.size >= MAX_CACHED_TRANSLATORS) {
+        const oldestKey = cachedTranslators.keys().next().value!;
+        cachedTranslators.get(oldestKey)?.destroy();
+        cachedTranslators.delete(oldestKey);
+      }
       const translator = await Translator.create({
         sourceLanguage: options.sourceLanguage ?? 'en',
         targetLanguage: options.targetLanguage,
@@ -424,11 +547,11 @@ const ExpoOndeviceAiModule = {
   },
 
   async rewrite(text: string, options: RewriteOptions): Promise<RewriteResult> {
-    const Rewriter = (globalThis as any).Rewriter;
+    const Rewriter = getRewriterAPI();
     if (!Rewriter)
       throw new Error('Rewriter API not available in this browser');
 
-    const toneMap: Record<string, string> = {
+    const toneMap: Record<string, 'more-casual' | 'more-formal' | 'as-is'> = {
       FRIENDLY: 'more-casual',
       PROFESSIONAL: 'more-formal',
       ELABORATE: 'as-is',
@@ -436,7 +559,7 @@ const ExpoOndeviceAiModule = {
       EMOJIFY: 'more-casual',
       REPHRASE: 'as-is',
     };
-    const lengthMap: Record<string, string> = {
+    const lengthMap: Record<string, 'shorter' | 'as-is' | 'longer'> = {
       ELABORATE: 'longer',
       SHORTEN: 'shorter',
     };
@@ -479,10 +602,17 @@ ${text}`;
           .replace(/^```(?:json)?\s*\n?/m, '')
           .replace(/\n?```\s*$/m, '')
           .trim();
-        const parsed = JSON.parse(jsonStr);
+        const parsed = JSON.parse(jsonStr) as {
+          correctedText?: string;
+          corrections?: Array<{
+            original?: string;
+            corrected?: string;
+            type?: string;
+          }>;
+        };
         const correctedText = parsed.correctedText ?? text;
         const corrections = Array.isArray(parsed.corrections)
-          ? parsed.corrections.map((c: any) => ({
+          ? parsed.corrections.map((c) => ({
               original: c.original ?? '',
               corrected: c.corrected ?? '',
               type: c.type ?? 'grammar',
@@ -500,7 +630,7 @@ ${text}`;
     }
 
     // Fallback to Writer API with word-diff
-    const Writer = (globalThis as any).Writer;
+    const Writer = getWriterAPI();
     if (!Writer)
       throw new Error(
         'Writer or LanguageModel API not available in this browser',
@@ -514,7 +644,6 @@ ${text}`;
       `Proofread and correct this text. Fix ONLY spelling, grammar, and punctuation. Do NOT change meaning, tense, or word choice. Return only the corrected text:\n\n${text}`,
     );
 
-    // Compute simple word-diff to populate corrections
     const corrections: {
       original: string;
       corrected: string;
@@ -580,6 +709,30 @@ ${text}`;
 
   async downloadPromptApiModel(): Promise<boolean> {
     return false;
+  },
+
+  /** Destroy all cached Chrome AI instances and free resources */
+  destroy() {
+    cachedSummarizer?.destroy();
+    cachedSummarizer = null;
+    cachedSummarizerKey = '';
+
+    cachedLanguageModel?.destroy();
+    cachedLanguageModel = null;
+    cachedSystemPrompt = undefined;
+
+    for (const translator of cachedTranslators.values()) {
+      translator.destroy();
+    }
+    cachedTranslators.clear();
+
+    cachedRewriter?.destroy();
+    cachedRewriter = null;
+
+    cachedWriter?.destroy();
+    cachedWriter = null;
+
+    eventListeners.clear();
   },
 };
 
