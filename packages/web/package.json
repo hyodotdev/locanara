@@ -1,0 +1,56 @@
+{
+  "name": "locanara",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Locanara SDK for Chrome Built-in AI (Gemini Nano)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hyodotdev/locanara.git",
+    "directory": "packages/web"
+  },
+  "scripts": {
+    "dev": "vite example",
+    "build": "node scripts/build.mjs",
+    "build:dev": "tsc",
+    "test": "vitest run",
+    "lint": "biome check src tests example",
+    "lint:fix": "biome check --write src tests example"
+  },
+  "keywords": [
+    "locanara",
+    "chrome",
+    "gemini-nano",
+    "built-in-ai",
+    "on-device-ai",
+    "summarizer",
+    "translator",
+    "language-model"
+  ],
+  "author": "hyodotdev",
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "esbuild": "^0.24.0",
+    "jsdom": "^25.0.1",
+    "terser": "^5.37.0",
+    "typescript": "^5.9.2",
+    "vite": "^6.0.7",
+    "vitest": "^3.0.0"
+  }
+}

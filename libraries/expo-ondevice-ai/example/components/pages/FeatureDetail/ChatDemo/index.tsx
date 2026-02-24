@@ -308,6 +308,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     maxHeight: 100,
     color: '#000',
+    ...(Platform.OS === 'web' ? {outlineStyle: 'none' as any} : {}),
   },
   sendButton: {
     padding: 4,

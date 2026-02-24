@@ -4,7 +4,7 @@
 
 Location: `libraries/expo-ondevice-ai/`
 
-Expo module wrapping the Locanara native SDKs for React Native/Expo apps. Provides TypeScript API for all 7 AI features plus model management, with native modules bridging to Locanara chains on iOS and Android.
+Expo module wrapping the Locanara native SDKs for React Native/Expo apps. Provides TypeScript API for all 8 AI features plus model management, with native modules bridging to Locanara chains on iOS, Android, and web (Chrome Built-in AI).
 
 ## Requirements
 
@@ -12,6 +12,7 @@ Expo module wrapping the Locanara native SDKs for React Native/Expo apps. Provid
 - Bun 1.1+
 - iOS 17+ (for llama.cpp engine)
 - Android API 26+ (for ML Kit GenAI)
+- Web: Chrome 138+ (Chrome Built-in AI / Gemini Nano)
 
 ## Build Commands
 
@@ -31,6 +32,7 @@ libraries/expo-ondevice-ai/
 ├── src/
 │   ├── index.ts                      # Public API exports
 │   ├── ExpoOndeviceAiModule.ts       # Native module bridge
+│   ├── ExpoOndeviceAiModule.web.ts   # Web implementation (Chrome Built-in AI)
 │   ├── types.ts                      # TypeScript type definitions
 │   ├── log.ts                        # Logging utilities
 │   └── __tests__/                    # Unit tests
@@ -68,34 +70,54 @@ libraries/expo-ondevice-ai/
 
 Each TypeScript function maps to a built-in Locanara chain:
 
-| TypeScript API | iOS Chain | Android |
-|---------------|-----------|---------|
-| `summarize(text, opts)` | `SummarizeChain(bulletCount:).run(text)` | ML Kit Summarization |
-| `classify(text, opts)` | `ClassifyChain(categories:).run(text)` | Prompt API |
-| `extract(text, opts)` | `ExtractChain(entityTypes:).run(text)` | Prompt API |
-| `chat(message, opts)` | `ChatChain(memory:).run(message)` | Prompt API |
-| `chatStream(message, opts)` | `ChatChain(memory:).streamRun(message)` | Prompt API |
-| `translate(text, opts)` | `TranslateChain(source:target:).run(text)` | Prompt API |
-| `rewrite(text, opts)` | `RewriteChain(style:).run(text)` | ML Kit Rewriting |
-| `proofread(text, opts)` | `ProofreadChain().run(text)` | ML Kit Proofreading |
+| TypeScript API              | iOS Chain                                  | Android              | Web (Chrome Built-in AI)              |
+| --------------------------- | ------------------------------------------ | -------------------- | ------------------------------------- |
+| `summarize(text, opts)`     | `SummarizeChain(bulletCount:).run(text)`   | ML Kit Summarization | `Summarizer` API (key-points)         |
+| `classify(text, opts)`      | `ClassifyChain(categories:).run(text)`     | Prompt API           | `LanguageModel` API                   |
+| `extract(text, opts)`       | `ExtractChain(entityTypes:).run(text)`     | Prompt API           | `LanguageModel` API                   |
+| `chat(message, opts)`       | `ChatChain(memory:).run(message)`          | Prompt API           | `LanguageModel` API                   |
+| `chatStream(message, opts)` | `ChatChain(memory:).streamRun(message)`    | Prompt API           | `LanguageModel.promptStreaming()`     |
+| `translate(text, opts)`     | `TranslateChain(source:target:).run(text)` | Prompt API           | `Translator` API                      |
+| `rewrite(text, opts)`       | `RewriteChain(style:).run(text)`           | ML Kit Rewriting     | `Rewriter` API                        |
+| `proofread(text, opts)`     | `ProofreadChain().run(text)`               | ML Kit Proofreading  | `LanguageModel` API (structured JSON) |
 
 ### Model Management API (iOS)
 
-| TypeScript API | Native call |
-|---------------|-------------|
-| `getAvailableModels()` | `LocanaraClient.shared.getAvailableModels()` |
-| `getDownloadedModels()` | `LocanaraClient.shared.getDownloadedModels()` |
-| `downloadModel(id)` | `LocanaraClient.shared.downloadModelWithProgress(id)` |
-| `loadModel(id)` | `LocanaraClient.shared.loadModel(id)` → auto-switches engine |
-| `deleteModel(id)` | `LocanaraClient.shared.deleteModel(id)` |
-| `getLoadedModel()` | `LocanaraClient.shared.getLoadedModel()` |
-| `getCurrentEngine()` | `LocanaraClient.shared.getCurrentEngine()` |
+| TypeScript API          | Native call                                                  |
+| ----------------------- | ------------------------------------------------------------ |
+| `getAvailableModels()`  | `LocanaraClient.shared.getAvailableModels()`                 |
+| `getDownloadedModels()` | `LocanaraClient.shared.getDownloadedModels()`                |
+| `downloadModel(id)`     | `LocanaraClient.shared.downloadModelWithProgress(id)`        |
+| `loadModel(id)`         | `LocanaraClient.shared.loadModel(id)` → auto-switches engine |
+| `deleteModel(id)`       | `LocanaraClient.shared.deleteModel(id)`                      |
+| `getLoadedModel()`      | `LocanaraClient.shared.getLoadedModel()`                     |
+| `getCurrentEngine()`    | `LocanaraClient.shared.getCurrentEngine()`                   |
 
 ### Native Module Architecture
 
 - `LocanaraClient` is only used for `initialize()`, `getDeviceCapability()`, and model management
 - All AI features use built-in chains directly (not `LocanaraClient.executeFeature()`)
 - `PrefilledMemory` adapts JS chat history `[{role, content}]` to the `Memory` protocol
+
+### Web Implementation (`ExpoOndeviceAiModule.web.ts`)
+
+Metro auto-resolves `.web.ts` over `.ts` for the web platform. The web module uses Chrome Built-in AI APIs (Gemini Nano) directly — no native bridge needed.
+
+**Chrome APIs used:**
+
+- `Summarizer` — text summarization (key-points mode, post-processed to match bullet count)
+- `LanguageModel` — classify, extract, chat, chatStream, proofread (via structured JSON prompts)
+- `Translator` — language translation
+- `Rewriter` — text rewriting (tone/length mapping)
+- `Writer` — fallback for proofread if LanguageModel unavailable
+
+**Key implementation details:**
+
+- **Availability detection**: Lenient checks with 3s timeout; accepts `readily`, `available`, `downloadable`, `after-download` statuses; falls back to API object existence
+- **Streaming**: Uses `LanguageModel.promptStreaming()` with auto-detection of cumulative vs delta chunk format (varies by Chrome version)
+- **Event emitter**: Web polyfill for Expo's native `addListener`/`removeListeners` pattern using a `Map<string, Set<Function>>`
+- **Instance caching**: Summarizer, LanguageModel, Translator, Rewriter, Writer instances are cached and reused
+- **Model management**: No-op on web (Chrome manages models automatically)
 
 ## Config Plugin (`withOndeviceAi.ts`)
 
@@ -164,15 +186,18 @@ The bridge is discovered at runtime by `LlamaCppBridge.findBridge()` using `NSCl
 ### Key Build Settings
 
 Bridge pod (`pod_target_xcconfig`):
+
 - `SWIFT_INCLUDE_PATHS` / `FRAMEWORK_SEARCH_PATHS` → `$(PODS_CONFIGURATION_BUILD_DIR)` (for SPM modules)
 - `IPHONEOS_DEPLOYMENT_TARGET` → `17.0` (LocalLLMClient requirement)
 - `OTHER_SWIFT_FLAGS` → `-cxx-interoperability-mode=default -Xcc -std=c++20`
 
 App target (`user_target_xcconfig`):
+
 - `OTHER_LDFLAGS` → `-framework "llama"` (link dynamic framework)
 - `FRAMEWORK_SEARCH_PATHS` → `$(PODS_CONFIGURATION_BUILD_DIR)` (find llama.framework)
 
 Embed phase:
+
 - Copies `llama.framework` from `PackageFrameworks/` to app's `Frameworks/`
 - Re-signs with `EXPANDED_CODE_SIGN_IDENTITY`
 
@@ -191,6 +216,9 @@ bun ios --device
 
 # Run on Android
 bun android
+
+# Run on Web (Chrome 138+ required for AI features)
+bun web
 ```
 
 ### App Structure

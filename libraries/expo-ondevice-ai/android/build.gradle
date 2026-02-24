@@ -6,11 +6,19 @@ version = '0.1.0'
 
 // Read Locanara version from locanara-versions.json (Single Source of Truth)
 def getLocanaraVersion() {
-  def versionsFile = new File(rootProject.projectDir, "../../../locanara-versions.json")
-  def versionJson = versionsFile.text
-  // Extract android version using regex: "android": "1.0.2"
-  def matcher = (versionJson =~ /"android"\s*:\s*"([^"]+)"/)
-  return matcher ? matcher[0][1] : "1.0.2"
+  def candidates = [
+    new File(project.projectDir, "../../../locanara-versions.json"),
+    new File(rootProject.projectDir, "../../../locanara-versions.json"),
+    new File(rootProject.projectDir, "../../../../locanara-versions.json"),
+  ]
+  for (candidate in candidates) {
+    if (candidate.exists()) {
+      def versionJson = candidate.text
+      def matcher = (versionJson =~ /"android"\s*:\s*"([^"]+)"/)
+      if (matcher) return matcher[0][1]
+    }
+  }
+  return "1.0.2"
 }
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")

@@ -241,11 +241,23 @@ export function AppStateProvider({children}: {children: ReactNode}) {
       setIsModelReady(cap.isModelReady ?? cap.isSupported);
 
       // Set device info
+      const platformLabel =
+        Platform.OS === 'ios'
+          ? 'iOS'
+          : Platform.OS === 'web'
+            ? 'Web'
+            : 'Android';
+      const providerLabel =
+        Platform.OS === 'web'
+          ? 'Chrome Built-in AI'
+          : cap.platform === 'IOS'
+            ? 'Apple Intelligence'
+            : 'Gemini Nano';
       setDeviceInfo({
-        platform: Platform.OS === 'ios' ? 'iOS' : 'Android',
+        platform: platformLabel,
         osVersion: Platform.Version.toString(),
         supportsOnDeviceAI: cap.isSupported,
-        provider: cap.platform === 'IOS' ? 'Apple Intelligence' : 'Gemini Nano',
+        provider: providerLabel,
       });
 
       // Set available features based on capability

@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.license        = package['license']
   s.author         = package['author']
   s.homepage       = package['homepage']
-  s.platforms      = { :ios => '15.0' }
+  s.platforms      = { :ios => '17.0' }
   s.swift_version  = '5.9'
   s.source         = { git: 'https://github.com/hyodotdev/locanara' }
   s.static_framework = true

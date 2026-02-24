@@ -23,10 +23,10 @@ import type {
   ModelDownloadProgress,
   InferenceEngine,
 } from './types';
+import {ExpoOndeviceAiLog as Log} from './log';
 
 export * from './types';
 export {ExpoOndeviceAiLog} from './log';
-import {ExpoOndeviceAiLog as Log} from './log';
 
 /**
  * Initialize the Locanara SDK

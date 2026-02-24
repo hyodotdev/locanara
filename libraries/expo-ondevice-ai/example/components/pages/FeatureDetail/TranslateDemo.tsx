@@ -48,11 +48,24 @@ export function TranslateDemo() {
       const options = {targetLanguage};
       console.log('[DEBUG] translate request:', JSON.stringify(options));
       const translateResult = await translate(inputText, options);
-      console.log('[DEBUG] translate response:', JSON.stringify(translateResult));
+      console.log(
+        '[DEBUG] translate response:',
+        JSON.stringify(translateResult),
+      );
       setResult(translateResult);
-      setDebugLog({api: 'translate', request: {text: inputText.substring(0, 100) + '...', options}, response: translateResult, timing: Date.now() - start});
+      setDebugLog({
+        api: 'translate',
+        request: {text: inputText.substring(0, 100) + '...', options},
+        response: translateResult,
+        timing: Date.now() - start,
+      });
     } catch (error: any) {
-      setDebugLog({api: 'translate', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
+      setDebugLog({
+        api: 'translate',
+        request: {text: inputText.substring(0, 100) + '...'},
+        response: {error: error.message},
+        timing: Date.now() - start,
+      });
       setErrorMessage(error.message || 'Failed to translate');
     } finally {
       setIsLoading(false);

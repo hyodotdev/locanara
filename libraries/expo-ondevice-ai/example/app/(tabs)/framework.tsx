@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-} from 'react-native';
+import {View, FlatList, StyleSheet, TouchableOpacity, Text} from 'react-native';
 import {useRouter} from 'expo-router';
 import {Ionicons} from '@expo/vector-icons';
 import {AIStatusBanner} from '../../components/shared/AIStatusBanner';
@@ -50,8 +44,7 @@ const FRAMEWORK_DEMOS: FrameworkDemo[] = [
     id: 'guardrail',
     name: 'Guardrail',
     icon: 'shield-checkmark',
-    description:
-      'Wrap chains with input length and content safety guardrails',
+    description: 'Wrap chains with input length and content safety guardrails',
   },
   {
     id: 'session',
@@ -64,8 +57,7 @@ const FRAMEWORK_DEMOS: FrameworkDemo[] = [
     id: 'agent',
     name: 'Agent + Tools',
     icon: 'person-circle',
-    description:
-      'ReAct-lite agent with tools and step-by-step reasoning trace',
+    description: 'ReAct-lite agent with tools and step-by-step reasoning trace',
   },
 ];
 
@@ -94,9 +86,7 @@ export default function FrameworkScreen() {
       data={FRAMEWORK_DEMOS}
       keyExtractor={(item) => item.id}
       renderItem={({item}) => (
-        <TouchableOpacity
-          onPress={() => handlePress(item)}
-          activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => handlePress(item)} activeOpacity={0.7}>
           <View style={styles.row}>
             <View style={styles.iconContainer}>
               <Ionicons name={item.icon} size={24} color="#007AFF" />
@@ -131,9 +121,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   iconContainer: {
-    width: 40, height: 40, borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     backgroundColor: '#F2F2F7',
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   rowContent: {flex: 1, marginRight: 8},
   rowName: {fontSize: 17, fontWeight: '600', color: '#000', marginBottom: 2},

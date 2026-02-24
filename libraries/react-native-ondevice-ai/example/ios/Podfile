@@ -15,6 +15,9 @@ if linkage != nil
 end
 
 target 'OndeviceAiExample' do
+  # Use local Locanara SDK (published 1.0.1 is outdated)
+  pod 'Locanara', :path => '../../../../packages/apple'
+
   config = use_native_modules!
 
   use_react_native!(

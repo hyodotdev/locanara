@@ -61,3 +61,96 @@ jobs:
             echo "Nitrogen generated files missing!"
             exit 1
           fi
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.1.38'
+
+      - name: Install library dependencies
+        working-directory: libraries/react-native-ondevice-ai
+        run: bun install
+
+      - name: Install example dependencies
+        working-directory: libraries/react-native-ondevice-ai/example
+        run: bun install
+
+      - name: Build Android
+        working-directory: libraries/react-native-ondevice-ai/example/android
+        run: ./gradlew assembleDebug --no-daemon
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.1.38'
+
+      - name: Install library dependencies
+        working-directory: libraries/react-native-ondevice-ai
+        run: bun install
+
+      - name: Install example dependencies
+        working-directory: libraries/react-native-ondevice-ai/example
+        run: bun install
+
+      - name: Fix circular symlink
+        working-directory: libraries/react-native-ondevice-ai/example
+        run: |
+          # bun creates a symlink or directory copy for node_modules/react-native-ondevice-ai
+          # which includes example/ creating an infinite loop that breaks CocoaPods.
+          # Replace with a shallow copy excluding example/ to break the cycle.
+          rm -rf node_modules/react-native-ondevice-ai
+          rsync -a --exclude='example' --exclude='node_modules' ../../ node_modules/react-native-ondevice-ai/
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: libraries/react-native-ondevice-ai/example/ios/Pods
+          key: ${{ runner.os }}-pods-rn-${{ hashFiles('libraries/react-native-ondevice-ai/example/ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-rn-
+
+      - name: Install CocoaPods
+        working-directory: libraries/react-native-ondevice-ai/example/ios
+        run: pod install --no-repo-update
+
+      - name: Build iOS
+        working-directory: libraries/react-native-ondevice-ai/example/ios
+        run: |
+          xcodebuild \
+            -workspace OndeviceAiExample.xcworkspace \
+            -scheme OndeviceAiExample \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            build \
+            CODE_SIGNING_ALLOWED=NO
+

@@ -48,10 +48,11 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
 
     // MARK: - AI Features
 
-    func summarize(text: String, options: NitroSummarizeOptions?) throws -> Promise<NitroSummarizeResult> {
+    func summarize(text: String, options: Variant_NullType_NitroSummarizeOptions?) throws -> Promise<NitroSummarizeResult> {
+        let opts: NitroSummarizeOptions? = if case .second(let v)? = options { v } else { nil }
         return Promise.async {
-            let bulletCount = OndeviceAiHelper.bulletCount(from: options)
-            let inputType = OndeviceAiHelper.inputType(from: options)
+            let bulletCount = OndeviceAiHelper.bulletCount(from: opts)
+            let inputType = OndeviceAiHelper.inputType(from: opts)
             let result = try await SummarizeChain(bulletCount: bulletCount, inputType: inputType).run(text)
             return NitroSummarizeResult(
                 summary: result.summary,
@@ -62,9 +63,10 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
         }
     }
 
-    func classify(text: String, options: NitroClassifyOptions?) throws -> Promise<NitroClassifyResult> {
+    func classify(text: String, options: Variant_NullType_NitroClassifyOptions?) throws -> Promise<NitroClassifyResult> {
+        let opts: NitroClassifyOptions? = if case .second(let v)? = options { v } else { nil }
         return Promise.async {
-            let (categories, maxResults) = OndeviceAiHelper.classifyOptions(from: options)
+            let (categories, maxResults) = OndeviceAiHelper.classifyOptions(from: opts)
             let result = try await ClassifyChain(categories: categories, maxResults: maxResults).run(text)
             let classifications = result.classifications.map { c in
                 NitroClassification(
@@ -81,9 +83,10 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
         }
     }
 
-    func extract(text: String, options: NitroExtractOptions?) throws -> Promise<NitroExtractResult> {
+    func extract(text: String, options: Variant_NullType_NitroExtractOptions?) throws -> Promise<NitroExtractResult> {
+        let opts: NitroExtractOptions? = if case .second(let v)? = options { v } else { nil }
         return Promise.async {
-            let entityTypes = OndeviceAiHelper.entityTypes(from: options)
+            let entityTypes = OndeviceAiHelper.entityTypes(from: opts)
             let result = try await ExtractChain(entityTypes: entityTypes).run(text)
             let entities = result.entities.map { e in
                 NitroExtractEntity(
@@ -98,9 +101,10 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
         }
     }
 
-    func chat(message: String, options: NitroChatOptions?) throws -> Promise<NitroChatResult> {
+    func chat(message: String, options: Variant_NullType_NitroChatOptions?) throws -> Promise<NitroChatResult> {
+        let opts: NitroChatOptions? = if case .second(let v)? = options { v } else { nil }
         return Promise.async {
-            let (systemPrompt, memory) = OndeviceAiHelper.chatOptions(from: options)
+            let (systemPrompt, memory) = OndeviceAiHelper.chatOptions(from: opts)
             let result = try await ChatChain(memory: memory, systemPrompt: systemPrompt).run(message)
             return NitroChatResult(
                 message: result.message,
@@ -158,9 +162,10 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
 
     // MARK: - Chat Streaming
 
-    func chatStream(message: String, options: NitroChatOptions?) throws -> Promise<NitroChatResult> {
+    func chatStream(message: String, options: Variant_NullType_NitroChatOptions?) throws -> Promise<NitroChatResult> {
+        let opts: NitroChatOptions? = if case .second(let v)? = options { v } else { nil }
         return Promise.async {
-            let (systemPrompt, memory) = OndeviceAiHelper.chatOptions(from: options)
+            let (systemPrompt, memory) = OndeviceAiHelper.chatOptions(from: opts)
             let chain = ChatChain(memory: memory, systemPrompt: systemPrompt)
             var accumulated = ""
 
@@ -196,11 +201,11 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
         }
     }
 
-    func addChatStreamListener(listener: @escaping (NitroChatStreamChunk) -> Void) {
+    func addChatStreamListener(listener: @escaping (_ chunk: NitroChatStreamChunk) -> Void) throws {
         listenerQueue.sync { chatStreamListeners.append(listener) }
     }
 
-    func removeChatStreamListener(listener: @escaping (NitroChatStreamChunk) -> Void) {
+    func removeChatStreamListener(listener: @escaping (_ chunk: NitroChatStreamChunk) -> Void) throws {
         listenerQueue.sync { chatStreamListeners.removeAll { $0 as AnyObject === listener as AnyObject } }
     }
 
@@ -240,10 +245,10 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
         return Promise.async {
             let engine = self.client.getCurrentEngine()
             switch engine {
-            case .foundationModels: return .foundation_models
-            case .llamaCpp: return .llama_cpp
+            case .foundationModels: return .foundationModels
+            case .llamaCpp: return .llamaCpp
             case .mlx: return .mlx
-            case .coreMl: return .core_ml
+            case .coreML: return .coreMl
             default: return .none
             }
         }
@@ -269,11 +274,11 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
         }
     }
 
-    func addModelDownloadProgressListener(listener: @escaping (NitroModelDownloadProgress) -> Void) {
+    func addModelDownloadProgressListener(listener: @escaping (_ progress: NitroModelDownloadProgress) -> Void) throws {
         listenerQueue.sync { modelDownloadProgressListeners.append(listener) }
     }
 
-    func removeModelDownloadProgressListener(listener: @escaping (NitroModelDownloadProgress) -> Void) {
+    func removeModelDownloadProgressListener(listener: @escaping (_ progress: NitroModelDownloadProgress) -> Void) throws {
         listenerQueue.sync { modelDownloadProgressListeners.removeAll { $0 as AnyObject === listener as AnyObject } }
     }
 

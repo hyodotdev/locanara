@@ -49,11 +49,24 @@ export function ProofreadDemo() {
       const options = {inputType: selectedInputType};
       console.log('[DEBUG] proofread request:', JSON.stringify(options));
       const proofreadResult = await proofread(inputText, options);
-      console.log('[DEBUG] proofread response:', JSON.stringify(proofreadResult));
+      console.log(
+        '[DEBUG] proofread response:',
+        JSON.stringify(proofreadResult),
+      );
       setResult(proofreadResult);
-      setDebugLog({api: 'proofread', request: {text: inputText.substring(0, 100) + '...', options}, response: proofreadResult, timing: Date.now() - start});
+      setDebugLog({
+        api: 'proofread',
+        request: {text: inputText.substring(0, 100) + '...', options},
+        response: proofreadResult,
+        timing: Date.now() - start,
+      });
     } catch (error: any) {
-      setDebugLog({api: 'proofread', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
+      setDebugLog({
+        api: 'proofread',
+        request: {text: inputText.substring(0, 100) + '...'},
+        response: {error: error.message},
+        timing: Date.now() - start,
+      });
       setErrorMessage(error.message || 'Failed to proofread');
     } finally {
       setIsLoading(false);

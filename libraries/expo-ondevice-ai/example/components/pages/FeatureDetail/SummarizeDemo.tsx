@@ -41,14 +41,30 @@ export function SummarizeDemo() {
     const start = Date.now();
 
     try {
-      const options = {inputType: selectedInputType, outputType: selectedOutputType};
+      const options = {
+        inputType: selectedInputType,
+        outputType: selectedOutputType,
+      };
       console.log('[DEBUG] summarize request:', JSON.stringify(options));
       const summarizeResult = await summarize(inputText, options);
-      console.log('[DEBUG] summarize response:', JSON.stringify(summarizeResult));
+      console.log(
+        '[DEBUG] summarize response:',
+        JSON.stringify(summarizeResult),
+      );
       setResult(summarizeResult);
-      setDebugLog({api: 'summarize', request: {text: inputText.substring(0, 100) + '...', options}, response: summarizeResult, timing: Date.now() - start});
+      setDebugLog({
+        api: 'summarize',
+        request: {text: inputText.substring(0, 100) + '...', options},
+        response: summarizeResult,
+        timing: Date.now() - start,
+      });
     } catch (error: any) {
-      setDebugLog({api: 'summarize', request: {text: inputText.substring(0, 100) + '...'}, response: {error: error.message}, timing: Date.now() - start});
+      setDebugLog({
+        api: 'summarize',
+        request: {text: inputText.substring(0, 100) + '...'},
+        response: {error: error.message},
+        timing: Date.now() - start,
+      });
       setErrorMessage(error.message || 'Failed to summarize');
     } finally {
       setIsLoading(false);

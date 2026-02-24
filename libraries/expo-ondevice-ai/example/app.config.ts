@@ -39,6 +39,7 @@ export default ({config}: ConfigContext): ExpoConfig => {
         '../app.plugin.js',
         {
           enableLocalDev: true,
+          enableLlamaCpp: !process.env.CI,
           localPath: {
             ios: LOCAL_LOCANARA_PATHS.ios,
             android: LOCAL_LOCANARA_PATHS.android,
@@ -51,7 +52,7 @@ export default ({config}: ConfigContext): ExpoConfig => {
         'expo-build-properties',
         {
           ios: {
-            deploymentTarget: '15.1',
+            deploymentTarget: '17.0',
           },
           android: {
             minSdkVersion: 31,

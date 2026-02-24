@@ -23,5 +23,6 @@ Pod::Spec.new do |s|
   s.source_files = 'Sources/**/*.swift'
 
   s.frameworks = 'Foundation'
-  s.weak_frameworks = 'FoundationModels'
+  # FoundationModels is resolved via canImport() in Swift source;
+  # weak_frameworks causes linker errors on Xcode < 26.
 end

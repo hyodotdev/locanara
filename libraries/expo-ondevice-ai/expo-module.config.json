@@ -1,16 +1,9 @@
 {
-  "platforms": [
-    "ios",
-    "android"
-  ],
+  "platforms": ["ios", "android", "web"],
   "ios": {
-    "modules": [
-      "ExpoOndeviceAiModule"
-    ]
+    "modules": ["ExpoOndeviceAiModule"]
   },
   "android": {
-    "modules": [
-      "expo.modules.ondeviceai.ExpoOndeviceAiModule"
-    ]
+    "modules": ["expo.modules.ondeviceai.ExpoOndeviceAiModule"]
   }
 }

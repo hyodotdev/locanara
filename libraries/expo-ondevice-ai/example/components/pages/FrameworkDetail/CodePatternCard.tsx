@@ -15,7 +15,8 @@ export function CodePatternCard({title, code}: Props) {
       <TouchableOpacity
         style={styles.header}
         onPress={() => setExpanded(!expanded)}
-        activeOpacity={0.7}>
+        activeOpacity={0.7}
+      >
         <Ionicons name="code-slash" size={16} color="#007AFF" />
         <Text style={styles.title}>{title}</Text>
         <Ionicons
