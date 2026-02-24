@@ -61,6 +61,7 @@ export class Locanara {
   private _rewriterOptionsKey: string | null = null
   private _writer: ChromeWriter | null = null
   private _writerOptionsKey: string | null = null
+  private _proofreadWriter: ChromeWriter | null = null
   private _languageModel: ChromeLanguageModelSession | null = null
   private _languageModelOptionsKey: string | null = null
   private _languageDetector: ChromeLanguageDetector | null = null
@@ -800,8 +801,8 @@ Respond with a valid JSON object containing the extracted entities.`
     }
 
     try {
-      if (!this._writer) {
-        this._writer = await window.Writer.create({
+      if (!this._proofreadWriter) {
+        this._proofreadWriter = await window.Writer.create({
           monitor: this.createMonitor(),
         })
       }
@@ -812,7 +813,7 @@ ${options.context ? `Context: ${options.context}` : ''}
 Text:
 ${text}`
 
-      const correctedText = await this._writer.write(prompt)
+      const correctedText = await this._proofreadWriter.write(prompt)
 
       const hasCorrections = correctedText !== text
 
@@ -985,6 +986,8 @@ ${text}`
         this._writer = await window.Writer.create({
           tone: this.mapWriterTone(options.tone),
           length: this.mapWriterLength(options.length),
+          format: options.format ? this.mapSummarizeFormat(options.format) : 'markdown',
+          sharedContext: options.context,
           monitor: this.createMonitor(),
         })
         this._writerOptionsKey = optionsKey
@@ -1105,6 +1108,9 @@ ${text}`
     this._writer?.destroy()
     this._writer = null
     this._writerOptionsKey = null
+
+    this._proofreadWriter?.destroy()
+    this._proofreadWriter = null
 
     this._languageModel?.destroy()
     this._languageModel = null

@@ -15,7 +15,7 @@ def getLocanaraVersion() {
     if (candidate.exists()) {
       def versionJson = candidate.text
       def matcher = (versionJson =~ /"android"\s*:\s*"([^"]+)"/)
-      return matcher ? matcher[0][1] : "1.0.2"
+      if (matcher) return matcher[0][1]
     }
   }
   return "1.0.2"
