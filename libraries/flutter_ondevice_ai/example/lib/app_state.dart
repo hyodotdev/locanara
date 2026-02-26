@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_ondevice_ai/flutter_ondevice_ai.dart';
@@ -146,10 +145,10 @@ class AppState extends ChangeNotifier {
       _capability = cap;
       _isModelReady = cap.isModelReady || cap.isSupported;
 
-      final isIOS = !kIsWeb && Platform.isIOS;
+      final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
       _deviceInfo = DeviceInfoDisplay(
         platform: kIsWeb ? 'Web' : (isIOS ? 'iOS' : 'Android'),
-        osVersion: kIsWeb ? 'Chrome' : Platform.operatingSystemVersion,
+        osVersion: kIsWeb ? 'Chrome' : 'Unknown',
         supportsOnDeviceAI: cap.isSupported,
         provider: cap.platform == OndeviceAiPlatform.ios
             ? 'Apple Intelligence'

@@ -43,13 +43,15 @@ class _SummarizeDemoState extends State<SummarizeDemo> {
     final sw = Stopwatch()..start();
     final options = SummarizeOptions(outputType: _outputEnum, inputType: _inputEnum);
     try {
-      final result = await _ai.summarize(_controller.text, options: options);
+      final inputText = _controller.text;
+      final result = await _ai.summarize(inputText, options: options);
       sw.stop();
+      if (!mounted) return;
       setState(() {
         _result = result;
         _debugLog = DebugLog(
           api: 'summarize',
-          request: {'text': _controller.text.substring(0, 100), 'options': {'outputType': _outputType, 'inputType': _inputType}},
+          request: {'text': inputText.length > 100 ? inputText.substring(0, 100) : inputText, 'options': {'outputType': _outputType, 'inputType': _inputType}},
           response: {'summary': result.summary, 'originalLength': result.originalLength, 'summaryLength': result.summaryLength},
           timing: sw.elapsedMilliseconds,
         );

@@ -34,6 +34,20 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
         self.mmprojPath = mmprojPath
     }
 
+    private func beginInference() async throws {
+        while lock.withLock({ isInferencing }) {
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
+        lock.withLock {
+            isInferencing = true
+            isCancelled = false
+        }
+    }
+
+    private func endInference() {
+        lock.withLock { isInferencing = false }
+    }
+
     func loadModel() async throws {
         guard !isLoaded else { return }
 
@@ -76,11 +90,8 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
     }
 
     func generate(prompt: String, config: InferenceConfig) async throws -> String {
-        while lock.withLock({ isInferencing }) {
-            try await Task.sleep(nanoseconds: 100_000_000)
-        }
-        lock.withLock { isInferencing = true; isCancelled = false }
-        defer { lock.withLock { isInferencing = false } }
+        try await beginInference()
+        defer { endInference() }
 
         guard isLoaded, let session = llmSession else {
             throw LocanaraError.custom(.modelNotLoaded, "Model not loaded")
@@ -120,7 +131,18 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
     func generateStreaming(prompt: String, config: InferenceConfig) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task { [weak self] in
-                guard let self, self.isLoaded, let session = self.llmSession else {
+                guard let self else {
+                    continuation.finish(throwing: LocanaraError.custom(.modelNotLoaded, "Model not loaded"))
+                    return
+                }
+                do {
+                    try await self.beginInference()
+                } catch {
+                    continuation.finish(throwing: error)
+                    return
+                }
+                guard self.isLoaded, let session = self.llmSession else {
+                    self.endInference()
                     continuation.finish(throwing: LocanaraError.custom(.modelNotLoaded, "Model not loaded"))
                     return
                 }
@@ -129,8 +151,10 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
                         if self.lock.withLock({ self.isCancelled }) { break }
                         continuation.yield(text)
                     }
+                    self.endInference()
                     continuation.finish()
                 } catch {
+                    self.endInference()
                     continuation.finish(throwing: LocanaraError.executionFailed(error.localizedDescription))
                 }
             }
@@ -141,6 +165,9 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
         guard isMultimodal else {
             throw LocanaraError.custom(.featureNotSupported, "mmproj file required for image input")
         }
+        try await beginInference()
+        defer { endInference() }
+
         guard isLoaded, let session = llmSession else {
             throw LocanaraError.custom(.modelNotLoaded, "Model not loaded")
         }
@@ -165,8 +192,11 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
     }
 
     func unload() {
+        lock.lock()
         llmSession = nil
         isLoaded = false
+        isInferencing = false
+        lock.unlock()
         logger.info("Bridge engine unloaded")
     }
 }

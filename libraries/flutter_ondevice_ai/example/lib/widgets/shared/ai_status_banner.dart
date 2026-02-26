@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ondevice_ai/flutter_ondevice_ai.dart';
@@ -23,7 +21,7 @@ class AIStatusBanner extends StatelessWidget {
 
     // Loading state
     if (state.sdkState == SDKState.initializing || state.sdkState == SDKState.notInitialized) {
-      final isIOS = !kIsWeb && Platform.isIOS;
+      final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
       final checkingText = kIsWeb
           ? 'Checking Chrome Built-in AI...'
           : isIOS
@@ -43,7 +41,7 @@ class AIStatusBanner extends StatelessWidget {
       final engineLabel = _engineLabels[state.modelState.currentEngine] ??
           (kIsWeb
               ? 'Chrome Built-in AI'
-              : (!kIsWeb && Platform.isIOS)
+              : (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
                   ? 'Apple Intelligence'
                   : 'Gemini Nano');
 
@@ -70,7 +68,7 @@ class AIStatusBanner extends StatelessWidget {
     }
 
     // iOS: Apple Intelligence required but not ready
-    if (!kIsWeb && Platform.isIOS && state.capability?.isSupported == true) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS && state.capability?.isSupported == true) {
       return _BannerContainer(
         color: const Color(0xFFFFF3E0),
         icon: const Icon(Icons.auto_awesome_outlined, size: 20, color: Color(0xFFFF9500)),
@@ -98,7 +96,7 @@ class AIStatusBanner extends StatelessWidget {
     }
 
     // Device not supported
-    final isIOS = !kIsWeb && Platform.isIOS;
+    final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
     return _BannerContainer(
       color: const Color(0xFFFFEBEE),
       icon: const Icon(Icons.warning, size: 20, color: Color(0xFFFF3B30)),

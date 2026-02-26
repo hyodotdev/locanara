@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -112,7 +110,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final ms = state.modelState;
-    final isIOS = !kIsWeb && Platform.isIOS;
+    final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
     // On web, Chrome manages models — show "Chrome Built-in AI" when ready
     final bool isWebReady = kIsWeb && state.isModelReady;

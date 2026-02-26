@@ -487,7 +487,7 @@ class FlutterOndeviceAiPlugin : FlutterPlugin, MethodCallHandler {
         while (true) {
             connection = URL(currentUrl).openConnection() as HttpURLConnection
             connection.connectTimeout = 30_000
-            connection.readTimeout = 0  // no timeout for large model downloads
+            connection.readTimeout = 900_000  // 15 min timeout for large model downloads
             connection.instanceFollowRedirects = false  // handle manually
             connection.setRequestProperty("User-Agent", "Locanara-Flutter/1.0")
             connection.connect()

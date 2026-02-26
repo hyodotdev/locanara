@@ -35,6 +35,7 @@ class _ChatDemoState extends State<ChatDemo> {
           systemPrompt: 'You are a helpful AI assistant. Keep answers brief.',
           history: history.sublist(0, history.length - 1),
           onChunk: (chunk) {
+            if (!mounted || _messages.isEmpty) return;
             setState(() { _messages.last = _Message(role: 'assistant', content: chunk.accumulated); });
             _scrollToBottom();
           },
@@ -45,9 +46,11 @@ class _ChatDemoState extends State<ChatDemo> {
           systemPrompt: 'You are a helpful AI assistant. Keep answers brief.',
           history: history.sublist(0, history.length - 1),
         ));
+        if (!mounted) return;
         setState(() { _messages.last = _Message(role: 'assistant', content: result.message); });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         if (_messages.isNotEmpty && (_messages.last.role == 'typing' || _messages.last.content.isEmpty)) {
           _messages.last = _Message(role: 'assistant', content: 'Error: $e');
@@ -56,7 +59,7 @@ class _ChatDemoState extends State<ChatDemo> {
         }
       });
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
       _scrollToBottom();
     }
   }

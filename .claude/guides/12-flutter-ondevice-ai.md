@@ -191,9 +191,9 @@ Same as Expo — C++ interop is viral in Swift. The bridge pod is compiled in is
 │  flutter_ondevice_ai pod     │     │  LocanaraLlamaBridge pod │
 │  (NO C++ interop)            │     │  (C++ interop enabled)   │
 │                              │     │                          │
-│  imports:                    │     │  imports:                │
-│  - Flutter                   │     │  - Locanara              │
-│  - Locanara                  │     │  - LocalLLMClient        │
+│  depends on:                 │     │  depends on:             │
+│  - Flutter                   │     │  - Locanara (engine)     │
+│  - Locanara (chains)         │     │  - LocalLLMClient        │
 │                              │     │  - LocalLLMClientLlama   │
 │  uses LocanaraClient for     │     │                          │
 │  chains (via RouterModel)    │     │  implements:             │
