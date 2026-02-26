@@ -3,7 +3,7 @@ name: Publish Flutter
 on:
   push:
     tags:
-      - 'flutter-v*'
+      - 'flutter-*'
 
 # Required for pub.dev OIDC authentication
 permissions:
