@@ -52,6 +52,7 @@ import Introduction from "./introduction";
 import WhyLocanara from "./why-locanara";
 import LibrariesIndex from "./libraries/index";
 import ExpoLibrary from "./libraries/expo";
+import FlutterLibrary from "./libraries/flutter";
 import { NotFound } from "../404";
 
 function Docs() {
@@ -332,6 +333,15 @@ function Docs() {
                 expo-ondevice-ai
               </NavLink>
             </li>
+            <li>
+              <NavLink
+                to="/docs/libraries/flutter"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                flutter_ondevice_ai
+              </NavLink>
+            </li>
           </ul>
         </nav>
       </aside>
@@ -401,6 +411,7 @@ function Docs() {
           <Route path="tutorials/proofread" element={<ProofreadTutorial />} />
           <Route path="libraries" element={<LibrariesIndex />} />
           <Route path="libraries/expo" element={<ExpoLibrary />} />
+          <Route path="libraries/flutter" element={<FlutterLibrary />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

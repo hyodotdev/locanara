@@ -22,15 +22,15 @@ object ModelRegistry {
             modelId = "llama-3.2-3b-instruct",
             name = "Llama 3.2 3B",
             version = "3.2",
-            sizeMB = 2560,
-            quantization = QuantizationType.INT8,
+            sizeMB = 2550,
+            quantization = QuantizationType.INT4,
             contextLength = 8192,
-            downloadURL = "https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct-ExecuTorch/resolve/main/llama3_2-3b-it-pte-q8.pte",
+            downloadURL = "https://huggingface.co/software-mansion/react-native-executorch-llama-3.2/resolve/main/llama-3.2-3B/spinquant/llama3_2_3B_spinquant.pte",
             checksum = "sha256:auto",
             minMemoryMB = 6000,
             supportedFeatures = FeatureType.entries.toList(),
             promptFormat = PromptFormat.LLAMA,
-            tokenizerURL = "https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct-ExecuTorch/resolve/main/tokenizer.bin"
+            tokenizerURL = "https://huggingface.co/executorch-community/Llama-3.2-1B-ET/resolve/main/tokenizer.model"
         )
     )
 

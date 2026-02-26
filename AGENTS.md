@@ -65,8 +65,9 @@ locanara-community/
 │   ├── gql/            # GraphQL schema definitions
 │   └── site/           # Website (landing + docs + community)
 ├── libraries/          # Third-party framework integrations
-│   ├── expo-ondevice-ai/       # Expo module
-│   └── react-native-ondevice-ai/ # React Native Nitro module
+│   ├── expo-ondevice-ai/         # Expo module
+│   ├── react-native-ondevice-ai/ # React Native Nitro module
+│   └── flutter_ondevice_ai/      # Flutter plugin
 └── .claude/
     ├── commands/       # Slash commands
     └── guides/         # Project guides
@@ -298,7 +299,11 @@ cd packages/android
 
 ## Libraries
 
-Third-party framework integrations that use Locanara SDK.
+Third-party framework integrations that wrap the Locanara SDK (`packages/`).
+
+### Source of Truth
+
+**`packages/` is the source of truth.** Libraries in `libraries/` are thin wrappers that call the SDK. When modifying AI behavior (prompts, chains, model management), always change `packages/apple/`, `packages/android/`, or `packages/web/` first — libraries just forward calls to the SDK.
 
 ### Available Libraries
 
@@ -306,6 +311,48 @@ Third-party framework integrations that use Locanara SDK.
 | -------------------------- | ----------- | ------------------------------------------ |
 | `expo-ondevice-ai`         | In Progress | Expo module for on-device AI               |
 | `react-native-ondevice-ai` | In Progress | React Native Nitro module for on-device AI |
+| `flutter_ondevice_ai`      | In Progress | Flutter plugin for on-device AI            |
+
+### Local Development Workflow
+
+Libraries depend on the SDK via package managers. During local development:
+
+- **Android**: Libraries use `mavenLocal()` → user runs `publishToMavenLocal` when SDK changes
+- **iOS**: Libraries reference local pod/SPM path
+- **Web**: Libraries use local npm link
+
+**When SDK changes are needed:**
+
+1. Modify code in `packages/apple/`, `packages/android/`, or `packages/web/`
+2. Bump version in `locanara-versions.json` if API changed
+3. User handles local publishing (mavenLocal, etc.) — **AI agents must NEVER publish**
+4. Rebuild library example to verify
+
+### API Parity Across Libraries
+
+All three libraries **MUST** expose identical public APIs. When modifying one library, update the others:
+
+| Function                              | All libraries must expose           |
+| ------------------------------------- | ----------------------------------- |
+| `initialize()`                        | Initialization result               |
+| `getDeviceCapability()`               | Device capability info              |
+| `summarize(text, options?)`           | Summarize result                    |
+| `classify(text, options?)`            | Classify result                     |
+| `extract(text, options?)`             | Extract result                      |
+| `chat(message, options?)`             | Chat result                         |
+| `chatStream(message, options?)`       | Chat result with streaming callback |
+| `translate(text, options)`            | Translate result                    |
+| `rewrite(text, options)`              | Rewrite result                      |
+| `proofread(text, options?)`           | Proofread result                    |
+| `getAvailableModels()`                | List of downloadable models         |
+| `getDownloadedModels()`               | List of downloaded model IDs        |
+| `getLoadedModel()`                    | Currently loaded model ID or null   |
+| `getCurrentEngine()`                  | Active inference engine             |
+| `downloadModel(id, onProgress?)`      | Download result with progress       |
+| `loadModel(id)`                       | Load result                         |
+| `deleteModel(id)`                     | Delete result                       |
+| `getPromptApiStatus()`                | Prompt API status string            |
+| `downloadPromptApiModel(onProgress?)` | Download result with progress       |
 
 ### expo-ondevice-ai
 
@@ -347,6 +394,24 @@ bun run test        # Run tests
 - `ios/` - Swift native module
 - `nitrogen/generated/` - Auto-generated bridge code (do not edit)
 - `nitro.json` - Nitro module configuration
+
+### flutter_ondevice_ai
+
+Flutter plugin wrapping Locanara SDK. Supports iOS, Android, and Web.
+
+```bash
+cd libraries/flutter_ondevice_ai
+flutter pub get
+flutter analyze
+flutter test
+```
+
+**Structure follows flutter_inapp_purchase pattern:**
+
+- `lib/src/` - Dart source (plugin, types, web implementation)
+- `android/` - Kotlin MethodChannel + EventChannel plugin
+- `ios/` - Swift FlutterPlugin
+- `example/` - Example Flutter app
 
 ## Nitro Module Development (react-native-ondevice-ai)
 
@@ -408,29 +473,7 @@ Follow this exact order — **never skip a step**:
 
 ### API Parity Checklist
 
-The `react-native-ondevice-ai` public API **MUST** be identical to `expo-ondevice-ai`. When modifying either library, update both:
-
-| Function                              | Both libraries must expose                    |
-| ------------------------------------- | --------------------------------------------- |
-| `initialize()`                        | `Promise<InitializeResult>`                   |
-| `getDeviceCapability()`               | `Promise<DeviceCapability>`                   |
-| `summarize(text, options?)`           | `Promise<SummarizeResult>`                    |
-| `classify(text, options?)`            | `Promise<ClassifyResult>`                     |
-| `extract(text, options?)`             | `Promise<ExtractResult>`                      |
-| `chat(message, options?)`             | `Promise<ChatResult>`                         |
-| `chatStream(message, options?)`       | `Promise<ChatResult>` with `onChunk` callback |
-| `translate(text, options)`            | `Promise<TranslateResult>`                    |
-| `rewrite(text, options)`              | `Promise<RewriteResult>`                      |
-| `proofread(text, options?)`           | `Promise<ProofreadResult>`                    |
-| `getAvailableModels()`                | `Promise<DownloadableModelInfo[]>`            |
-| `getDownloadedModels()`               | `Promise<string[]>`                           |
-| `getLoadedModel()`                    | `Promise<string \| null>`                     |
-| `getCurrentEngine()`                  | `Promise<InferenceEngine>`                    |
-| `downloadModel(id, onProgress?)`      | `Promise<boolean>`                            |
-| `loadModel(id)`                       | `Promise<void>`                               |
-| `deleteModel(id)`                     | `Promise<void>`                               |
-| `getPromptApiStatus()`                | `Promise<string>`                             |
-| `downloadPromptApiModel(onProgress?)` | `Promise<boolean>`                            |
+All three libraries (`expo-ondevice-ai`, `react-native-ondevice-ai`, `flutter_ondevice_ai`) **MUST** expose identical APIs. See the **Libraries > API Parity Across Libraries** section for the full table.
 
 ## Publishing & Deployment (STRICTLY FORBIDDEN)
 

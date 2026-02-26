@@ -113,6 +113,60 @@ if (capability.isSupported) {
       </section>
 
       <section>
+        <h2 id="framework">Framework</h2>
+        <p>
+          Under the hood, Locanara is a composable AI framework inspired by
+          LangChain. The built-in utils above are pre-built{" "}
+          <Link to="/docs/apis/chain">Chains</Link> — but you can compose your
+          own multi-step AI workflows using the native SDK directly.
+        </p>
+        <ul>
+          <li>
+            <Link to="/docs/apis/chain">
+              <code>Chain</code>
+            </Link>{" "}
+            - Composable building block for AI logic
+          </li>
+          <li>
+            <Link to="/docs/apis/pipeline">
+              <code>Pipeline</code>
+            </Link>{" "}
+            - Chain multiple steps with type-safe DSL
+          </li>
+          <li>
+            <Link to="/docs/apis/memory">
+              <code>Memory</code>
+            </Link>{" "}
+            - Conversation context (Buffer / Summary)
+          </li>
+          <li>
+            <Link to="/docs/apis/guardrail">
+              <code>Guardrail</code>
+            </Link>{" "}
+            - Input/output validation and safety
+          </li>
+          <li>
+            <Link to="/docs/apis/session">
+              <code>Session</code>
+            </Link>{" "}
+            - Stateful conversation management
+          </li>
+          <li>
+            <Link to="/docs/apis/agent">
+              <code>Agent</code>
+            </Link>{" "}
+            - Autonomous ReAct-style reasoning with tools
+          </li>
+        </ul>
+        <CodeBlock language="typescript">{`// Example: Pipeline DSL (native SDK)
+// Proofread → Translate in one pipeline
+const result = await model.pipeline()
+  .proofread()
+  .translate({ to: 'ko' })
+  .run('Hello wrold, how are you?');`}</CodeBlock>
+      </section>
+
+      <section>
         <h2 id="model-management">Model Management</h2>
         <p>
           On iOS, you can download and switch between open-source GGUF models
@@ -165,7 +219,10 @@ await deleteModel(models[0].modelId);`}</CodeBlock>
 
       <PageNavigation
         prev={{ to: "/docs/libraries", label: "Libraries" }}
-        next={{ to: "/docs/utils", label: "API Reference" }}
+        next={{
+          to: "/docs/libraries/flutter",
+          label: "flutter_ondevice_ai",
+        }}
       />
     </div>
   );

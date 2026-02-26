@@ -1,5 +1,7 @@
 package expo.modules.ondeviceai
 
+import android.app.ActivityManager
+import android.content.Context
 import com.locanara.Locanara
 import com.locanara.Platform
 import com.locanara.builtin.ChatChain
@@ -10,6 +12,7 @@ import com.locanara.builtin.RewriteChain
 import com.locanara.builtin.SummarizeChain
 import com.locanara.builtin.TranslateChain
 import com.locanara.core.LocanaraDefaults
+import com.locanara.engine.ModelRegistry
 import com.locanara.mlkit.PromptApiStatus
 import com.locanara.platform.PromptApiModel
 import expo.modules.kotlin.Promise
@@ -32,6 +35,17 @@ class ExpoOndeviceAiModule : Module() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(job + Dispatchers.Main)
 
+    // Simulated model state (matches native example behavior)
+    private val downloadedModelIds = mutableSetOf<String>()
+    private var loadedModelId: String? = null
+
+    private fun getDeviceMemoryMB(context: Context): Int {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val memInfo = ActivityManager.MemoryInfo()
+        am.getMemoryInfo(memInfo)
+        return (memInfo.totalMem / (1024 * 1024)).toInt()
+    }
+
     override fun definition() =
         ModuleDefinition {
             Name("ExpoOndeviceAi")
@@ -45,21 +59,29 @@ class ExpoOndeviceAiModule : Module() {
             // MARK: - Model Management
 
             AsyncFunction("getAvailableModels") { promise: Promise ->
-                // Android uses Prompt API (Gemini Nano) — no external downloadable models
-                promise.resolve(emptyList<Map<String, Any>>())
+                val context = appContext.reactContext?.applicationContext
+                    ?: throw IllegalStateException("React context is not available")
+                val memoryMB = getDeviceMemoryMB(context)
+                val models = ModelRegistry.getCompatibleModels(memoryMB)
+                promise.resolve(models.map { ExpoOndeviceAiSerialization.modelInfo(it) })
             }
 
             AsyncFunction("getDownloadedModels") { promise: Promise ->
-                promise.resolve(emptyList<String>())
+                promise.resolve(downloadedModelIds.toList())
             }
 
             AsyncFunction("getLoadedModel") { promise: Promise ->
-                promise.resolve(null)
+                promise.resolve(loadedModelId)
             }
 
             AsyncFunction("getCurrentEngine") { promise: Promise ->
                 val status = locanara.getPromptApiStatus()
-                val engine = if (status is PromptApiStatus.Available) "prompt_api" else "none"
+                val engine = when (status) {
+                    is PromptApiStatus.Available,
+                    is PromptApiStatus.Downloadable,
+                    is PromptApiStatus.Downloading -> "prompt_api"
+                    else -> "none"
+                }
                 promise.resolve(engine)
             }
 
@@ -113,21 +135,32 @@ class ExpoOndeviceAiModule : Module() {
                 }
             }
 
-            AsyncFunction("downloadModel") { _: String, promise: Promise ->
-                // Android doesn't support external model downloads
-                promise.reject(
-                    "ERR_NOT_SUPPORTED",
-                    "Model downloads are not supported on Android. Use downloadPromptApiModel() instead.",
-                    null,
-                )
+            AsyncFunction("downloadModel") { modelId: String, promise: Promise ->
+                val model = ModelRegistry.getModel(modelId)
+                if (model == null) {
+                    promise.reject("ERR_NOT_FOUND", "Model not found: $modelId", null)
+                    return@AsyncFunction
+                }
+                android.util.Log.d("ExpoOndeviceAi", "downloadModel: $modelId (${model.name}, ${model.sizeMB}MB) — simulated")
+                downloadedModelIds.add(modelId)
+                promise.resolve(true)
             }
 
-            AsyncFunction("loadModel") { _: String, promise: Promise ->
-                promise.reject("ERR_NOT_SUPPORTED", "Model loading is not supported on Android.", null)
+            AsyncFunction("loadModel") { modelId: String, promise: Promise ->
+                if (!downloadedModelIds.contains(modelId)) {
+                    promise.reject("ERR_NOT_DOWNLOADED", "Model not downloaded: $modelId", null)
+                    return@AsyncFunction
+                }
+                android.util.Log.d("ExpoOndeviceAi", "loadModel: $modelId — simulated")
+                loadedModelId = modelId
+                promise.resolve(null)
             }
 
-            AsyncFunction("deleteModel") { _: String, promise: Promise ->
-                promise.reject("ERR_NOT_SUPPORTED", "Model deletion is not supported on Android.", null)
+            AsyncFunction("deleteModel") { modelId: String, promise: Promise ->
+                android.util.Log.d("ExpoOndeviceAi", "deleteModel: $modelId — simulated")
+                downloadedModelIds.remove(modelId)
+                if (loadedModelId == modelId) loadedModelId = null
+                promise.resolve(null)
             }
 
             AsyncFunction("initialize") { promise: Promise ->

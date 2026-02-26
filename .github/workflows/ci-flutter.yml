@@ -1,0 +1,38 @@
+name: CI Flutter
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'libraries/flutter_ondevice_ai/**'
+      - '.github/workflows/ci-flutter.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'libraries/flutter_ondevice_ai/**'
+      - '.github/workflows/ci-flutter.yml'
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Dependencies
+        working-directory: libraries/flutter_ondevice_ai
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: libraries/flutter_ondevice_ai
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run Tests
+        working-directory: libraries/flutter_ondevice_ai
+        run: flutter test

@@ -178,8 +178,8 @@ export function ModelSelectionSheet({
             </View>
           </View>
 
-          {/* Downloadable Models (iOS only) */}
-          {Platform.OS === 'ios' && modelState.availableModels.length > 0 && (
+          {/* Downloadable Models */}
+          {modelState.availableModels.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Available Models</Text>
               {modelState.availableModels.map((model) => (
