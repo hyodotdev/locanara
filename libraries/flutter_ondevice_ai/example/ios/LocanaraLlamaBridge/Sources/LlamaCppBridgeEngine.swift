@@ -120,10 +120,12 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
             }
 
             return result.trimmingCharacters(in: .whitespacesAndNewlines)
-        } catch {
-            if error.localizedDescription.contains("nil") || error.localizedDescription.contains("fatal") {
+        } catch let error as NSError {
+            if error.domain == "LLMSession" || error.code == -1 {
                 lock.withLock { isLoaded = false; llmSession = nil }
             }
+            throw LocanaraError.executionFailed(error.localizedDescription)
+        } catch {
             throw LocanaraError.executionFailed(error.localizedDescription)
         }
     }
@@ -208,14 +210,31 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
 public class LlamaCppBridgeEngine: NSObject, LlamaCppBridgeProvider {
 
     private var engine: BridgedLlamaCppEngine?
+    private var isLoading = false
+    private let loadLock = NSLock()
 
     public var isModelLoaded: Bool {
         engine?.isLoaded ?? false
     }
 
     public func loadAndRegisterModel(_ modelPath: String, mmprojPath: String?, completion: @escaping (NSError?) -> Void) {
+        loadLock.lock()
+        guard !isLoading else {
+            loadLock.unlock()
+            completion(NSError(domain: "LlamaCppBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Model load already in progress"]))
+            return
+        }
+        isLoading = true
+        loadLock.unlock()
+
         Task {
             do {
+                // Unload previous engine if any
+                if let oldEngine = self.engine {
+                    oldEngine.unload()
+                    InferenceRouter.shared.unregisterEngine()
+                }
+
                 let modelURL = URL(fileURLWithPath: modelPath)
                 let mmprojURL = mmprojPath.map { URL(fileURLWithPath: $0) }
 
@@ -226,9 +245,11 @@ public class LlamaCppBridgeEngine: NSObject, LlamaCppBridgeProvider {
                 InferenceRouter.shared.registerEngine(newEngine as any InferenceEngine)
 
                 logger.info("Bridge: model loaded and engine registered")
+                self.loadLock.withLock { self.isLoading = false }
                 completion(nil)
             } catch {
                 logger.error("Bridge: loadModel failed: \(error.localizedDescription)")
+                self.loadLock.withLock { self.isLoading = false }
                 completion(error as NSError)
             }
         }

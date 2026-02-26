@@ -11,7 +11,7 @@ Flutter plugin wrapping the Locanara native SDKs using **MethodChannel** + **Eve
 - Flutter SDK 3.3.0+
 - Dart SDK 3.3.0+
 - iOS 17+ (for llama.cpp engine)
-- Android API 26+ (for ML Kit GenAI)
+- Android API 24+ (library minSdk), API 34+ (example app, Gemini Nano requirement)
 - Web: Chrome 138+ (Chrome Built-in AI)
 
 ## Build Commands
@@ -223,7 +223,7 @@ flutter run -d chrome
 
 ### App Features
 
-- 3-tab navigation: Features, Device, Settings
+- Multi-tab navigation: Device, Features, Framework, Settings
 - Feature list → demo screens for all 7 AI features + chat
 - AI Status Banner → Model Selection Sheet
 - Model Selection Sheet: download, load, delete GGUF models; **switch back to Apple Intelligence**

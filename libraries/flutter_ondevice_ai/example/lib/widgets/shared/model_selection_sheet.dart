@@ -25,7 +25,10 @@ class ModelSelectionSheet extends StatefulWidget {
 class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
   String? _actionLoading;
 
+  bool get _isBusy => _actionLoading != null;
+
   Future<void> _handleDownload(BuildContext context, DownloadableModelInfo model) async {
+    if (_isBusy) return;
     debugPrint('[ModelSheet] download ${model.modelId} (${model.name}, ${model.sizeMB}MB)');
     setState(() => _actionLoading = model.modelId);
     try {
@@ -34,7 +37,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
     } catch (e, st) {
       debugPrint('[ModelSheet] download ${model.modelId} FAILED: $e\n$st');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Download failed. Please try again.')));
       }
     } finally {
       if (mounted) setState(() => _actionLoading = null);
@@ -42,6 +45,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
   }
 
   Future<void> _handleLoad(BuildContext context, String modelId) async {
+    if (_isBusy) return;
     debugPrint('[ModelSheet] load $modelId');
     setState(() => _actionLoading = modelId);
     try {
@@ -50,7 +54,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
     } catch (e, st) {
       debugPrint('[ModelSheet] load $modelId FAILED: $e\n$st');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Load Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to load model. Please try again.')));
       }
     } finally {
       if (mounted) setState(() => _actionLoading = null);
@@ -58,6 +62,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
   }
 
   Future<void> _handleDelete(BuildContext context, String modelId) async {
+    if (_isBusy) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -83,7 +88,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
     } catch (e, st) {
       debugPrint('[ModelSheet] delete $modelId FAILED: $e\n$st');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to delete model. Please try again.')));
       }
     } finally {
       if (mounted) setState(() => _actionLoading = null);
@@ -91,6 +96,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
   }
 
   Future<void> _handleSwitchToDeviceAI(BuildContext context) async {
+    if (_isBusy) return;
     debugPrint('[ModelSheet] switchToDeviceAI');
     setState(() => _actionLoading = '__switch__');
     try {
@@ -99,7 +105,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
     } catch (e, st) {
       debugPrint('[ModelSheet] switchToDeviceAI FAILED: $e\n$st');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Switch Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to switch engine. Please try again.')));
       }
     } finally {
       if (mounted) setState(() => _actionLoading = null);
@@ -221,7 +227,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
                       label: isIOS ? 'Switch to Apple Intelligence' : 'Switch to Device AI',
                       icon: Icons.auto_awesome,
                       loading: _actionLoading == '__switch__',
-                      onTap: _actionLoading != null ? null : () => _handleSwitchToDeviceAI(context),
+                      onTap: _isBusy ? null : () => _handleSwitchToDeviceAI(context),
                       expand: true,
                       outlined: true,
                     ),
@@ -248,6 +254,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
                         loaded: isActiveModel,
                         loading: loading,
                         isDownloading: ms.isDownloading,
+                        isBusy: _isBusy,
                         onDownload: () => _handleDownload(context, model),
                         onLoad: () => _handleLoad(context, model.modelId),
                         onDelete: () => _handleDelete(context, model.modelId),
@@ -392,6 +399,7 @@ class _ModelRow extends StatelessWidget {
   final bool loaded;
   final bool loading;
   final bool isDownloading;
+  final bool isBusy;
   final VoidCallback onDownload;
   final VoidCallback onLoad;
   final VoidCallback onDelete;
@@ -402,6 +410,7 @@ class _ModelRow extends StatelessWidget {
     required this.loaded,
     required this.loading,
     required this.isDownloading,
+    required this.isBusy,
     required this.onDownload,
     required this.onLoad,
     required this.onDelete,
@@ -433,9 +442,9 @@ class _ModelRow extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _ActionButton(label: 'Load', loading: loading, onTap: onLoad),
+                _ActionButton(label: 'Load', loading: loading, onTap: isBusy ? null : onLoad, disabled: isBusy && !loading),
                 const SizedBox(width: 8),
-                _ActionButton(icon: Icons.delete_outline, loading: false, onTap: onDelete, color: const Color(0xFFFF3B30)),
+                _ActionButton(icon: Icons.delete_outline, loading: false, onTap: isBusy ? null : onDelete, color: const Color(0xFFFF3B30), disabled: isBusy),
               ],
             )
           else
@@ -443,8 +452,8 @@ class _ModelRow extends StatelessWidget {
               label: '${model.sizeMB} MB',
               icon: Icons.cloud_download_outlined,
               loading: loading,
-              onTap: isDownloading ? null : onDownload,
-              disabled: isDownloading,
+              onTap: (isDownloading || isBusy) ? null : onDownload,
+              disabled: isDownloading || isBusy,
             ),
         ],
       ),

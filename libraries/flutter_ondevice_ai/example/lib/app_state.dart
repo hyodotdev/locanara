@@ -143,7 +143,7 @@ class AppState extends ChangeNotifier {
         onTimeout: () => throw TimeoutException('Device capability check timed out'),
       );
       _capability = cap;
-      _isModelReady = cap.isModelReady || cap.isSupported;
+      _isModelReady = cap.isModelReady;
 
       final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
       _deviceInfo = DeviceInfoDisplay(
@@ -157,7 +157,7 @@ class AppState extends ChangeNotifier {
                 : 'Chrome Built-in AI',
       );
 
-      final modelReady = cap.isModelReady || cap.isSupported;
+      final modelReady = cap.isModelReady;
       _availableFeatures = _featureDefinitions.map((def) {
         final isComingSoon = _comingSoonFeatures.contains(def.id);
         final featureMap = cap.features;

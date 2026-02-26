@@ -676,25 +676,29 @@ class FlutterOndeviceAiPlugin : FlutterPlugin, MethodCallHandler {
                 } else {
                     0.0
                 }
+                scope.launch {
+                    downloadProgressSink?.success(
+                        mapOf(
+                            "modelId" to "gemini-nano",
+                            "bytesDownloaded" to progress.bytesDownloaded,
+                            "totalBytes" to progress.bytesToDownload,
+                            "progress" to pct,
+                            "state" to "downloading",
+                        )
+                    )
+                }
+            }
+            scope.launch {
                 downloadProgressSink?.success(
                     mapOf(
                         "modelId" to "gemini-nano",
-                        "bytesDownloaded" to progress.bytesDownloaded,
-                        "totalBytes" to progress.bytesToDownload,
-                        "progress" to pct,
-                        "state" to "downloading",
+                        "bytesDownloaded" to 0L,
+                        "totalBytes" to 0L,
+                        "progress" to 1.0,
+                        "state" to "completed",
                     )
                 )
             }
-            downloadProgressSink?.success(
-                mapOf(
-                    "modelId" to "gemini-nano",
-                    "bytesDownloaded" to 0L,
-                    "totalBytes" to 0L,
-                    "progress" to 1.0,
-                    "state" to "completed",
-                )
-            )
             android.util.Log.d(TAG, "downloadPromptApiModel: done")
             result.success(true)
         } catch (e: Exception) {

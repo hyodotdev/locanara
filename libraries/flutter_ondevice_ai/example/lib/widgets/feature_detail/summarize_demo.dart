@@ -59,10 +59,9 @@ class _SummarizeDemoState extends State<SummarizeDemo> {
       });
     } catch (e) {
       sw.stop();
+      if (!mounted) return;
       setState(() { _loading = false; });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ondevice_ai/flutter_ondevice_ai.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app_state.dart';
 import 'model_selection_sheet.dart';
@@ -75,7 +76,7 @@ class AIStatusBanner extends StatelessWidget {
         title: 'Apple Intelligence Required',
         subtitle: 'Enable Apple Intelligence in Settings',
         trailing: GestureDetector(
-          onTap: () {},
+          onTap: () => _openSettings(),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(color: const Color(0xFFFF9500), borderRadius: BorderRadius.circular(8)),
@@ -105,6 +106,15 @@ class AIStatusBanner extends StatelessWidget {
           ? 'Requires iPhone 15 Pro or newer with iOS 18.1+'
           : 'This device does not support on-device AI',
     );
+  }
+
+  Future<void> _openSettings() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      final uri = Uri.parse('app-settings:');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      }
+    }
   }
 
   void _showModelSheet(BuildContext context) {
