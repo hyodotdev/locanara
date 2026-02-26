@@ -19,17 +19,40 @@ import {DebugLogPanel, type DebugLog} from '../../shared/DebugLogPanel';
 
 const DEFAULT_INPUT =
   'The new iPhone features an incredible camera system with advanced computational photography.';
-const DEFAULT_CATEGORIES =
-  'Technology, Sports, Entertainment, Business, Health';
+const DEFAULT_CATEGORIES = [
+  'Technology',
+  'Sports',
+  'Entertainment',
+  'Business',
+  'Health',
+];
 
 export function ClassifyDemo() {
   const {isModelReady} = useAppState();
   const [inputText, setInputText] = useState(DEFAULT_INPUT);
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([
+    ...DEFAULT_CATEGORIES,
+  ]);
+  const [customCategory, setCustomCategory] = useState('');
   const [result, setResult] = useState<ClassifyResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [debugLog, setDebugLog] = useState<DebugLog | null>(null);
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category],
+    );
+  };
+
+  const addCustomCategory = () => {
+    const trimmed = customCategory.trim();
+    if (!trimmed || selectedCategories.includes(trimmed)) return;
+    setSelectedCategories((prev) => [...prev, trimmed]);
+    setCustomCategory('');
+  };
 
   const executeClassify = async () => {
     setIsLoading(true);
@@ -38,12 +61,7 @@ export function ClassifyDemo() {
     const start = Date.now();
 
     try {
-      const categoryList = categories
-        .split(',')
-        .map((c) => c.trim())
-        .filter(Boolean);
-
-      const options = {categories: categoryList};
+      const options = {categories: selectedCategories};
       console.log('[DEBUG] classify request:', JSON.stringify(options));
       const classifyResult = await classify(inputText, options);
       console.log('[DEBUG] classify response:', JSON.stringify(classifyResult));
@@ -73,6 +91,57 @@ export function ClassifyDemo() {
         {!isModelReady && <AIModelRequiredBanner />}
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Categories</Text>
+          <View style={styles.chipContainer}>
+            {DEFAULT_CATEGORIES.map((category) => {
+              const selected = selectedCategories.includes(category);
+              return (
+                <TouchableOpacity
+                  key={category}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                  onPress={() => toggleCategory(category)}
+                >
+                  {selected && <Text style={styles.chipCheck}>✓ </Text>}
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected && styles.chipTextSelected,
+                    ]}
+                  >
+                    {category}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.customRow}>
+            <TextInput
+              style={styles.customInput}
+              value={customCategory}
+              onChangeText={setCustomCategory}
+              placeholder="Add custom category..."
+              onSubmitEditing={addCustomCategory}
+              returnKeyType="done"
+            />
+            {customCategory.trim() ? (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={addCustomCategory}
+              >
+                <Text style={styles.addButtonText}>Add</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {selectedCategories.length > 0 && (
+            <Text style={styles.selectedText}>
+              Selected: {selectedCategories.join(', ')}
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Text to Classify</Text>
           <TextInput
             style={styles.textInput}
@@ -84,24 +153,22 @@ export function ClassifyDemo() {
           />
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Categories (comma-separated)</Text>
-          <TextInput
-            style={styles.categoryInput}
-            value={categories}
-            onChangeText={setCategories}
-            placeholder="Category1, Category2, Category3..."
-          />
-        </View>
-
         <TouchableOpacity
           style={[
             styles.button,
-            (isLoading || !inputText.trim() || !isModelReady) &&
+            (isLoading ||
+              !inputText.trim() ||
+              !isModelReady ||
+              selectedCategories.length === 0) &&
               styles.buttonDisabled,
           ]}
           onPress={executeClassify}
-          disabled={isLoading || !inputText.trim() || !isModelReady}
+          disabled={
+            isLoading ||
+            !inputText.trim() ||
+            !isModelReady ||
+            selectedCategories.length === 0
+          }
         >
           {isLoading ? <ActivityIndicator color="white" size="small" /> : null}
           <Text style={styles.buttonText}>
@@ -174,19 +241,69 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 8,
   },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  chipSelected: {
+    backgroundColor: 'rgba(0, 122, 255, 0.12)',
+  },
+  chipCheck: {
+    fontSize: 13,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  chipText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  chipTextSelected: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  customRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
+  customInput: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 15,
+    color: '#000',
+  },
+  addButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  addButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  selectedText: {
+    fontSize: 13,
+    color: '#007AFF',
+    marginTop: 8,
+  },
   textInput: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
     minHeight: 100,
-    color: '#000',
-  },
-  categoryInput: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
     color: '#000',
   },
   button: {

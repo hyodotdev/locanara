@@ -1,5 +1,7 @@
 package com.margelo.nitro.ondeviceai
 
+import android.app.ActivityManager
+import android.content.Context
 import com.facebook.react.bridge.ReactApplicationContext
 import com.locanara.DeviceCapability
 import com.locanara.FeatureType
@@ -13,6 +15,7 @@ import com.locanara.builtin.RewriteChain
 import com.locanara.builtin.SummarizeChain
 import com.locanara.builtin.TranslateChain
 import com.locanara.core.LocanaraDefaults
+import com.locanara.engine.ModelRegistry
 import com.locanara.mlkit.PromptApiStatus
 import com.locanara.platform.PromptApiModel
 import com.margelo.nitro.NitroModules
@@ -39,6 +42,17 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
     // Listener storage (thread-safe)
     private val chatStreamListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroChatStreamChunk) -> Unit>()
     private val modelDownloadProgressListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroModelDownloadProgress) -> Unit>()
+
+    // Simulated model state (matches native example behavior)
+    private val downloadedModelIds = mutableSetOf<String>()
+    private var loadedModelId: String? = null
+
+    private fun getDeviceMemoryMB(): Int {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val memInfo = ActivityManager.MemoryInfo()
+        am.getMemoryInfo(memInfo)
+        return (memInfo.totalMem / (1024 * 1024)).toInt()
+    }
 
     // ──────────────────────────────────────────────────────────────────
     // Initialization
@@ -236,31 +250,50 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
     // ──────────────────────────────────────────────────────────────────
 
     override fun getAvailableModels(): Promise<Array<NitroModelInfo>> {
-        return Promise.async { emptyArray() }
+        return Promise.async {
+            val memoryMB = getDeviceMemoryMB()
+            ModelRegistry.getCompatibleModels(memoryMB).map { m ->
+                NitroModelInfo(
+                    modelId = m.modelId,
+                    name = m.name,
+                    version = m.version,
+                    sizeMB = m.sizeMB.toDouble(),
+                    quantization = m.quantization.name,
+                    contextLength = m.contextLength.toDouble(),
+                    minMemoryMB = m.minMemoryMB.toDouble(),
+                    isMultimodal = false,
+                )
+            }.toTypedArray()
+        }
     }
 
     override fun getDownloadedModels(): Promise<Array<String>> {
-        return Promise.async { emptyArray() }
+        return Promise.async { downloadedModelIds.toTypedArray() }
     }
 
     override fun getLoadedModel(): Promise<String> {
-        return Promise.async { "" }
+        return Promise.async { loadedModelId ?: "" }
     }
 
     override fun getCurrentEngine(): Promise<NitroInferenceEngine> {
         return Promise.async {
             val status = locanara.getPromptApiStatus()
-            if (status is PromptApiStatus.Available) {
-                NitroInferenceEngine.PROMPT_API
-            } else {
-                NitroInferenceEngine.NONE
+            when (status) {
+                is PromptApiStatus.Available,
+                is PromptApiStatus.Downloadable,
+                is PromptApiStatus.Downloading -> NitroInferenceEngine.PROMPT_API
+                else -> NitroInferenceEngine.NONE
             }
         }
     }
 
     override fun downloadModel(modelId: String): Promise<Boolean> {
         return Promise.async {
-            throw Exception("Model downloads are not supported on Android. Use downloadPromptApiModel() instead.")
+            val model = ModelRegistry.getModel(modelId)
+                ?: throw Exception("Model not found: $modelId")
+            android.util.Log.d("OndeviceAi", "downloadModel: $modelId (${model.name}, ${model.sizeMB}MB) — simulated")
+            downloadedModelIds.add(modelId)
+            true
         }
     }
 
@@ -274,13 +307,19 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
 
     override fun loadModel(modelId: String): Promise<Unit> {
         return Promise.async {
-            throw Exception("Model loading is not supported on Android.")
+            if (!downloadedModelIds.contains(modelId)) {
+                throw Exception("Model not downloaded: $modelId")
+            }
+            android.util.Log.d("OndeviceAi", "loadModel: $modelId — simulated")
+            loadedModelId = modelId
         }
     }
 
     override fun deleteModel(modelId: String): Promise<Unit> {
         return Promise.async {
-            throw Exception("Model deletion is not supported on Android.")
+            android.util.Log.d("OndeviceAi", "deleteModel: $modelId — simulated")
+            downloadedModelIds.remove(modelId)
+            if (loadedModelId == modelId) loadedModelId = null
         }
     }
 

@@ -4,6 +4,13 @@
     {
       "type": "node-terminal",
       "request": "launch",
+      "name": "🌍 Run Site",
+      "command": "bunx convex dev & bun run dev",
+      "cwd": "${workspaceFolder}/packages/site"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
       "name": "🍎 Open Example App in Xcode",
       "command": "open Example/LocanaraExample.xcodeproj",
       "cwd": "${workspaceFolder}/packages/apple"
@@ -20,16 +27,16 @@
     {
       "type": "node-terminal",
       "request": "launch",
-      "name": "📝 GQL: Generate Types",
-      "command": "bun run generate",
-      "cwd": "${workspaceFolder}/packages/gql"
+      "name": "🌐 Web SDK: Dev Server",
+      "command": "bun run dev",
+      "cwd": "${workspaceFolder}/packages/web"
     },
     {
       "type": "node-terminal",
       "request": "launch",
-      "name": "🌍 Run Site",
-      "command": "bunx convex dev & bun run dev",
-      "cwd": "${workspaceFolder}/packages/site"
+      "name": "📝 GQL: Generate Types",
+      "command": "bun run generate",
+      "cwd": "${workspaceFolder}/packages/gql"
     },
     {
       "type": "node-terminal",
@@ -72,6 +79,27 @@
       "name": "📱 React Native: Android",
       "command": "bun android",
       "cwd": "${workspaceFolder}/libraries/react-native-ondevice-ai/example"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "🦋 Flutter: Run (iOS)",
+      "command": "flutter run",
+      "cwd": "${workspaceFolder}/libraries/flutter_ondevice_ai/example"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "🦋 Flutter: Run (Android)",
+      "command": "flutter run",
+      "cwd": "${workspaceFolder}/libraries/flutter_ondevice_ai/example"
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "🦋 Flutter: Run (Web)",
+      "command": "flutter run -d chrome",
+      "cwd": "${workspaceFolder}/libraries/flutter_ondevice_ai/example"
     }
   ]
 }

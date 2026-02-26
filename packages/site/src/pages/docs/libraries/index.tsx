@@ -9,7 +9,7 @@ function LibrariesIndex() {
         title="Libraries"
         description="Third-party framework integrations for Locanara SDK."
         path="/docs/libraries"
-        keywords="expo, react native, on-device AI, locanara"
+        keywords="expo, react native, flutter, on-device AI, locanara"
       />
       <h1>Libraries</h1>
       <p>
@@ -27,12 +27,12 @@ function LibrariesIndex() {
             <span className="badge badge-warning">In Progress</span>
           </Link>
 
-          <div className="api-card disabled">
-            <div className="api-card-icon">⚛️</div>
-            <h3>react-native-ondevice-ai</h3>
-            <p>React Native module for on-device AI</p>
-            <span className="badge badge-secondary">Planned</span>
-          </div>
+          <Link to="/docs/libraries/flutter" className="api-card">
+            <div className="api-card-icon">🦋</div>
+            <h3>flutter_ondevice_ai</h3>
+            <p>Flutter plugin for on-device AI</p>
+            <span className="badge badge-warning">In Progress</span>
+          </Link>
         </div>
       </section>
 

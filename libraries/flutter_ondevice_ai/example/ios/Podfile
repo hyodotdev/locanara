@@ -1,0 +1,144 @@
+platform :ios, '17.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+# LocanaraLlamaBridge: Isolated C++ interop for llama.cpp
+def configure_llama_bridge(installer)
+  begin
+    pods_project = installer.pods_project
+
+    # Add SPM package reference for LocalLLMClient
+    pkg_ref = pods_project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
+    pkg_ref.repositoryURL = 'https://github.com/tattn/LocalLLMClient.git'
+    pkg_ref.requirement = { 'kind' => 'branch', 'branch' => 'main' }
+    pods_project.root_object.package_references << pkg_ref
+
+    # Find the bridge target (ONLY this target gets C++ interop)
+    bridge_target = pods_project.targets.find { |t| t.name == 'LocanaraLlamaBridge' }
+    unless bridge_target
+      puts "\u26a0\ufe0f [flutter_ondevice_ai] LocanaraLlamaBridge target not found"
+      return
+    end
+
+    # Add SPM product dependencies to the bridge target
+    ['LocalLLMClient', 'LocalLLMClientLlama'].each do |product_name|
+      dep = pods_project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+      dep.product_name = product_name
+      dep.package = pkg_ref
+      bridge_target.package_product_dependencies << dep
+    end
+
+    # Enable C++ interop and add SPM module search paths ONLY on the bridge target
+    bridge_target.build_configurations.each do |bc|
+      swift_flags = bc.build_settings['OTHER_SWIFT_FLAGS'] || '$(inherited)'
+      unless swift_flags.include?('-cxx-interoperability-mode')
+        bc.build_settings['OTHER_SWIFT_FLAGS'] = "#{swift_flags} -cxx-interoperability-mode=default -Xcc -std=c++20"
+      end
+      bc.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+      bc.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+    end
+
+    puts "\u2705 [flutter_ondevice_ai] LocanaraLlamaBridge configured with C++ interop"
+  rescue => e
+    puts "\u26a0\ufe0f [flutter_ondevice_ai] Bridge configuration failed: #{e.message}"
+    puts e.backtrace&.first(3)&.join("\n")
+  end
+end
+
+# Embed SPM-produced dynamic frameworks (llama.framework) into the app bundle.
+# Must run BEFORE Flutter's "Thin Binary" phase which finalizes the app.
+def embed_spm_frameworks
+  begin
+    runner_project_path = File.join(__dir__, 'Runner.xcodeproj')
+    runner_project = Xcodeproj::Project.open(runner_project_path)
+    runner_target = runner_project.targets.find { |t| t.name == 'Runner' }
+    return unless runner_target
+
+    phase_name = 'Embed SPM Frameworks'
+
+    # Remove existing phase to avoid duplicates on re-install
+    runner_target.shell_script_build_phases
+      .select { |p| p.name == phase_name }
+      .each { |p| p.remove_from_project }
+
+    phase = runner_target.new_shell_script_build_phase(phase_name)
+    phase.shell_script = <<~'SCRIPT'
+      # Copy SPM-produced dynamic frameworks (e.g., llama.framework) into the app bundle
+      DEST="${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}"
+      mkdir -p "$DEST"
+      for FW_NAME in llama; do
+        FW_PATH="${BUILT_PRODUCTS_DIR}/${FW_NAME}.framework"
+        if [ -d "$FW_PATH" ]; then
+          echo "Embedding ${FW_NAME}.framework"
+          cp -R "$FW_PATH" "$DEST/"
+          if [ -n "${EXPANDED_CODE_SIGN_IDENTITY}" ] && [ "${CODE_SIGNING_ALLOWED}" = "YES" ]; then
+            codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements "$DEST/${FW_NAME}.framework"
+          fi
+        fi
+      done
+    SCRIPT
+
+    # Move the phase BEFORE "Thin Binary" (which is the last shell script phase added by Flutter)
+    # Find the "Thin Binary" phase index
+    phases = runner_target.build_phases
+    thin_binary_index = phases.index { |p|
+      p.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase) &&
+      p.shell_script&.include?('embed_and_thin')
+    }
+
+    if thin_binary_index
+      # Move our phase (currently last) to before Thin Binary
+      phases.move(phase, thin_binary_index)
+    end
+
+    runner_project.save
+    puts "\u2705 [flutter_ondevice_ai] Added SPM framework embedding to Runner (before Thin Binary)"
+  rescue => e
+    puts "\u26a0\ufe0f [flutter_ondevice_ai] SPM embedding setup failed: #{e.message}"
+    puts e.backtrace&.first(3)&.join("\n")
+  end
+end
+
+target 'Runner' do
+  use_frameworks! :linkage => :static
+
+  pod 'Locanara', :path => '../../../../packages/apple'
+  pod 'LocanaraLlamaBridge', :path => 'LocanaraLlamaBridge'
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  configure_llama_bridge(installer)
+  embed_spm_frameworks
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+  end
+end

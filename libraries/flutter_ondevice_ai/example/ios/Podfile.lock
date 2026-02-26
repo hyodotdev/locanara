@@ -1,0 +1,34 @@
+PODS:
+  - Flutter (1.0.0)
+  - flutter_ondevice_ai (0.1.0):
+    - Flutter
+    - Locanara
+  - Locanara (1.1.0)
+  - LocanaraLlamaBridge (1.0.0):
+    - Locanara
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - flutter_ondevice_ai (from `.symlinks/plugins/flutter_ondevice_ai/ios`)
+  - Locanara (from `../../../../packages/apple`)
+  - LocanaraLlamaBridge (from `LocanaraLlamaBridge`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  flutter_ondevice_ai:
+    :path: ".symlinks/plugins/flutter_ondevice_ai/ios"
+  Locanara:
+    :path: "../../../../packages/apple"
+  LocanaraLlamaBridge:
+    :path: LocanaraLlamaBridge
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_ondevice_ai: a9e0852796bb404f8c9faa3b271c7487d4a36ce5
+  Locanara: c54177afb7c8881fd2ab571cd1f717f28a4d596b
+  LocanaraLlamaBridge: 40c628f7170bff79d4cc8a178d0e08a0a397844e
+
+PODFILE CHECKSUM: a7605560bbf51597b527becebb9c92377fed5f4a
+
+COCOAPODS: 1.16.2

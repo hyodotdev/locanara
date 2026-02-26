@@ -113,7 +113,7 @@ export const LIBRARIES_NAV: readonly NavSection[] = [
     titleTo: "/docs/libraries",
     items: [
       { to: "/docs/libraries/expo", label: "Expo Module" },
-      // Add more library integrations here
+      { to: "/docs/libraries/flutter", label: "Flutter Plugin" },
     ],
   },
 ] as const;

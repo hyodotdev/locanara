@@ -1,0 +1,34 @@
+name: flutter_ondevice_ai
+description: Flutter plugin for on-device AI using Locanara SDK. Supports iOS (Apple Intelligence), Android (Gemini Nano), and Web (Chrome Built-in AI).
+version: 0.1.0
+homepage: https://github.com/hyodotdev/locanara
+repository: https://github.com/hyodotdev/locanara
+issue_tracker: https://github.com/hyodotdev/locanara/issues
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  web: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.hyodot.flutter_ondevice_ai
+        pluginClass: FlutterOndeviceAiPlugin
+      ios:
+        pluginClass: FlutterOndeviceAiPlugin
+      web:
+        pluginClass: FlutterOndeviceAiWebPlugin
+        fileName: src/flutter_ondevice_ai_web.dart

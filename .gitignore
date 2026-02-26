@@ -73,6 +73,12 @@ bun.lockb
 # Claude Code
 .claude/settings.local.json
 
+# Flutter/Dart
+.dart_tool/
+.packages
+pubspec.lock
+!libraries/flutter_ondevice_ai/example/pubspec.lock
+
 # Firebase
 .firebase/
 firebase-debug.log

@@ -25,6 +25,22 @@ object ExpoOndeviceAiSerialization {
 
     // endregion
 
+    // region Model Info
+
+    fun modelInfo(m: DownloadableModelInfo): Map<String, Any> =
+        mapOf(
+            "modelId" to m.modelId,
+            "name" to m.name,
+            "version" to m.version,
+            "sizeMB" to m.sizeMB,
+            "quantization" to m.quantization.name,
+            "contextLength" to m.contextLength,
+            "minMemoryMB" to m.minMemoryMB,
+            "isMultimodal" to false,
+        )
+
+    // endregion
+
     // region Result Serializers
 
     fun summarize(r: SummarizeResult): Map<String, Any> =
