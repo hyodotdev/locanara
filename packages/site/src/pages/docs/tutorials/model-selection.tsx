@@ -338,7 +338,7 @@ await deleteModel('llama-3.2-1b');`,
 
       <PageNavigation
         prev={{ to: "/docs/tutorials/proofread", label: "Proofread" }}
-        next={{ to: "/docs/libraries/expo", label: "expo-ondevice-ai" }}
+        next={{ to: "/docs/tutorials/model", label: "Model" }}
       />
     </div>
   );

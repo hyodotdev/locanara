@@ -76,6 +76,53 @@ function TutorialsIndex() {
         </div>
       </section>
 
+      <section>
+        <h2 id="framework-tutorials">Framework Tutorials</h2>
+        <p>
+          Learn the composable building blocks of Locanara — the same primitives
+          used by the built-in features above. Build custom AI workflows using
+          chains, pipelines, memory, and agents.
+        </p>
+        <div className="api-cards-grid">
+          <Link to="/docs/tutorials/model" className="api-card">
+            <h3>Model</h3>
+            <p>
+              Direct model usage with GenerationConfig presets and streaming.
+            </p>
+          </Link>
+          <Link to="/docs/tutorials/chain" className="api-card">
+            <h3>Chain</h3>
+            <p>
+              Compose AI logic with ModelChain, SequentialChain, ParallelChain,
+              and custom chains.
+            </p>
+          </Link>
+          <Link to="/docs/tutorials/pipeline" className="api-card">
+            <h3>Pipeline</h3>
+            <p>Multi-step AI composition with compile-time type safety.</p>
+          </Link>
+          <Link to="/docs/tutorials/memory" className="api-card">
+            <h3>Memory</h3>
+            <p>
+              BufferMemory and SummaryMemory for conversation history
+              management.
+            </p>
+          </Link>
+          <Link to="/docs/tutorials/guardrail" className="api-card">
+            <h3>Guardrail</h3>
+            <p>Input validation and content safety for AI chains.</p>
+          </Link>
+          <Link to="/docs/tutorials/session" className="api-card">
+            <h3>Session</h3>
+            <p>Stateful chat with automatic memory management.</p>
+          </Link>
+          <Link to="/docs/tutorials/agent" className="api-card">
+            <h3>Agent</h3>
+            <p>ReAct-lite agents with tools and step-by-step reasoning.</p>
+          </Link>
+        </div>
+      </section>
+
       <PageNavigation
         prev={{ to: "/docs/resources", label: "Resources" }}
         next={{ to: "/docs/tutorials/summarize", label: "Summarize Tutorial" }}

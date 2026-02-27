@@ -48,6 +48,13 @@ import TranslateTutorial from "./tutorials/translate";
 import ChatTutorial from "./tutorials/chat";
 import RewriteTutorial from "./tutorials/rewrite";
 import ProofreadTutorial from "./tutorials/proofread";
+import ModelTutorial from "./tutorials/model";
+import ChainTutorial from "./tutorials/chain";
+import PipelineTutorial from "./tutorials/pipeline";
+import MemoryTutorial from "./tutorials/memory";
+import GuardrailTutorial from "./tutorials/guardrail";
+import SessionTutorial from "./tutorials/session";
+import AgentTutorial from "./tutorials/agent";
 import Introduction from "./introduction";
 import WhyLocanara from "./why-locanara";
 import LibrariesIndex from "./libraries/index";
@@ -322,6 +329,72 @@ function Docs() {
               </NavLink>
             </li>
           </ul>
+          <h3 className="mt-8">Framework</h3>
+          <ul>
+            <li>
+              <NavLink
+                to="/docs/tutorials/model"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Model
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/chain"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Chain
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/pipeline"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Pipeline
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/memory"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Memory
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/guardrail"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Guardrail
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/session"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Session
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/tutorials/agent"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Agent
+              </NavLink>
+            </li>
+          </ul>
           <h3 className="mt-8">Libraries</h3>
           <ul>
             <li>
@@ -409,6 +482,13 @@ function Docs() {
           <Route path="tutorials/chat" element={<ChatTutorial />} />
           <Route path="tutorials/rewrite" element={<RewriteTutorial />} />
           <Route path="tutorials/proofread" element={<ProofreadTutorial />} />
+          <Route path="tutorials/model" element={<ModelTutorial />} />
+          <Route path="tutorials/chain" element={<ChainTutorial />} />
+          <Route path="tutorials/pipeline" element={<PipelineTutorial />} />
+          <Route path="tutorials/memory" element={<MemoryTutorial />} />
+          <Route path="tutorials/guardrail" element={<GuardrailTutorial />} />
+          <Route path="tutorials/session" element={<SessionTutorial />} />
+          <Route path="tutorials/agent" element={<AgentTutorial />} />
           <Route path="libraries" element={<LibrariesIndex />} />
           <Route path="libraries/expo" element={<ExpoLibrary />} />
           <Route path="libraries/flutter" element={<FlutterLibrary />} />
