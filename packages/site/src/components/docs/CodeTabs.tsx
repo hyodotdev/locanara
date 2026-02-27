@@ -3,7 +3,7 @@ import CodeBlock from "./CodeBlock";
 
 interface Tab {
   label: string;
-  language: "swift" | "kotlin" | "typescript" | "bash" | "text";
+  language: "swift" | "kotlin" | "typescript" | "dart" | "bash" | "text";
   code: string;
 }
 
