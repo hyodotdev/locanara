@@ -17,7 +17,7 @@ let package = Package(
     ],
     dependencies: [
         // LocalLLMClient - llama.cpp wrapper for on-device LLM inference
-        .package(url: "https://github.com/tattn/LocalLLMClient.git", branch: "main"),
+        .package(url: "https://github.com/tattn/LocalLLMClient.git", from: "0.4.6"),
     ],
     targets: [
         .target(
