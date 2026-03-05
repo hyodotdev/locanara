@@ -13,6 +13,16 @@ The Apple SDK provides the Locanara on-device AI framework for iOS and macOS. It
 - iOS 26+ for Apple Intelligence (Foundation Models)
 - Swift 6.0+ (language mode v5, C++ interop enabled for llama.cpp)
 
+## SPM Distribution
+
+The root `Package.swift` exists for SPM compatibility. It mirrors `packages/apple/Package.swift` but uses `packages/apple/Sources` and `packages/apple/Tests` as target paths. This allows consumers to add Locanara via:
+
+```swift
+.package(url: "https://github.com/hyodotdev/locanara", from: "1.1.0")
+```
+
+**Important:** Apple release tags must use plain version numbers (e.g., `1.1.0`) without a platform prefix, because SPM requires semver-compatible git tags. When updating `packages/apple/Package.swift`, always sync changes to the root `Package.swift`.
+
 ## Build Commands
 
 ```bash

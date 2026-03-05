@@ -42,6 +42,16 @@ Each workflow has one input:
 
 > npm (expo-ondevice-ai) uses OIDC trusted publishing — no token secret needed.
 
+## SPM Distribution
+
+The root `Package.swift` mirrors `packages/apple/Package.swift` but points paths to `packages/apple/Sources` and `packages/apple/Tests`. This allows SPM consumers to add Locanara via:
+
+```swift
+.package(url: "https://github.com/hyodotdev/locanara", from: "1.1.0")
+```
+
+Apple release tags **must use plain version numbers** (e.g., `1.1.0`, not `apple-1.1.0`) for SPM compatibility. Android tags use the `android-` prefix.
+
 ## Versioning
 
 Versions are tracked in `locanara-versions.json` (single source of truth):

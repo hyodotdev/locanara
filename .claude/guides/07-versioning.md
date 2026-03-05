@@ -34,6 +34,19 @@ See [docs/VERSION_SYNC.md](../../docs/VERSION_SYNC.md) for details.
 - `libraries/expo-ondevice-ai/package.json` - Expo module version (auto-synced)
 - `packages/site/locanara-versions.json` - Site version display (copied from root)
 
+## Git Tag Convention
+
+Tags use platform-prefixed names for platform-specific releases:
+
+| Platform | Tag Format       | Example          |
+| -------- | ---------------- | ---------------- |
+| Apple    | `{version}`      | `1.1.0`          |
+| Android  | `android-{ver}`  | `android-1.1.1`  |
+
+**Apple tags use plain version numbers** (no prefix) because SPM requires semver-compatible tags at the root level. The root `Package.swift` points to `packages/apple/Sources` so SPM consumers can use `https://github.com/hyodotdev/locanara` directly.
+
+Android uses `android-` prefix since it is distributed via Maven Central and doesn't need SPM-compatible tags.
+
 ## Release Checklist
 
 1. Update version: `bun run version:bump`
