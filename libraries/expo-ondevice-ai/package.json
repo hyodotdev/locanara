@@ -10,6 +10,7 @@
     "ios",
     "plugin/build",
     "app.plugin.js",
+    "expo-module.config.json",
     "README.md",
     "LICENSE"
   ],
