@@ -1,6 +1,6 @@
 {
   "name": "expo-ondevice-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Expo module for on-device AI using Locanara SDK",
   "main": "build/index.js",
   "types": "build/index.d.ts",
