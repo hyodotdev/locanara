@@ -182,6 +182,14 @@ implementation("com.locanara:locanara:1.0.0")
 
 - [**site**](packages/site) — Website + Documentation → [locanara.com](https://locanara.com)
 
+## Libraries
+
+- [**expo-ondevice-ai**](libraries/expo-ondevice-ai) — Expo module
+  [![npm](https://img.shields.io/npm/v/expo-ondevice-ai?label=npm)](https://www.npmjs.com/package/expo-ondevice-ai)
+
+- [**flutter_ondevice_ai**](libraries/flutter_ondevice_ai) — Flutter plugin
+  [![pub](https://img.shields.io/pub/v/flutter_ondevice_ai?label=pub.dev)](https://pub.dev/packages/flutter_ondevice_ai)
+
 ---
 
 ## Requirements
