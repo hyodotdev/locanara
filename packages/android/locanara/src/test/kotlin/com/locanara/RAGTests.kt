@@ -103,8 +103,8 @@ class DocumentChunkerTest {
         val chunks = chunker.chunk(text, metadata = metadata)
         chunks.forEach { chunk ->
             assertNotNull(chunk.metadata)
-            assertEquals("test-doc", chunk.metadata!!["source"])
-            assertEquals("Alice", chunk.metadata["author"])
+            assertEquals("test-doc", chunk.metadata?.get("source"))
+            assertEquals("Alice", chunk.metadata?.get("author"))
         }
     }
 

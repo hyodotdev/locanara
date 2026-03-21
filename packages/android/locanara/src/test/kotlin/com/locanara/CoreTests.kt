@@ -48,6 +48,7 @@ class PromptTemplateTest {
     @Test
     fun `auto detection`() {
         val template = PromptTemplate.from("Hello {name}, welcome to {place}")
+        assertEquals(listOf("name", "place"), template.inputVariables)
         val result = template.format(mapOf("name" to "Alice", "place" to "Locanara"))
         assertEquals("Hello Alice, welcome to Locanara", result)
     }
