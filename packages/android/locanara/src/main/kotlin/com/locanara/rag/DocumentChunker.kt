@@ -218,7 +218,7 @@ class DocumentChunker(
             }
 
             // Move forward with overlap
-            val moveDistance = maxOf(1, chunkSize - config.chunkOverlap)
+            val moveDistance = maxOf(1, config.targetChunkSize - config.chunkOverlap)
             currentIndex += moveDistance
         }
 
