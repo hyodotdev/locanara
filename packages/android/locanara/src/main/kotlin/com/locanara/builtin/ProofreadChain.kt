@@ -1,5 +1,6 @@
 package com.locanara.builtin
 
+import com.locanara.LocanaraException
 import com.locanara.ProofreadCorrection
 import com.locanara.ProofreadResult
 import com.locanara.composable.Chain
@@ -86,6 +87,6 @@ class ProofreadChain(
     suspend fun run(text: String): ProofreadResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<ProofreadResult>()
-            ?: throw IllegalStateException("Unexpected output type from ProofreadChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from ProofreadChain")
     }
 }

@@ -2,6 +2,7 @@ package com.locanara.builtin
 
 import com.locanara.Entity
 import com.locanara.ExtractResult
+import com.locanara.LocanaraException
 import com.locanara.composable.Chain
 import com.locanara.core.ChainInput
 import com.locanara.core.ChainOutput
@@ -62,6 +63,6 @@ class ExtractChain(
     suspend fun run(text: String): ExtractResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<ExtractResult>()
-            ?: throw IllegalStateException("Unexpected output type from ExtractChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from ExtractChain")
     }
 }
