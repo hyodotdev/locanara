@@ -41,6 +41,9 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
 
     // Listener storage (thread-safe)
     private val chatStreamListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroChatStreamChunk) -> Unit>()
+    private val summarizeStreamListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroTextStreamChunk) -> Unit>()
+    private val translateStreamListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroTextStreamChunk) -> Unit>()
+    private val rewriteStreamListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroTextStreamChunk) -> Unit>()
     private val modelDownloadProgressListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroModelDownloadProgress) -> Unit>()
 
     // Simulated model state (matches native example behavior)
@@ -198,6 +201,87 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
                 corrections = corrections.toTypedArray(),
                 hasCorrections = result.hasCorrections,
             )
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Streaming Variants (Summarize / Translate / Rewrite)
+    // Chains don't expose token-level streaming, so we emit a single
+    // final chunk after the regular run completes.
+    // ──────────────────────────────────────────────────────────────────
+
+    override fun summarizeStreaming(text: String, options: Variant_NullType_NitroSummarizeOptions?): Promise<NitroSummarizeResult> {
+        return Promise.async {
+            val bulletCount = OndeviceAiHelper.bulletCount(options)
+            val inputType = OndeviceAiHelper.inputType(options)
+            val result = SummarizeChain(bulletCount = bulletCount, inputType = inputType).run(text)
+            val chunk = NitroTextStreamChunk(delta = result.summary, accumulated = result.summary, isFinal = true)
+            summarizeStreamListeners.forEach { it(chunk) }
+            NitroSummarizeResult(
+                summary = result.summary,
+                originalLength = result.originalLength.toDouble(),
+                summaryLength = result.summaryLength.toDouble(),
+                confidence = result.confidence ?: 0.0,
+            )
+        }
+    }
+
+    override fun addSummarizeStreamListener(listener: (NitroTextStreamChunk) -> Unit) {
+        summarizeStreamListeners.add(listener)
+    }
+
+    override fun removeSummarizeStreamListener(listener: (NitroTextStreamChunk) -> Unit) {
+        summarizeStreamListeners.remove(listener)
+    }
+
+    override fun translateStreaming(text: String, options: NitroTranslateOptions): Promise<NitroTranslateResult> {
+        return Promise.async {
+            val (source, target) = OndeviceAiHelper.translateOptions(options)
+            val result = TranslateChain(sourceLanguage = source, targetLanguage = target).run(text)
+            val chunk = NitroTextStreamChunk(delta = result.translatedText, accumulated = result.translatedText, isFinal = true)
+            translateStreamListeners.forEach { it(chunk) }
+            NitroTranslateResult(
+                translatedText = result.translatedText,
+                sourceLanguage = result.sourceLanguage,
+                targetLanguage = result.targetLanguage,
+                confidence = result.confidence ?: 0.0,
+            )
+        }
+    }
+
+    override fun addTranslateStreamListener(listener: (NitroTextStreamChunk) -> Unit) {
+        translateStreamListeners.add(listener)
+    }
+
+    override fun removeTranslateStreamListener(listener: (NitroTextStreamChunk) -> Unit) {
+        translateStreamListeners.remove(listener)
+    }
+
+    override fun rewriteStreaming(text: String, options: NitroRewriteOptions): Promise<NitroRewriteResult> {
+        return Promise.async {
+            val style = OndeviceAiHelper.rewriteStyle(options)
+            val result = RewriteChain(style = style).run(text)
+            val chunk = NitroTextStreamChunk(delta = result.rewrittenText, accumulated = result.rewrittenText, isFinal = true)
+            rewriteStreamListeners.forEach { it(chunk) }
+            NitroRewriteResult(
+                rewrittenText = result.rewrittenText,
+                style = result.style?.name ?: "",
+                confidence = result.confidence ?: 0.0,
+            )
+        }
+    }
+
+    override fun addRewriteStreamListener(listener: (NitroTextStreamChunk) -> Unit) {
+        rewriteStreamListeners.add(listener)
+    }
+
+    override fun removeRewriteStreamListener(listener: (NitroTextStreamChunk) -> Unit) {
+        rewriteStreamListeners.remove(listener)
+    }
+
+    override fun describeImage(imageUri: String, options: Variant_NullType_NitroDescribeImageOptions?): Promise<NitroDescribeImageResult> {
+        return Promise.async {
+            throw Exception("describeImage is not supported on Android. This feature requires the Web SDK (Chrome Built-in AI).")
         }
     }
 
