@@ -597,22 +597,29 @@ final class ErrorHandlingTests: XCTestCase {
         XCTAssertTrue(error.errorDescription?.contains("too short") ?? false)
     }
 
-    // MARK: Chain error propagation tests
+    // MARK: Helpers
 
-    func testSummarizeChainPropagatesModelError() async {
-        struct TimeoutModel: LocanaraModel {
-            let name = "TimeoutModel"
+    /// Returns a LocanaraModel that always throws the given error from generate().
+    private func makeFailingModel(throwing error: LocanaraError) -> some LocanaraModel {
+        struct FailingModel: LocanaraModel {
+            let errorToThrow: LocanaraError
+            let name = "FailingModel"
             let isReady = true
             let maxContextTokens = 4000
             func generate(prompt: String, config: GenerationConfig?) async throws -> ModelResponse {
-                throw LocanaraError.inferenceTimeout
+                throw errorToThrow
             }
             func stream(prompt: String, config: GenerationConfig?) -> AsyncThrowingStream<String, Error> {
-                AsyncThrowingStream { _ in }
+                AsyncThrowingStream { $0.finish() }
             }
         }
+        return FailingModel(errorToThrow: error)
+    }
 
-        let chain = SummarizeChain(model: TimeoutModel())
+    // MARK: Chain error propagation tests
+
+    func testSummarizeChainPropagatesModelError() async {
+        let chain = SummarizeChain(model: makeFailingModel(throwing: .inferenceTimeout))
         do {
             _ = try await chain.run("test text")
             XCTFail("Expected LocanaraError to be thrown")
@@ -624,19 +631,7 @@ final class ErrorHandlingTests: XCTestCase {
     }
 
     func testClassifyChainPropagatesModelError() async {
-        struct FailingModel: LocanaraModel {
-            let name = "FailingModel"
-            let isReady = true
-            let maxContextTokens = 4000
-            func generate(prompt: String, config: GenerationConfig?) async throws -> ModelResponse {
-                throw LocanaraError.executionFailed("model busy")
-            }
-            func stream(prompt: String, config: GenerationConfig?) -> AsyncThrowingStream<String, Error> {
-                AsyncThrowingStream { _ in }
-            }
-        }
-
-        let chain = ClassifyChain(model: FailingModel(), categories: ["a", "b"])
+        let chain = ClassifyChain(model: makeFailingModel(throwing: .executionFailed("model busy")), categories: ["a", "b"])
         do {
             _ = try await chain.run("test")
             XCTFail("Expected LocanaraError to be thrown")
@@ -648,19 +643,7 @@ final class ErrorHandlingTests: XCTestCase {
     }
 
     func testTranslateChainPropagatesModelError() async {
-        struct FailingModel: LocanaraModel {
-            let name = "FailingModel"
-            let isReady = true
-            let maxContextTokens = 4000
-            func generate(prompt: String, config: GenerationConfig?) async throws -> ModelResponse {
-                throw LocanaraError.insufficientMemory(required: 8192, available: 1024)
-            }
-            func stream(prompt: String, config: GenerationConfig?) -> AsyncThrowingStream<String, Error> {
-                AsyncThrowingStream { _ in }
-            }
-        }
-
-        let chain = TranslateChain(model: FailingModel(), targetLanguage: "ko")
+        let chain = TranslateChain(model: makeFailingModel(throwing: .insufficientMemory(required: 8192, available: 1024)), targetLanguage: "ko")
         do {
             _ = try await chain.run("hello")
             XCTFail("Expected LocanaraError to be thrown")
@@ -672,19 +655,7 @@ final class ErrorHandlingTests: XCTestCase {
     }
 
     func testProofreadChainPropagatesModelError() async {
-        struct CancelledModel: LocanaraModel {
-            let name = "CancelledModel"
-            let isReady = true
-            let maxContextTokens = 4000
-            func generate(prompt: String, config: GenerationConfig?) async throws -> ModelResponse {
-                throw LocanaraError.inferenceCancelled
-            }
-            func stream(prompt: String, config: GenerationConfig?) -> AsyncThrowingStream<String, Error> {
-                AsyncThrowingStream { _ in }
-            }
-        }
-
-        let chain = ProofreadChain(model: CancelledModel())
+        let chain = ProofreadChain(model: makeFailingModel(throwing: .inferenceCancelled))
         do {
             _ = try await chain.run("text")
             XCTFail("Expected LocanaraError to be thrown")
@@ -696,19 +667,7 @@ final class ErrorHandlingTests: XCTestCase {
     }
 
     func testRewriteChainPropagatesModelError() async {
-        struct FailingModel: LocanaraModel {
-            let name = "FailingModel"
-            let isReady = true
-            let maxContextTokens = 4000
-            func generate(prompt: String, config: GenerationConfig?) async throws -> ModelResponse {
-                throw LocanaraError.executionFailed("rewrite error")
-            }
-            func stream(prompt: String, config: GenerationConfig?) -> AsyncThrowingStream<String, Error> {
-                AsyncThrowingStream { _ in }
-            }
-        }
-
-        let chain = RewriteChain(model: FailingModel(), style: .professional)
+        let chain = RewriteChain(model: makeFailingModel(throwing: .executionFailed("rewrite error")), style: .professional)
         do {
             _ = try await chain.run("text")
             XCTFail("Expected LocanaraError to be thrown")
@@ -720,19 +679,7 @@ final class ErrorHandlingTests: XCTestCase {
     }
 
     func testChatChainPropagatesModelError() async {
-        struct FailingModel: LocanaraModel {
-            let name = "FailingModel"
-            let isReady = true
-            let maxContextTokens = 4000
-            func generate(prompt: String, config: GenerationConfig?) async throws -> ModelResponse {
-                throw LocanaraError.executionFailed("chat error")
-            }
-            func stream(prompt: String, config: GenerationConfig?) -> AsyncThrowingStream<String, Error> {
-                AsyncThrowingStream { _ in }
-            }
-        }
-
-        let chain = ChatChain(model: FailingModel())
+        let chain = ChatChain(model: makeFailingModel(throwing: .executionFailed("chat error")))
         do {
             _ = try await chain.run("hello")
             XCTFail("Expected LocanaraError to be thrown")
@@ -744,19 +691,7 @@ final class ErrorHandlingTests: XCTestCase {
     }
 
     func testExtractChainPropagatesModelError() async {
-        struct FailingModel: LocanaraModel {
-            let name = "FailingModel"
-            let isReady = true
-            let maxContextTokens = 4000
-            func generate(prompt: String, config: GenerationConfig?) async throws -> ModelResponse {
-                throw LocanaraError.executionFailed("extract error")
-            }
-            func stream(prompt: String, config: GenerationConfig?) -> AsyncThrowingStream<String, Error> {
-                AsyncThrowingStream { _ in }
-            }
-        }
-
-        let chain = ExtractChain(model: FailingModel(), entityTypes: ["person"])
+        let chain = ExtractChain(model: makeFailingModel(throwing: .executionFailed("extract error")), entityTypes: ["person"])
         do {
             _ = try await chain.run("Tim Cook")
             XCTFail("Expected LocanaraError to be thrown")

@@ -510,21 +510,27 @@ class ErrorHandlingTest {
     @Test
     fun `ModelBusy has correct message and code`() {
         val exception = LocanaraException.ModelBusy
-        assertTrue(exception.message!!.contains("busy"))
+        val message = exception.message
+        assertNotNull(message)
+        assertTrue(message!!.contains("busy"))
         assertEquals(ErrorCode.MODEL_BUSY, exception.code)
     }
 
     @Test
     fun `BackgroundUseBlocked has correct message and code`() {
         val exception = LocanaraException.BackgroundUseBlocked
-        assertTrue(exception.message!!.contains("foreground"))
+        val message = exception.message
+        assertNotNull(message)
+        assertTrue(message!!.contains("foreground"))
         assertEquals(ErrorCode.BACKGROUND_USE_BLOCKED, exception.code)
     }
 
     @Test
     fun `ExecutionFailed preserves reason in message`() {
         val exception = LocanaraException.ExecutionFailed("something went wrong")
-        assertTrue(exception.message!!.contains("something went wrong"))
+        val message = exception.message
+        assertNotNull(message)
+        assertTrue(message!!.contains("something went wrong"))
         assertEquals(ErrorCode.EXECUTION_FAILED, exception.code)
     }
 
@@ -538,7 +544,9 @@ class ErrorHandlingTest {
     @Test
     fun `InvalidInput has correct code`() {
         val exception = LocanaraException.InvalidInput("too short")
-        assertTrue(exception.message!!.contains("too short"))
+        val message = exception.message
+        assertNotNull(message)
+        assertTrue(message!!.contains("too short"))
         assertEquals(ErrorCode.INVALID_INPUT, exception.code)
     }
 
@@ -563,7 +571,9 @@ class ErrorHandlingTest {
             runBlocking { chain.run("test text") }
             fail("Expected LocanaraException.ExecutionFailed")
         } catch (e: LocanaraException.ExecutionFailed) {
-            assertTrue(e.message!!.contains("model timeout"))
+            val message = e.message
+            assertNotNull(message)
+            assertTrue(message!!.contains("model timeout"))
         }
     }
 
@@ -596,7 +606,9 @@ class ErrorHandlingTest {
             runBlocking { chain.run("text") }
             fail("Expected LocanaraException.ExecutionFailed")
         } catch (e: LocanaraException.ExecutionFailed) {
-            assertTrue(e.message!!.contains("inference failed"))
+            val message = e.message
+            assertNotNull(message)
+            assertTrue(message!!.contains("inference failed"))
         }
     }
 
@@ -607,7 +619,9 @@ class ErrorHandlingTest {
             runBlocking { chain.run("hello") }
             fail("Expected LocanaraException.ExecutionFailed")
         } catch (e: LocanaraException.ExecutionFailed) {
-            assertTrue(e.message!!.contains("chat failed"))
+            val message = e.message
+            assertNotNull(message)
+            assertTrue(message!!.contains("chat failed"))
         }
     }
 
@@ -618,7 +632,9 @@ class ErrorHandlingTest {
             runBlocking { chain.run("text") }
             fail("Expected LocanaraException.ExecutionFailed")
         } catch (e: LocanaraException.ExecutionFailed) {
-            assertTrue(e.message!!.contains("rewrite failed"))
+            val message = e.message
+            assertNotNull(message)
+            assertTrue(message!!.contains("rewrite failed"))
         }
     }
 
@@ -629,7 +645,9 @@ class ErrorHandlingTest {
             runBlocking { chain.run("Tim Cook") }
             fail("Expected LocanaraException.ExecutionFailed")
         } catch (e: LocanaraException.ExecutionFailed) {
-            assertTrue(e.message!!.contains("extract failed"))
+            val message = e.message
+            assertNotNull(message)
+            assertTrue(message!!.contains("extract failed"))
         }
     }
 
