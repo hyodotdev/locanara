@@ -197,20 +197,23 @@ print(translated.translatedText)
 **Kotlin**
 
 ```kotlin
+import com.locanara.dsl.*
 import com.locanara.platform.PromptApiModel
 
-val model = PromptApiModel(context)
+suspend fun example(context: Context) {
+    val model = PromptApiModel(context)
 
-// Step 1: fix typos
-val proofread = model.proofread(
-    "Ths is a tset of on-devce AI."
-)
+    // Step 1: fix typos
+    val proofread = model.proofread(
+        "Ths is a tset of on-devce AI."
+    )
 
-// Step 2: translate the corrected text
-val translated = model.translate(
-    proofread.correctedText, to = "ko"
-)
-println(translated.translatedText)
+    // Step 2: translate the corrected text
+    val translated = model.translate(
+        proofread.correctedText, to = "ko"
+    )
+    println(translated.translatedText)
+}
 ```
 
 ### Declarative Pipeline Builder (Swift)
@@ -244,40 +247,40 @@ let threeStep = try await model.pipeline {
 ### Kotlin Pipeline DSL
 
 ```kotlin
-import com.locanara.dsl.pipeline
-import com.locanara.dsl.proofread
-import com.locanara.dsl.summarize
-import com.locanara.dsl.translate
+import com.locanara.dsl.*
+import com.locanara.platform.PromptApiModel
 
-val model = PromptApiModel(context)
+suspend fun pipelineExample(context: Context) {
+    val model = PromptApiModel(context)
 
-// Fluent pipeline API
-val result = model.pipeline()
-    .proofread()
-    .translate(to = "ko")
-    .run("Ths is a tset sentece about on-devce AI.")
+    // Fluent pipeline API
+    val result = model.pipeline()
+        .proofread()
+        .translate(to = "ko")
+        .run("Ths is a tset sentece about on-devce AI.")
 
-// result is TranslateResult (last step determines type)
-println(result.translatedText)
+    // result is TranslateResult (last step determines type)
+    println(result.translatedText)
 
-// Three-step pipeline
-val threeStep = model.pipeline()
-    .summarize(bulletCount = 3)
-    .proofread()
-    .translate(to = "ja")
-    .run(longArticle)
+    // Three-step pipeline
+    val threeStep = model.pipeline()
+        .summarize(bulletCount = 3)
+        .proofread()
+        .translate(to = "ja")
+        .run(longArticle)
+}
 ```
 
 ### Available Pipeline Steps
 
-| Step           | Swift                    | Kotlin                           | Output           |
-| -------------- | ------------------------ | -------------------------------- | ---------------- |
-| Summarize      | `Summarize(bulletCount:)`| `.summarize(bulletCount:)`       | `SummarizeResult`|
-| Classify       | `Classify(categories:)` | `.classify(categories:)`         | `ClassifyResult` |
-| Translate      | `Translate(to:)`        | `.translate(to:)`                | `TranslateResult`|
-| Proofread      | `Proofread()`           | `.proofread()`                   | `ProofreadResult`|
-| Rewrite        | `Rewrite(style:)`       | `.rewrite(style:)`               | `RewriteResult`  |
-| Extract        | `Extract(entityTypes:)` | `.extract(entityTypes:)`         | `ExtractResult`  |
+| Step      | Swift                     | Kotlin                     | Output            |
+| --------- | ------------------------- | -------------------------- | ----------------- |
+| Summarize | `Summarize(bulletCount:)` | `.summarize(bulletCount:)` | `SummarizeResult` |
+| Classify  | `Classify(categories:)`   | `.classify(categories:)`   | `ClassifyResult`  |
+| Translate | `Translate(to:)`          | `.translate(to:)`          | `TranslateResult` |
+| Proofread | `Proofread()`             | `.proofread()`             | `ProofreadResult` |
+| Rewrite   | `Rewrite(style:)`         | `.rewrite(style:)`         | `RewriteResult`   |
+| Extract   | `Extract(entityTypes:)`   | `.extract(entityTypes:)`   | `ExtractResult`   |
 
 > **Full tutorial**: [locanara.com/docs/tutorials/pipeline](https://locanara.com/docs/tutorials/pipeline)
 
