@@ -449,7 +449,7 @@ export async function translateStreaming(
     }
 
     const result = await AI.instance.translateStreaming(text, {
-      sourceLanguage: options.sourceLanguage ?? '',
+      sourceLanguage: options.sourceLanguage ?? 'en',
       targetLanguage: options.targetLanguage,
     });
 
