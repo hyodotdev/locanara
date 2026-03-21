@@ -1,5 +1,6 @@
 package com.locanara.builtin
 
+import com.locanara.LocanaraException
 import com.locanara.TranslateResult
 import com.locanara.composable.Chain
 import com.locanara.core.ChainInput
@@ -52,6 +53,6 @@ class TranslateChain(
     suspend fun run(text: String): TranslateResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<TranslateResult>()
-            ?: throw IllegalStateException("Unexpected output type from TranslateChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 }

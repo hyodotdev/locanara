@@ -1,5 +1,6 @@
 package com.locanara.builtin
 
+import com.locanara.LocanaraException
 import com.locanara.RewriteOutputType
 import com.locanara.RewriteResult
 import com.locanara.composable.Chain
@@ -56,6 +57,6 @@ class RewriteChain(
     suspend fun run(text: String): RewriteResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<RewriteResult>()
-            ?: throw IllegalStateException("Unexpected output type from RewriteChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 }
