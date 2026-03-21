@@ -169,6 +169,120 @@ implementation("com.locanara:locanara:1.0.0")
 
 ---
 
+## Pipeline DSL
+
+Compose multiple AI steps into a single type-safe workflow. Each step's output becomes the next step's input, and the return type is determined by the last step.
+
+### Basic Pipeline (two steps)
+
+**Swift**
+
+```swift
+import Locanara
+
+let model = FoundationLanguageModel()
+
+// Step 1: fix typos
+let proofread = try await model.proofread(
+    "Ths is a tset of on-devce AI."
+)
+
+// Step 2: translate the corrected text
+let translated = try await model.translate(
+    proofread.correctedText, to: "ko"
+)
+print(translated.translatedText)
+```
+
+**Kotlin**
+
+```kotlin
+import com.locanara.platform.PromptApiModel
+
+val model = PromptApiModel(context)
+
+// Step 1: fix typos
+val proofread = model.proofread(
+    "Ths is a tset of on-devce AI."
+)
+
+// Step 2: translate the corrected text
+val translated = model.translate(
+    proofread.correctedText, to = "ko"
+)
+println(translated.translatedText)
+```
+
+### Declarative Pipeline Builder (Swift)
+
+Swift's `@PipelineBuilder` result builder enforces return types at compile time. The compiler rejects pipelines with incompatible step types, making multi-step workflows safe to refactor.
+
+```swift
+import Locanara
+
+let model = FoundationLanguageModel()
+
+// Two-step: proofread → translate
+// Return type is TranslateResult — compiler enforced
+let result = try await model.pipeline {
+    Proofread()
+    Translate(to: "ko")
+}.run("Ths is a tset sentece about on-devce AI.")
+
+print(result.translatedText)   // "이것은 온디바이스 AI에 관한 테스트 문장입니다."
+print(result.targetLanguage)   // "ko"
+
+// Three-step: summarize → proofread → translate
+let threeStep = try await model.pipeline {
+    Summarize(bulletCount: 3)
+    Proofread()
+    Translate(to: "ja")
+}.run(longArticle)
+// Returns TranslateResult (last step determines the type)
+```
+
+### Kotlin Pipeline DSL
+
+```kotlin
+import com.locanara.dsl.pipeline
+import com.locanara.dsl.proofread
+import com.locanara.dsl.summarize
+import com.locanara.dsl.translate
+
+val model = PromptApiModel(context)
+
+// Fluent pipeline API
+val result = model.pipeline()
+    .proofread()
+    .translate(to = "ko")
+    .run("Ths is a tset sentece about on-devce AI.")
+
+// result is TranslateResult (last step determines type)
+println(result.translatedText)
+
+// Three-step pipeline
+val threeStep = model.pipeline()
+    .summarize(bulletCount = 3)
+    .proofread()
+    .translate(to = "ja")
+    .run(longArticle)
+```
+
+### Available Pipeline Steps
+
+| Step           | Swift                    | Kotlin                           | Output           |
+| -------------- | ------------------------ | -------------------------------- | ---------------- |
+| Summarize      | `Summarize(bulletCount:)`| `.summarize(bulletCount:)`       | `SummarizeResult`|
+| Classify       | `Classify(categories:)` | `.classify(categories:)`         | `ClassifyResult` |
+| Translate      | `Translate(to:)`        | `.translate(to:)`                | `TranslateResult`|
+| Proofread      | `Proofread()`           | `.proofread()`                   | `ProofreadResult`|
+| Rewrite        | `Rewrite(style:)`       | `.rewrite(style:)`               | `RewriteResult`  |
+| Extract        | `Extract(entityTypes:)` | `.extract(entityTypes:)`         | `ExtractResult`  |
+
+> **Full tutorial**: [locanara.com/docs/tutorials/pipeline](https://locanara.com/docs/tutorials/pipeline)
+
+---
+
 ## Packages
 
 - [**apple**](packages/apple) — iOS/macOS SDK
