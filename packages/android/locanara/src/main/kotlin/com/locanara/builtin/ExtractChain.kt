@@ -63,6 +63,6 @@ class ExtractChain(
     suspend fun run(text: String): ExtractResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<ExtractResult>()
-            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from ExtractChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 }

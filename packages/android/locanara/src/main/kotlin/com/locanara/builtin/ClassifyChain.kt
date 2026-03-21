@@ -73,6 +73,6 @@ class ClassifyChain(
     suspend fun run(text: String): ClassifyResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<ClassifyResult>()
-            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from ClassifyChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 }

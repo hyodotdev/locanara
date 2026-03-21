@@ -87,6 +87,6 @@ class ProofreadChain(
     suspend fun run(text: String): ProofreadResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<ProofreadResult>()
-            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from ProofreadChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 }

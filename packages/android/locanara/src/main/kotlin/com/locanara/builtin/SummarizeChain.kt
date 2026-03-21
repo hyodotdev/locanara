@@ -53,6 +53,6 @@ class SummarizeChain(
     suspend fun run(text: String): SummarizeResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<SummarizeResult>()
-            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from SummarizeChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 }

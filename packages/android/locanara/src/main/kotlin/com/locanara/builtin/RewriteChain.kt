@@ -57,6 +57,6 @@ class RewriteChain(
     suspend fun run(text: String): RewriteResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<RewriteResult>()
-            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from RewriteChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 }

@@ -53,6 +53,6 @@ class TranslateChain(
     suspend fun run(text: String): TranslateResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<TranslateResult>()
-            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from TranslateChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 }

@@ -99,7 +99,7 @@ class ChatChain(
     suspend fun run(text: String): ChatResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<ChatResult>()
-            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from ChatChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 
     /**
