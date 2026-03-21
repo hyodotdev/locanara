@@ -2,6 +2,7 @@ package com.locanara.builtin
 
 import com.locanara.Classification
 import com.locanara.ClassifyResult
+import com.locanara.LocanaraException
 import com.locanara.composable.Chain
 import com.locanara.core.ChainInput
 import com.locanara.core.ChainOutput
@@ -72,6 +73,6 @@ class ClassifyChain(
     suspend fun run(text: String): ClassifyResult {
         val output = invoke(ChainInput(text = text))
         return output.typed<ClassifyResult>()
-            ?: throw IllegalStateException("Unexpected output type from ClassifyChain")
+            ?: throw LocanaraException.ExecutionFailed("Unexpected output type from $name")
     }
 }

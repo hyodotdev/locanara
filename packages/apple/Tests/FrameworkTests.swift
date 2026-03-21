@@ -524,3 +524,188 @@ extension GuardrailResult: Equatable {
         }
     }
 }
+
+// MARK: - Error Handling Tests
+
+@available(iOS 15.0, macOS 14.0, *)
+final class ErrorHandlingTests: XCTestCase {
+
+    // MARK: LocanaraError property tests
+
+    func testExecutionFailedErrorCode() {
+        let error = LocanaraError.executionFailed("something went wrong")
+        XCTAssertEqual(error.errorCode, .executionFailed)
+        XCTAssertTrue(error.errorDescription?.contains("something went wrong") ?? false)
+    }
+
+    func testModelNotDownloadedErrorCode() {
+        let error = LocanaraError.modelNotDownloaded("llama-7b")
+        XCTAssertEqual(error.errorCode, .modelDownloadRequired)
+        XCTAssertTrue(error.errorDescription?.contains("llama-7b") ?? false)
+    }
+
+    func testModelDownloadFailedErrorCode() {
+        let error = LocanaraError.modelDownloadFailed("network error")
+        XCTAssertEqual(error.errorCode, .modelDownloadRequired)
+        XCTAssertTrue(error.errorDescription?.contains("network error") ?? false)
+    }
+
+    func testModelLoadFailedErrorCode() {
+        let error = LocanaraError.modelLoadFailed("corrupt file")
+        XCTAssertEqual(error.errorCode, .modelNotLoaded)
+        XCTAssertTrue(error.errorDescription?.contains("corrupt file") ?? false)
+    }
+
+    func testInsufficientMemoryErrorCode() {
+        let error = LocanaraError.insufficientMemory(required: 4096, available: 2048)
+        XCTAssertEqual(error.errorCode, .insufficientMemory)
+        XCTAssertTrue(error.errorDescription?.contains("4096") ?? false)
+        XCTAssertTrue(error.errorDescription?.contains("2048") ?? false)
+    }
+
+    func testInferenceTimeoutErrorCode() {
+        let error = LocanaraError.inferenceTimeout
+        XCTAssertEqual(error.errorCode, .executionTimeout)
+        XCTAssertNotNil(error.errorDescription)
+    }
+
+    func testInferenceCancelledErrorCode() {
+        let error = LocanaraError.inferenceCancelled
+        XCTAssertEqual(error.errorCode, .executionCancelled)
+        XCTAssertNotNil(error.errorDescription)
+    }
+
+    func testSdkNotInitializedErrorCode() {
+        let error = LocanaraError.sdkNotInitialized
+        XCTAssertEqual(error.errorCode, .sdkNotInitialized)
+        XCTAssertTrue(error.errorDescription?.contains("initialize") ?? false)
+    }
+
+    func testDeviceNotSupportedErrorCode() {
+        let error = LocanaraError.deviceNotSupported
+        XCTAssertEqual(error.errorCode, .deviceNotSupported)
+    }
+
+    func testPermissionDeniedErrorCode() {
+        let error = LocanaraError.permissionDenied
+        XCTAssertEqual(error.errorCode, .permissionDenied)
+    }
+
+    func testInvalidInputErrorCode() {
+        let error = LocanaraError.invalidInput("too short")
+        XCTAssertEqual(error.errorCode, .invalidInput)
+        XCTAssertTrue(error.errorDescription?.contains("too short") ?? false)
+    }
+
+    // MARK: Helpers
+
+    /// Returns a LocanaraModel that always throws the given error from generate().
+    private func makeFailingModel(throwing error: LocanaraError) -> some LocanaraModel {
+        struct FailingModel: LocanaraModel {
+            let errorToThrow: LocanaraError
+            let name = "FailingModel"
+            let isReady = true
+            let maxContextTokens = 4000
+            func generate(prompt: String, config: GenerationConfig?) async throws -> ModelResponse {
+                throw errorToThrow
+            }
+            func stream(prompt: String, config: GenerationConfig?) -> AsyncThrowingStream<String, Error> {
+                AsyncThrowingStream { $0.finish() }
+            }
+        }
+        return FailingModel(errorToThrow: error)
+    }
+
+    // MARK: Chain error propagation tests
+
+    func testSummarizeChainPropagatesModelError() async {
+        let chain = SummarizeChain(model: makeFailingModel(throwing: .inferenceTimeout))
+        do {
+            _ = try await chain.run("test text")
+            XCTFail("Expected LocanaraError to be thrown")
+        } catch let error as LocanaraError {
+            XCTAssertEqual(error.errorCode, .executionTimeout)
+        } catch {
+            XCTFail("Expected LocanaraError, got \(error)")
+        }
+    }
+
+    func testClassifyChainPropagatesModelError() async {
+        let chain = ClassifyChain(model: makeFailingModel(throwing: .executionFailed("model busy")), categories: ["a", "b"])
+        do {
+            _ = try await chain.run("test")
+            XCTFail("Expected LocanaraError to be thrown")
+        } catch let error as LocanaraError {
+            XCTAssertEqual(error.errorCode, .executionFailed)
+        } catch {
+            XCTFail("Expected LocanaraError, got \(error)")
+        }
+    }
+
+    func testTranslateChainPropagatesModelError() async {
+        let chain = TranslateChain(model: makeFailingModel(throwing: .insufficientMemory(required: 8192, available: 1024)), targetLanguage: "ko")
+        do {
+            _ = try await chain.run("hello")
+            XCTFail("Expected LocanaraError to be thrown")
+        } catch let error as LocanaraError {
+            XCTAssertEqual(error.errorCode, .insufficientMemory)
+        } catch {
+            XCTFail("Expected LocanaraError, got \(error)")
+        }
+    }
+
+    func testProofreadChainPropagatesModelError() async {
+        let chain = ProofreadChain(model: makeFailingModel(throwing: .inferenceCancelled))
+        do {
+            _ = try await chain.run("text")
+            XCTFail("Expected LocanaraError to be thrown")
+        } catch let error as LocanaraError {
+            XCTAssertEqual(error.errorCode, .executionCancelled)
+        } catch {
+            XCTFail("Expected LocanaraError, got \(error)")
+        }
+    }
+
+    func testRewriteChainPropagatesModelError() async {
+        let chain = RewriteChain(model: makeFailingModel(throwing: .executionFailed("rewrite error")), style: .professional)
+        do {
+            _ = try await chain.run("text")
+            XCTFail("Expected LocanaraError to be thrown")
+        } catch let error as LocanaraError {
+            XCTAssertEqual(error.errorCode, .executionFailed)
+        } catch {
+            XCTFail("Expected LocanaraError, got \(error)")
+        }
+    }
+
+    func testChatChainPropagatesModelError() async {
+        let chain = ChatChain(model: makeFailingModel(throwing: .executionFailed("chat error")))
+        do {
+            _ = try await chain.run("hello")
+            XCTFail("Expected LocanaraError to be thrown")
+        } catch let error as LocanaraError {
+            XCTAssertEqual(error.errorCode, .executionFailed)
+        } catch {
+            XCTFail("Expected LocanaraError, got \(error)")
+        }
+    }
+
+    func testExtractChainPropagatesModelError() async {
+        let chain = ExtractChain(model: makeFailingModel(throwing: .executionFailed("extract error")), entityTypes: ["person"])
+        do {
+            _ = try await chain.run("Tim Cook")
+            XCTFail("Expected LocanaraError to be thrown")
+        } catch let error as LocanaraError {
+            XCTAssertEqual(error.errorCode, .executionFailed)
+        } catch {
+            XCTFail("Expected LocanaraError, got \(error)")
+        }
+    }
+
+    // MARK: LocanaraError is catchable as Error
+
+    func testLocanaraErrorIsCatchableAsError() {
+        let error: Error = LocanaraError.inferenceTimeout
+        XCTAssertTrue(error is LocanaraError)
+    }
+}
