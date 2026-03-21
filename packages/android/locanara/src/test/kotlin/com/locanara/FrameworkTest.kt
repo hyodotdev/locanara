@@ -7,6 +7,7 @@ import com.locanara.builtin.ProofreadChain
 import com.locanara.builtin.RewriteChain
 import com.locanara.builtin.SummarizeChain
 import com.locanara.builtin.TranslateChain
+import org.junit.Assert.assertThrows
 import com.locanara.composable.BufferMemory
 import com.locanara.composable.Chain
 import com.locanara.composable.ContentFilterGuardrail
@@ -488,5 +489,191 @@ class SequentialChainTest {
 
         assertEquals(2, callCount)
         assertEquals("step2", output.text)
+    }
+}
+
+// MARK: - Error Handling Tests
+
+class ErrorHandlingTest {
+
+    // --- LocanaraException property tests ---
+
+    @Test
+    fun `ModelBusy has correct message and code`() {
+        val exception = LocanaraException.ModelBusy
+        assertTrue(exception.message!!.contains("busy"))
+        assertEquals(ErrorCode.MODEL_BUSY, exception.code)
+    }
+
+    @Test
+    fun `BackgroundUseBlocked has correct message and code`() {
+        val exception = LocanaraException.BackgroundUseBlocked
+        assertTrue(exception.message!!.contains("foreground"))
+        assertEquals(ErrorCode.BACKGROUND_USE_BLOCKED, exception.code)
+    }
+
+    @Test
+    fun `ExecutionFailed preserves reason in message`() {
+        val exception = LocanaraException.ExecutionFailed("something went wrong")
+        assertTrue(exception.message!!.contains("something went wrong"))
+        assertEquals(ErrorCode.EXECUTION_FAILED, exception.code)
+    }
+
+    @Test
+    fun `ExecutionFailed preserves cause`() {
+        val cause = RuntimeException("root cause")
+        val exception = LocanaraException.ExecutionFailed("wrapped", cause)
+        assertEquals(cause, exception.cause)
+    }
+
+    @Test
+    fun `InvalidInput has correct code`() {
+        val exception = LocanaraException.InvalidInput("too short")
+        assertTrue(exception.message!!.contains("too short"))
+        assertEquals(ErrorCode.INVALID_INPUT, exception.code)
+    }
+
+    @Test
+    fun `DeviceNotSupported is a LocanaraException`() {
+        val exception: LocanaraException = LocanaraException.DeviceNotSupported
+        assertEquals(ErrorCode.DEVICE_NOT_SUPPORTED, exception.code)
+    }
+
+    @Test
+    fun `PermissionDenied has correct code`() {
+        val exception = LocanaraException.PermissionDenied
+        assertEquals(ErrorCode.PERMISSION_DENIED, exception.code)
+    }
+
+    // --- Chain error propagation tests ---
+
+    @Test
+    fun `SummarizeChain propagates LocanaraException from model`() = runBlocking {
+        val model = object : LocanaraModel {
+            override val name = "FailingModel"
+            override val isReady = true
+            override val maxContextTokens = 4000
+            override suspend fun generate(prompt: String, config: GenerationConfig?): ModelResponse =
+                throw LocanaraException.ExecutionFailed("model timeout")
+            override fun stream(prompt: String, config: GenerationConfig?): kotlinx.coroutines.flow.Flow<String> =
+                kotlinx.coroutines.flow.emptyFlow()
+        }
+        val chain = SummarizeChain(model = model)
+        val ex = assertThrows(LocanaraException.ExecutionFailed::class.java) {
+            runBlocking { chain.run("test text") }
+        }
+        assertTrue(ex.message!!.contains("model timeout"))
+    }
+
+    @Test
+    fun `ClassifyChain propagates LocanaraException from model`() = runBlocking {
+        val model = object : LocanaraModel {
+            override val name = "FailingModel"
+            override val isReady = true
+            override val maxContextTokens = 4000
+            override suspend fun generate(prompt: String, config: GenerationConfig?): ModelResponse =
+                throw LocanaraException.ModelBusy
+            override fun stream(prompt: String, config: GenerationConfig?): kotlinx.coroutines.flow.Flow<String> =
+                kotlinx.coroutines.flow.emptyFlow()
+        }
+        val chain = ClassifyChain(model = model, categories = listOf("a", "b"))
+        assertThrows(LocanaraException.ModelBusy::class.java) {
+            runBlocking { chain.run("text") }
+        }
+    }
+
+    @Test
+    fun `TranslateChain propagates LocanaraException from model`() {
+        val model = object : LocanaraModel {
+            override val name = "FailingModel"
+            override val isReady = true
+            override val maxContextTokens = 4000
+            override suspend fun generate(prompt: String, config: GenerationConfig?): ModelResponse =
+                throw LocanaraException.BackgroundUseBlocked
+            override fun stream(prompt: String, config: GenerationConfig?): kotlinx.coroutines.flow.Flow<String> =
+                kotlinx.coroutines.flow.emptyFlow()
+        }
+        val chain = TranslateChain(model = model, targetLanguage = "ko")
+        assertThrows(LocanaraException.BackgroundUseBlocked::class.java) {
+            runBlocking { chain.run("hello") }
+        }
+    }
+
+    @Test
+    fun `ProofreadChain propagates LocanaraException from model`() {
+        val model = object : LocanaraModel {
+            override val name = "FailingModel"
+            override val isReady = true
+            override val maxContextTokens = 4000
+            override suspend fun generate(prompt: String, config: GenerationConfig?): ModelResponse =
+                throw LocanaraException.ExecutionFailed("inference failed")
+            override fun stream(prompt: String, config: GenerationConfig?): kotlinx.coroutines.flow.Flow<String> =
+                kotlinx.coroutines.flow.emptyFlow()
+        }
+        val chain = ProofreadChain(model = model)
+        val ex = assertThrows(LocanaraException.ExecutionFailed::class.java) {
+            runBlocking { chain.run("text") }
+        }
+        assertTrue(ex.message!!.contains("inference failed"))
+    }
+
+    @Test
+    fun `ChatChain propagates LocanaraException from model`() {
+        val model = object : LocanaraModel {
+            override val name = "FailingModel"
+            override val isReady = true
+            override val maxContextTokens = 4000
+            override suspend fun generate(prompt: String, config: GenerationConfig?): ModelResponse =
+                throw LocanaraException.ExecutionFailed("chat failed")
+            override fun stream(prompt: String, config: GenerationConfig?): kotlinx.coroutines.flow.Flow<String> =
+                kotlinx.coroutines.flow.emptyFlow()
+        }
+        val chain = ChatChain(model = model)
+        assertThrows(LocanaraException.ExecutionFailed::class.java) {
+            runBlocking { chain.run("hello") }
+        }
+    }
+
+    @Test
+    fun `RewriteChain propagates LocanaraException from model`() {
+        val model = object : LocanaraModel {
+            override val name = "FailingModel"
+            override val isReady = true
+            override val maxContextTokens = 4000
+            override suspend fun generate(prompt: String, config: GenerationConfig?): ModelResponse =
+                throw LocanaraException.ExecutionFailed("rewrite failed")
+            override fun stream(prompt: String, config: GenerationConfig?): kotlinx.coroutines.flow.Flow<String> =
+                kotlinx.coroutines.flow.emptyFlow()
+        }
+        val chain = RewriteChain(model = model, style = RewriteOutputType.FRIENDLY)
+        assertThrows(LocanaraException.ExecutionFailed::class.java) {
+            runBlocking { chain.run("text") }
+        }
+    }
+
+    @Test
+    fun `ExtractChain propagates LocanaraException from model`() {
+        val model = object : LocanaraModel {
+            override val name = "FailingModel"
+            override val isReady = true
+            override val maxContextTokens = 4000
+            override suspend fun generate(prompt: String, config: GenerationConfig?): ModelResponse =
+                throw LocanaraException.ExecutionFailed("extract failed")
+            override fun stream(prompt: String, config: GenerationConfig?): kotlinx.coroutines.flow.Flow<String> =
+                kotlinx.coroutines.flow.emptyFlow()
+        }
+        val chain = ExtractChain(model = model, entityTypes = listOf("person"))
+        assertThrows(LocanaraException.ExecutionFailed::class.java) {
+            runBlocking { chain.run("Tim Cook") }
+        }
+    }
+
+    // --- LocanaraException is-a Exception ---
+
+    @Test
+    fun `LocanaraException is catchable as Exception`() {
+        val ex: Exception = LocanaraException.ModelBusy
+        assertTrue(ex is LocanaraException)
+        assertTrue(ex is Exception)
     }
 }
