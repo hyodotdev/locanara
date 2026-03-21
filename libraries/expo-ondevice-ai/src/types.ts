@@ -201,6 +201,62 @@ export interface ChatStreamOptions extends ChatOptions {
 }
 
 /**
+ * A single streamed chunk for summarize / translate / rewrite streaming
+ */
+export interface TextStreamChunk {
+  /** New text delta in this chunk */
+  delta: string;
+  /** Full accumulated text so far */
+  accumulated: string;
+  /** Whether this is the final chunk */
+  isFinal: boolean;
+}
+
+/**
+ * Options for streaming summarization
+ */
+export interface SummarizeStreamOptions extends SummarizeOptions {
+  /** Callback invoked for each streamed token */
+  onChunk?: (chunk: TextStreamChunk) => void;
+}
+
+/**
+ * Options for streaming translation
+ */
+export interface TranslateStreamOptions extends TranslateOptions {
+  /** Callback invoked for each streamed token */
+  onChunk?: (chunk: TextStreamChunk) => void;
+}
+
+/**
+ * Options for streaming rewrite
+ */
+export interface RewriteStreamOptions extends RewriteOptions {
+  /** Callback invoked for each streamed token */
+  onChunk?: (chunk: TextStreamChunk) => void;
+}
+
+// MARK: - Image Description
+
+/**
+ * Options for image description
+ */
+export interface DescribeImageOptions {
+  /** Optional prompt to guide the description */
+  prompt?: string;
+}
+
+/**
+ * Result of image description
+ */
+export interface DescribeImageResult {
+  /** The generated description */
+  description: string;
+  /** Confidence score (0-1) */
+  confidence?: number;
+}
+
+/**
  * Options for translation
  */
 export interface TranslateOptions {

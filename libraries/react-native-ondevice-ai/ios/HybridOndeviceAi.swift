@@ -11,6 +11,9 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
 
     private let listenerQueue = DispatchQueue(label: "com.locanara.ondeviceai.listeners")
     private var chatStreamListeners: [(NitroChatStreamChunk) -> Void] = []
+    private var summarizeStreamListeners: [(NitroTextStreamChunk) -> Void] = []
+    private var translateStreamListeners: [(NitroTextStreamChunk) -> Void] = []
+    private var rewriteStreamListeners: [(NitroTextStreamChunk) -> Void] = []
     private var modelDownloadProgressListeners: [(NitroModelDownloadProgress) -> Void] = []
 
     // MARK: - Initialization
@@ -156,6 +159,93 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
                 correctedText: result.correctedText,
                 corrections: corrections,
                 hasCorrections: result.hasCorrections
+            )
+        }
+    }
+
+    // MARK: - Streaming Variants (Summarize / Translate / Rewrite)
+    // Chains don't expose token-level streaming, so we emit a single
+    // final chunk after the regular run completes.
+
+    func summarizeStreaming(text: String, options: Variant_NullType_NitroSummarizeOptions?) throws -> Promise<NitroSummarizeResult> {
+        let opts: NitroSummarizeOptions? = if case .second(let v)? = options { v } else { nil }
+        return Promise.async {
+            let bulletCount = OndeviceAiHelper.bulletCount(from: opts)
+            let inputType = OndeviceAiHelper.inputType(from: opts)
+            let result = try await SummarizeChain(bulletCount: bulletCount, inputType: inputType).run(text)
+            let chunk = NitroTextStreamChunk(delta: result.summary, accumulated: result.summary, isFinal: true)
+            let listeners = self.listenerQueue.sync { self.summarizeStreamListeners }
+            for listener in listeners { listener(chunk) }
+            return NitroSummarizeResult(
+                summary: result.summary,
+                originalLength: Double(result.originalLength),
+                summaryLength: Double(result.summaryLength),
+                confidence: result.confidence ?? 0.0
+            )
+        }
+    }
+
+    func addSummarizeStreamListener(listener: @escaping (_ chunk: NitroTextStreamChunk) -> Void) throws {
+        listenerQueue.sync { summarizeStreamListeners.append(listener) }
+    }
+
+    func removeSummarizeStreamListener(listener: @escaping (_ chunk: NitroTextStreamChunk) -> Void) throws {
+        listenerQueue.sync { summarizeStreamListeners.removeAll { $0 as AnyObject === listener as AnyObject } }
+    }
+
+    func translateStreaming(text: String, options: NitroTranslateOptions) throws -> Promise<NitroTranslateResult> {
+        return Promise.async {
+            let (source, target) = OndeviceAiHelper.translateOptions(from: options)
+            let result = try await TranslateChain(sourceLanguage: source, targetLanguage: target).run(text)
+            let chunk = NitroTextStreamChunk(delta: result.translatedText, accumulated: result.translatedText, isFinal: true)
+            let listeners = self.listenerQueue.sync { self.translateStreamListeners }
+            for listener in listeners { listener(chunk) }
+            return NitroTranslateResult(
+                translatedText: result.translatedText,
+                sourceLanguage: result.sourceLanguage,
+                targetLanguage: result.targetLanguage,
+                confidence: result.confidence ?? 0.0
+            )
+        }
+    }
+
+    func addTranslateStreamListener(listener: @escaping (_ chunk: NitroTextStreamChunk) -> Void) throws {
+        listenerQueue.sync { translateStreamListeners.append(listener) }
+    }
+
+    func removeTranslateStreamListener(listener: @escaping (_ chunk: NitroTextStreamChunk) -> Void) throws {
+        listenerQueue.sync { translateStreamListeners.removeAll { $0 as AnyObject === listener as AnyObject } }
+    }
+
+    func rewriteStreaming(text: String, options: NitroRewriteOptions) throws -> Promise<NitroRewriteResult> {
+        return Promise.async {
+            let style = OndeviceAiHelper.rewriteStyle(from: options)
+            let result = try await RewriteChain(style: style).run(text)
+            let chunk = NitroTextStreamChunk(delta: result.rewrittenText, accumulated: result.rewrittenText, isFinal: true)
+            let listeners = self.listenerQueue.sync { self.rewriteStreamListeners }
+            for listener in listeners { listener(chunk) }
+            return NitroRewriteResult(
+                rewrittenText: result.rewrittenText,
+                style: result.style?.rawValue ?? "",
+                confidence: result.confidence ?? 0.0
+            )
+        }
+    }
+
+    func addRewriteStreamListener(listener: @escaping (_ chunk: NitroTextStreamChunk) -> Void) throws {
+        listenerQueue.sync { rewriteStreamListeners.append(listener) }
+    }
+
+    func removeRewriteStreamListener(listener: @escaping (_ chunk: NitroTextStreamChunk) -> Void) throws {
+        listenerQueue.sync { rewriteStreamListeners.removeAll { $0 as AnyObject === listener as AnyObject } }
+    }
+
+    func describeImage(imageUri: String, options: Variant_NullType_NitroDescribeImageOptions?) throws -> Promise<NitroDescribeImageResult> {
+        return Promise.async {
+            throw NSError(
+                domain: "OndeviceAi",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "describeImage is not supported on iOS/Android. This feature requires the Web SDK (Chrome Built-in AI)."]
             )
         }
     }

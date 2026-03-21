@@ -2,13 +2,17 @@ import {
   initialize,
   getDeviceCapability,
   summarize,
+  summarizeStreaming,
   classify,
   extract,
   chat,
   chatStream,
   translate,
+  translateStreaming,
   rewrite,
+  rewriteStreaming,
   proofread,
+  describeImage,
   getAvailableModels,
   getDownloadedModels,
   getLoadedModel,
@@ -20,7 +24,7 @@ import {
   downloadPromptApiModel,
   isNitroReady,
 } from '../index';
-import type {ChatStreamChunk} from '../types';
+import type {ChatStreamChunk, TextStreamChunk} from '../types';
 
 describe('react-native-ondevice-ai', () => {
   describe('isNitroReady', () => {
@@ -173,6 +177,28 @@ describe('react-native-ondevice-ai', () => {
     });
   });
 
+  describe('summarizeStreaming', () => {
+    it('should return summarize result', async () => {
+      const result = await summarizeStreaming('Long text to summarize.');
+      expect(result).toHaveProperty('summary');
+      expect(result).toHaveProperty('originalLength');
+    });
+
+    it('should invoke onChunk with final chunk', async () => {
+      const chunks: TextStreamChunk[] = [];
+      await summarizeStreaming('Text', {onChunk: (c) => chunks.push(c)});
+      expect(chunks.length).toBe(1);
+      expect(chunks[0]!.isFinal).toBe(true);
+    });
+
+    it('should clean up listener after completion', async () => {
+      const {__mockHybridObject: mock} = require('react-native-nitro-modules');
+      await summarizeStreaming('Text', {onChunk: jest.fn()});
+      expect(mock.addSummarizeStreamListener).toHaveBeenCalled();
+      expect(mock.removeSummarizeStreamListener).toHaveBeenCalled();
+    });
+  });
+
   describe('translate', () => {
     it('should translate text', async () => {
       const result = await translate('Hello', {targetLanguage: 'ko'});
@@ -182,12 +208,67 @@ describe('react-native-ondevice-ai', () => {
     });
   });
 
+  describe('translateStreaming', () => {
+    it('should return translate result', async () => {
+      const result = await translateStreaming('Hello', {targetLanguage: 'ko'});
+      expect(result).toHaveProperty('translatedText');
+    });
+
+    it('should invoke onChunk with final chunk', async () => {
+      const chunks: TextStreamChunk[] = [];
+      await translateStreaming('Hello', {targetLanguage: 'ko', onChunk: (c) => chunks.push(c)});
+      expect(chunks.length).toBe(1);
+      expect(chunks[0]!.isFinal).toBe(true);
+    });
+
+    it('should clean up listener after completion', async () => {
+      const {__mockHybridObject: mock} = require('react-native-nitro-modules');
+      await translateStreaming('Hello', {targetLanguage: 'ko', onChunk: jest.fn()});
+      expect(mock.addTranslateStreamListener).toHaveBeenCalled();
+      expect(mock.removeTranslateStreamListener).toHaveBeenCalled();
+    });
+  });
+
   describe('rewrite', () => {
     it('should rewrite text', async () => {
       const result = await rewrite('This is a test.', {
         outputType: 'PROFESSIONAL',
       });
       expect(result).toHaveProperty('rewrittenText');
+    });
+  });
+
+  describe('rewriteStreaming', () => {
+    it('should return rewrite result', async () => {
+      const result = await rewriteStreaming('Text.', {outputType: 'PROFESSIONAL'});
+      expect(result).toHaveProperty('rewrittenText');
+    });
+
+    it('should invoke onChunk with final chunk', async () => {
+      const chunks: TextStreamChunk[] = [];
+      await rewriteStreaming('Text.', {outputType: 'PROFESSIONAL', onChunk: (c) => chunks.push(c)});
+      expect(chunks.length).toBe(1);
+      expect(chunks[0]!.isFinal).toBe(true);
+    });
+
+    it('should clean up listener after completion', async () => {
+      const {__mockHybridObject: mock} = require('react-native-nitro-modules');
+      await rewriteStreaming('Text.', {outputType: 'PROFESSIONAL', onChunk: jest.fn()});
+      expect(mock.addRewriteStreamListener).toHaveBeenCalled();
+      expect(mock.removeRewriteStreamListener).toHaveBeenCalled();
+    });
+  });
+
+  describe('describeImage', () => {
+    it('should return image description', async () => {
+      const result = await describeImage('file:///path/to/image.jpg');
+      expect(result).toHaveProperty('description');
+      expect(result).toHaveProperty('confidence');
+    });
+
+    it('should accept optional prompt', async () => {
+      const result = await describeImage('file:///path/to/image.jpg', {prompt: 'What is in this image?'});
+      expect(result).toHaveProperty('description');
     });
   });
 

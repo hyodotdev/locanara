@@ -6,11 +6,13 @@ import type {
   OndeviceAi,
   NitroChatStreamChunk,
   NitroModelDownloadProgress,
+  NitroTextStreamChunk,
 } from './specs/OndeviceAi.nitro';
 import type {
   DeviceCapability,
   SummarizeOptions,
   SummarizeResult,
+  SummarizeStreamOptions,
   ClassifyOptions,
   ClassifyResult,
   ExtractOptions,
@@ -19,16 +21,21 @@ import type {
   ChatResult,
   ChatStreamOptions,
   ChatStreamChunk,
+  TextStreamChunk,
   TranslateOptions,
   TranslateResult,
+  TranslateStreamOptions,
   RewriteOptions,
   RewriteResult,
+  RewriteStreamOptions,
   ProofreadOptions,
   ProofreadResult,
   InitializeResult,
   DownloadableModelInfo,
   InferenceEngine,
   ModelDownloadProgress,
+  DescribeImageOptions,
+  DescribeImageResult,
 } from './types';
 
 // Re-export all public types
@@ -47,10 +54,13 @@ export type {
   ChatResult,
   ChatStreamOptions,
   ChatStreamChunk,
+  TextStreamChunk,
   TranslateOptions,
   TranslateResult,
+  TranslateStreamOptions,
   RewriteOptions,
   RewriteResult,
+  RewriteStreamOptions,
   ProofreadCorrection,
   ProofreadOptions,
   ProofreadResult,
@@ -59,6 +69,9 @@ export type {
   InferenceEngine,
   ModelDownloadProgress,
   EventSubscription,
+  SummarizeStreamOptions,
+  DescribeImageOptions,
+  DescribeImageResult,
 } from './types';
 
 export type {
@@ -372,6 +385,140 @@ export async function proofread(
       endPos: c.endPos,
     })),
     hasCorrections: result.hasCorrections,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Streaming Variants
+// ──────────────────────────────────────────────────────────────────────────
+
+/** Summarize text with progressive token streaming via onChunk callback. */
+export async function summarizeStreaming(
+  text: string,
+  options?: SummarizeStreamOptions,
+): Promise<SummarizeResult> {
+  let listener: ((chunk: NitroTextStreamChunk) => void) | null = null;
+
+  try {
+    if (options?.onChunk) {
+      listener = (chunk: NitroTextStreamChunk) => {
+        const converted: TextStreamChunk = {
+          delta: chunk.delta,
+          accumulated: chunk.accumulated,
+          isFinal: chunk.isFinal,
+        };
+        options.onChunk!(converted);
+      };
+      AI.instance.addSummarizeStreamListener(listener);
+    }
+
+    const result = await AI.instance.summarizeStreaming(text, options ? {
+      inputType: options.inputType ? (options.inputType as never) : null,
+      outputType: options.outputType ? (options.outputType as never) : null,
+    } : null);
+
+    return {
+      summary: result.summary,
+      originalLength: result.originalLength,
+      summaryLength: result.summaryLength,
+      confidence: result.confidence,
+    };
+  } finally {
+    if (listener) AI.instance.removeSummarizeStreamListener(listener);
+  }
+}
+
+/** Translate text with progressive token streaming via onChunk callback. */
+export async function translateStreaming(
+  text: string,
+  options: TranslateStreamOptions,
+): Promise<TranslateResult> {
+  let listener: ((chunk: NitroTextStreamChunk) => void) | null = null;
+
+  try {
+    if (options.onChunk) {
+      listener = (chunk: NitroTextStreamChunk) => {
+        const converted: TextStreamChunk = {
+          delta: chunk.delta,
+          accumulated: chunk.accumulated,
+          isFinal: chunk.isFinal,
+        };
+        options.onChunk!(converted);
+      };
+      AI.instance.addTranslateStreamListener(listener);
+    }
+
+    const result = await AI.instance.translateStreaming(text, {
+      sourceLanguage: options.sourceLanguage ?? 'en',
+      targetLanguage: options.targetLanguage,
+    });
+
+    return {
+      translatedText: result.translatedText,
+      sourceLanguage: result.sourceLanguage,
+      targetLanguage: result.targetLanguage,
+      confidence: result.confidence,
+    };
+  } finally {
+    if (listener) AI.instance.removeTranslateStreamListener(listener);
+  }
+}
+
+/** Rewrite text with progressive token streaming via onChunk callback. */
+export async function rewriteStreaming(
+  text: string,
+  options: RewriteStreamOptions,
+): Promise<RewriteResult> {
+  let listener: ((chunk: NitroTextStreamChunk) => void) | null = null;
+
+  try {
+    if (options.onChunk) {
+      listener = (chunk: NitroTextStreamChunk) => {
+        const converted: TextStreamChunk = {
+          delta: chunk.delta,
+          accumulated: chunk.accumulated,
+          isFinal: chunk.isFinal,
+        };
+        options.onChunk!(converted);
+      };
+      AI.instance.addRewriteStreamListener(listener);
+    }
+
+    const result = await AI.instance.rewriteStreaming(text, {
+      outputType: options.outputType as never,
+    });
+
+    return {
+      rewrittenText: result.rewrittenText,
+      style: result.style as RewriteOptions['outputType'],
+      confidence: result.confidence,
+    };
+  } finally {
+    if (listener) AI.instance.removeRewriteStreamListener(listener);
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Image Description
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * Describe the contents of an image using on-device AI.
+ * Supported on iOS (Foundation Models Vision) and Android.
+ * @param imageUri - URI or file path to the image
+ * @param options - Optional prompt and other options
+ */
+export async function describeImage(
+  imageUri: string,
+  options?: DescribeImageOptions,
+): Promise<DescribeImageResult> {
+  const result = await AI.instance.describeImage(imageUri, options ? {
+    prompt: options.prompt ?? null,
+  } : null);
+
+  return {
+    description: result.description,
+    confidence: result.confidence,
   };
 }
 

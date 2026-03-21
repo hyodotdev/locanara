@@ -4,6 +4,7 @@ import type {
   DeviceCapability,
   SummarizeOptions,
   SummarizeResult,
+  SummarizeStreamOptions,
   ClassifyOptions,
   ClassifyResult,
   ExtractOptions,
@@ -12,16 +13,21 @@ import type {
   ChatResult,
   ChatStreamChunk,
   ChatStreamOptions,
+  TextStreamChunk,
   TranslateOptions,
   TranslateResult,
+  TranslateStreamOptions,
   RewriteOptions,
   RewriteResult,
+  RewriteStreamOptions,
   ProofreadOptions,
   ProofreadResult,
   InitializeResult,
   DownloadableModelInfo,
   ModelDownloadProgress,
   InferenceEngine,
+  DescribeImageOptions,
+  DescribeImageResult,
 } from './types';
 import {ExpoOndeviceAiLog as Log} from './log';
 
@@ -170,6 +176,140 @@ export async function proofread(
   options?: ProofreadOptions,
 ): Promise<ProofreadResult> {
   return ExpoOndeviceAiModule.proofread(text, options);
+}
+
+// MARK: - Streaming Variants
+
+/**
+ * Summarize text with streaming — tokens delivered progressively via onChunk.
+ * @param text - The text to summarize
+ * @param options - Options including onChunk callback
+ * @returns Promise resolving to final SummarizeResult
+ */
+export async function summarizeStreaming(
+  text: string,
+  options?: SummarizeStreamOptions,
+): Promise<SummarizeResult> {
+  let subscription: EventSubscription | undefined;
+
+  try {
+    if (options?.onChunk) {
+      subscription = (
+        ExpoOndeviceAiModule as unknown as {
+          addListener: (
+            name: string,
+            listener: (chunk: TextStreamChunk) => void,
+          ) => EventSubscription;
+        }
+      ).addListener('onSummarizeStreamChunk', (chunk: TextStreamChunk) => {
+        options.onChunk!(chunk);
+      });
+    }
+
+    const {onChunk: _, ...nativeOptions} = options ?? {};
+    const result: SummarizeResult = await ExpoOndeviceAiModule.summarizeStreaming(
+      text,
+      Object.keys(nativeOptions).length > 0 ? nativeOptions : undefined,
+    );
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    return result;
+  } finally {
+    subscription?.remove();
+  }
+}
+
+/**
+ * Translate text with streaming — tokens delivered progressively via onChunk.
+ * @param text - The text to translate
+ * @param options - Options including targetLanguage and onChunk callback
+ * @returns Promise resolving to final TranslateResult
+ */
+export async function translateStreaming(
+  text: string,
+  options: TranslateStreamOptions,
+): Promise<TranslateResult> {
+  let subscription: EventSubscription | undefined;
+
+  try {
+    if (options.onChunk) {
+      subscription = (
+        ExpoOndeviceAiModule as unknown as {
+          addListener: (
+            name: string,
+            listener: (chunk: TextStreamChunk) => void,
+          ) => EventSubscription;
+        }
+      ).addListener('onTranslateStreamChunk', (chunk: TextStreamChunk) => {
+        options.onChunk!(chunk);
+      });
+    }
+
+    const {onChunk: _, ...nativeOptions} = options;
+    const result: TranslateResult = await ExpoOndeviceAiModule.translateStreaming(
+      text,
+      nativeOptions,
+    );
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    return result;
+  } finally {
+    subscription?.remove();
+  }
+}
+
+/**
+ * Rewrite text with streaming — tokens delivered progressively via onChunk.
+ * @param text - The text to rewrite
+ * @param options - Options including outputType and onChunk callback
+ * @returns Promise resolving to final RewriteResult
+ */
+export async function rewriteStreaming(
+  text: string,
+  options: RewriteStreamOptions,
+): Promise<RewriteResult> {
+  let subscription: EventSubscription | undefined;
+
+  try {
+    if (options.onChunk) {
+      subscription = (
+        ExpoOndeviceAiModule as unknown as {
+          addListener: (
+            name: string,
+            listener: (chunk: TextStreamChunk) => void,
+          ) => EventSubscription;
+        }
+      ).addListener('onRewriteStreamChunk', (chunk: TextStreamChunk) => {
+        options.onChunk!(chunk);
+      });
+    }
+
+    const {onChunk: _, ...nativeOptions} = options;
+    const result: RewriteResult = await ExpoOndeviceAiModule.rewriteStreaming(
+      text,
+      nativeOptions,
+    );
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    return result;
+  } finally {
+    subscription?.remove();
+  }
+}
+
+// MARK: - Image Description
+
+/**
+ * Describe the contents of an image using on-device AI.
+ * Supported on iOS (Foundation Models Vision API) and Android.
+ * @param imageUri - URI or file path to the image
+ * @param options - Optional prompt and other options
+ */
+export async function describeImage(
+  imageUri: string,
+  options?: DescribeImageOptions,
+): Promise<DescribeImageResult> {
+  return ExpoOndeviceAiModule.describeImage(imageUri, options);
 }
 
 // MARK: - Model Management

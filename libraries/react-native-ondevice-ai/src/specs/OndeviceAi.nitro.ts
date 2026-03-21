@@ -203,6 +203,29 @@ export interface NitroProofreadResult {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// Streaming Chunk (shared by summarize / translate / rewrite streaming)
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface NitroTextStreamChunk {
+  delta: string;
+  accumulated: string;
+  isFinal: boolean;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Image Description
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface NitroDescribeImageOptions {
+  prompt?: string | null;
+}
+
+export interface NitroDescribeImageResult {
+  description: string;
+  confidence: number;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // Model Management
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -273,6 +296,46 @@ export interface OndeviceAi
   removeChatStreamListener(
     listener: (chunk: NitroChatStreamChunk) => void,
   ): void;
+
+  // Streaming Variants for summarize / translate / rewrite
+  summarizeStreaming(
+    text: string,
+    options?: NitroSummarizeOptions | null,
+  ): Promise<NitroSummarizeResult>;
+  addSummarizeStreamListener(
+    listener: (chunk: NitroTextStreamChunk) => void,
+  ): void;
+  removeSummarizeStreamListener(
+    listener: (chunk: NitroTextStreamChunk) => void,
+  ): void;
+
+  translateStreaming(
+    text: string,
+    options: NitroTranslateOptions,
+  ): Promise<NitroTranslateResult>;
+  addTranslateStreamListener(
+    listener: (chunk: NitroTextStreamChunk) => void,
+  ): void;
+  removeTranslateStreamListener(
+    listener: (chunk: NitroTextStreamChunk) => void,
+  ): void;
+
+  rewriteStreaming(
+    text: string,
+    options: NitroRewriteOptions,
+  ): Promise<NitroRewriteResult>;
+  addRewriteStreamListener(
+    listener: (chunk: NitroTextStreamChunk) => void,
+  ): void;
+  removeRewriteStreamListener(
+    listener: (chunk: NitroTextStreamChunk) => void,
+  ): void;
+
+  // Image Description
+  describeImage(
+    imageUri: string,
+    options?: NitroDescribeImageOptions | null,
+  ): Promise<NitroDescribeImageResult>;
 
   // Model Management
   getAvailableModels(): Promise<NitroModelInfo[]>;
