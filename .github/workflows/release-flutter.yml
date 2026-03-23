@@ -1,0 +1,169 @@
+name: Release flutter_ondevice_ai
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type (or "current" to re-release)'
+        required: true
+        type: choice
+        options:
+          - current
+          - patch
+          - minor
+          - major
+        default: patch
+      create_release:
+        description: 'Also create a GitHub Release from the tag'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write # Required for pub.dev OIDC authentication
+
+jobs:
+  build-and-publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install root dependencies
+        run: bun install
+
+      - name: Calculate version
+        id: version
+        run: |
+          CURRENT_VERSION=$(jq -r '.flutter' locanara-versions.json)
+          echo "Current version: $CURRENT_VERSION"
+
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            NEW_VERSION="$CURRENT_VERSION"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+            case "${{ github.event.inputs.version }}" in
+              major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+              patch) PATCH=$((PATCH + 1)) ;;
+            esac
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          echo "New version: $NEW_VERSION"
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit version update
+        if: github.event.inputs.version != 'current'
+        run: |
+          # Update locanara-versions.json
+          jq --arg version "$VERSION" '.flutter = $version' locanara-versions.json > tmp.json
+          mv tmp.json locanara-versions.json
+          cp locanara-versions.json packages/site/locanara-versions.json
+
+          # Update pubspec.yaml version
+          sed -i "s/^version: .*/version: ${VERSION}/" libraries/flutter_ondevice_ai/pubspec.yaml
+
+          # Commit directly to main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add locanara-versions.json packages/site/locanara-versions.json libraries/flutter_ondevice_ai/pubspec.yaml
+
+          if git diff --staged --quiet; then
+            echo "No version changes to commit"
+          else
+            git commit -m "chore: bump flutter_ondevice_ai to $VERSION"
+            git pull --rebase origin main || true
+            git push origin main
+          fi
+
+      - name: Install Flutter dependencies
+        working-directory: libraries/flutter_ondevice_ai
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: libraries/flutter_ondevice_ai
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        working-directory: libraries/flutter_ondevice_ai
+        run: flutter test
+
+      - name: Dry Run
+        working-directory: libraries/flutter_ondevice_ai
+        run: dart pub publish --dry-run
+
+      - name: Publish to pub.dev
+        working-directory: libraries/flutter_ondevice_ai
+        run: dart pub publish --force
+
+      - name: Create Git tag
+        run: |
+          TAG_NAME="flutter-$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Delete existing tag if re-releasing
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            git push origin --delete "$TAG_NAME" 2>/dev/null || true
+            git tag -d "$TAG_NAME" 2>/dev/null || true
+          fi
+
+          git tag -a "$TAG_NAME" -m "flutter_ondevice_ai $VERSION"
+          git push origin "$TAG_NAME"
+
+      - name: Create GitHub Release
+        if: ${{ github.event.inputs.create_release == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="flutter-$VERSION"
+
+          # Delete existing release if re-releasing
+          if [ "${{ github.event.inputs.version }}" = "current" ]; then
+            gh release delete "$TAG_NAME" --yes 2>/dev/null || true
+          fi
+
+          gh release create "$TAG_NAME" \
+            --title "flutter_ondevice_ai $VERSION" \
+            --notes "flutter_ondevice_ai v$VERSION
+
+          ## Installation
+          \`\`\`yaml
+          dependencies:
+            flutter_ondevice_ai: ^$VERSION
+          \`\`\`
+
+          ## Features
+          - Apple Intelligence (iOS)
+          - Gemini Nano (Android)
+          - Chrome Built-in AI (Web)
+          " \
+            ${{ github.event.inputs.version == 'current' && '--latest' || '' }}
+
+      - name: Summary
+        run: |
+          echo "## flutter_ondevice_ai Released" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installation" >> $GITHUB_STEP_SUMMARY
+          echo '```yaml' >> $GITHUB_STEP_SUMMARY
+          echo "dependencies:" >> $GITHUB_STEP_SUMMARY
+          echo "  flutter_ondevice_ai: ^$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
