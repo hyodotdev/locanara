@@ -21,6 +21,34 @@ npx expo install expo-ondevice-ai
 - Android 14+ (Gemini Nano)
 - Web: Chrome 138+ (Chrome Built-in AI / Gemini Nano)
 
+### Supporting devices without native AI (llama.cpp fallback)
+
+Devices that don't support Apple Intelligence or Gemini Nano can still use on-device AI by downloading a llama.cpp model. To enable this, add `enableLlamaCpp` and `enableLocalDev` with local Locanara SDK paths in your plugin config:
+
+```typescript
+// app.config.ts
+[
+  'expo-ondevice-ai',
+  {
+    enableLocalDev: true,
+    enableLlamaCpp: true,
+    localPath: {
+      ios: path.resolve(__dirname, '..', 'locanara', 'packages', 'apple'),
+      android: path.resolve(__dirname, '..', 'locanara', 'packages', 'android'),
+    },
+  },
+],
+```
+
+With this configuration:
+
+- `getAvailableModels()` returns downloadable llama.cpp models on unsupported devices
+- `downloadModel(modelId)` downloads the model to the device
+- `loadModel(modelId)` loads the downloaded model for inference
+- `chat()` works using the local llama.cpp engine instead of native AI
+
+> **Note:** `enableLlamaCpp: true` alone is not enough — the LlamaCpp bridge pod is only created when `enableLocalDev: true` with `localPath` is also provided.
+
 ## Usage
 
 ```typescript
