@@ -11,16 +11,15 @@ Pod::Spec.new do |s|
   s.summary          = 'On-device AI SDK for iOS using Apple Intelligence'
   s.description      = 'Locanara provides a unified API for on-device AI capabilities using Apple Intelligence Foundation Models.'
   s.homepage         = 'https://github.com/hyodotdev/locanara'
-  s.license          = { :type => 'AGPL-3.0', :file => '../../LICENSE' }
+  s.license          = { :type => 'AGPL-3.0' }
   s.author           = { 'hyochan' => 'hyochan.dev@gmail.com' }
   s.source           = { :git => 'https://github.com/hyodotdev/locanara.git', :tag => s.version.to_s }
 
   s.ios.deployment_target = '17.0'
   s.macos.deployment_target = '14.0'
-  s.tvos.deployment_target = '17.0'
 
   s.swift_version = '6.0'
-  s.source_files = 'Sources/**/*.swift'
+  s.source_files = 'packages/apple/Sources/**/*.swift'
 
   s.frameworks = 'Foundation'
   # FoundationModels is resolved via canImport() in Swift source;
