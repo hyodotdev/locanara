@@ -19,7 +19,7 @@ const DEFAULT_TITLE =
   "Locanara - Free Open-Source On-Device AI SDK for iOS and Android";
 const DEFAULT_DESCRIPTION =
   "Privacy-first, unified on-device AI SDK for mobile developers. Build AI-powered apps without compromising user privacy.";
-const SITE_URL = "https://locanara.com";
+const SITE_URL = "https://locanara.hyo.dev";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
 const organizationSchema = {

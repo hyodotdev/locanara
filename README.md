@@ -14,7 +14,7 @@ Locanara is an on-device AI framework inspired by LangChain, purpose-built for m
 
 No cloud. No data leaves. Privacy by design.
 
-**Documentation**: [locanara.com](https://locanara.com) | **Blog**: [LangChain for Mobile, Entirely On-Device — Meet Locanara](https://medium.com/dooboolab/langchain-for-mobile-entirely-on-device-meet-locanara-33112ade3b0e)
+**Documentation**: [locanara.hyo.dev](https://locanara.hyo.dev) | **Blog**: [LangChain for Mobile, Entirely On-Device — Meet Locanara](https://medium.com/dooboolab/langchain-for-mobile-entirely-on-device-meet-locanara-33112ade3b0e)
 
 ---
 
@@ -282,7 +282,7 @@ suspend fun pipelineExample(context: Context) {
 | Rewrite   | `Rewrite(style:)`         | `.rewrite(style:)`         | `RewriteResult`   |
 | Extract   | `Extract(entityTypes:)`   | `.extract(entityTypes:)`   | `ExtractResult`   |
 
-> **Full tutorial**: [locanara.com/docs/tutorials/pipeline](https://locanara.com/docs/tutorials/pipeline)
+> **Full tutorial**: [locanara.hyo.dev/docs/tutorials/pipeline](https://locanara.hyo.dev/docs/tutorials/pipeline)
 
 ---
 
@@ -297,7 +297,7 @@ suspend fun pipelineExample(context: Context) {
   [![Maven Central](https://img.shields.io/maven-central/v/com.locanara/locanara?label=Maven%20Central)](https://central.sonatype.com/artifact/com.locanara/locanara)
   [![CI Android](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml/badge.svg)](https://github.com/hyodotdev/locanara/actions/workflows/ci-android.yml)
 
-- [**site**](packages/site) — Website + Documentation → [locanara.com](https://locanara.com)
+- [**site**](packages/site) — Website + Documentation → [locanara.hyo.dev](https://locanara.hyo.dev)
 
 ## Libraries
 

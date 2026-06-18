@@ -5,16 +5,44 @@ on:
     branches: [main]
     paths:
       - 'libraries/flutter_ondevice_ai/**'
+      - '!libraries/flutter_ondevice_ai/**/*.md'
+      - '!libraries/flutter_ondevice_ai/**/*.mdx'
+      - '!libraries/flutter_ondevice_ai/example/lib/screens/settings_screen.dart'
       - '.github/workflows/ci-flutter.yml'
   pull_request:
     branches: [main]
     paths:
       - 'libraries/flutter_ondevice_ai/**'
+      - '!libraries/flutter_ondevice_ai/**/*.md'
+      - '!libraries/flutter_ondevice_ai/**/*.mdx'
+      - '!libraries/flutter_ondevice_ai/example/lib/screens/settings_screen.dart'
       - '.github/workflows/ci-flutter.yml'
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      library: ${{ steps.filter.outputs.library }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filter changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            library:
+              - '.github/workflows/ci-flutter.yml'
+              - 'libraries/flutter_ondevice_ai/**'
+              - '!libraries/flutter_ondevice_ai/**/*.md'
+              - '!libraries/flutter_ondevice_ai/**/*.mdx'
+              - '!libraries/flutter_ondevice_ai/example/lib/screens/settings_screen.dart'
+
   analyze-and-test:
     name: Analyze & Test
+    needs: changes
+    if: needs.changes.outputs.library == 'true'
     runs-on: ubuntu-latest
 
     steps:

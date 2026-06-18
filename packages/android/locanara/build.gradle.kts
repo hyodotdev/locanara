@@ -132,7 +132,7 @@ mavenPublishing {
     pom {
         name.set("Locanara Android SDK")
         description.set("On-device AI SDK for Android using Gemini Nano")
-        url.set("https://locanara.com")
+        url.set("https://locanara.hyo.dev")
 
         licenses {
             license {

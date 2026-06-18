@@ -1,6 +1,6 @@
 # flutter_ondevice_ai
 
-Flutter plugin for on-device AI using [Locanara SDK](https://locanara.com).
+Flutter plugin for on-device AI using [Locanara SDK](https://locanara.hyo.dev).
 
 Supports iOS (Apple Intelligence / llama.cpp), Android (Gemini Nano), and Web (Chrome Built-in AI) from a single Dart API.
 
@@ -27,7 +27,7 @@ if (capability.isSupported) {
 
 ## Documentation
 
-Full documentation at [locanara.com/docs/libraries/flutter](https://locanara.com/docs/libraries/flutter)
+Full documentation at [locanara.hyo.dev/docs/libraries/flutter](https://locanara.hyo.dev/docs/libraries/flutter)
 
 ## License
 

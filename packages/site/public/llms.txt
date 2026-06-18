@@ -18,7 +18,7 @@ Free and open-source. No API keys, no usage limits, no per-request fees.
 
 ## Links
 
-- Docs: https://locanara.com/docs
-- Full info: https://locanara.com/llms-full.txt
-- Community: https://locanara.com/community
+- Docs: https://locanara.hyo.dev/docs
+- Full info: https://locanara.hyo.dev/llms-full.txt
+- Community: https://locanara.hyo.dev/community
 - GitHub: https://github.com/hyodotdev/locanara

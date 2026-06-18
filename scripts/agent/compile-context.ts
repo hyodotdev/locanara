@@ -59,8 +59,8 @@ async function generateLlmsTxt(): Promise<{ quick: number; full: number }> {
   let fullContent = `# Locanara Community SDK Complete Reference
 
 > Locanara: Unified on-device AI SDK for iOS/macOS and Android
-> Documentation: https://locanara.com
-> Quick Reference: https://locanara.com/llms.txt
+> Documentation: https://locanara.hyo.dev
+> Quick Reference: https://locanara.hyo.dev/llms.txt
 > Generated: ${new Date().toISOString()}
 
 ## Table of Contents
@@ -104,18 +104,18 @@ async function generateLlmsTxt(): Promise<{ quick: number; full: number }> {
   // Add links
   fullContent += `## Links & Resources
 
-- Documentation: https://locanara.com
+- Documentation: https://locanara.hyo.dev
 - GitHub: https://github.com/hyodotdev/locanara
-- Types Reference: https://locanara.com/docs/types
-- APIs Reference: https://locanara.com/docs/apis
+- Types Reference: https://locanara.hyo.dev/docs/types
+- APIs Reference: https://locanara.hyo.dev/docs/apis
 `;
 
   // Generate llms.txt (quick reference)
   const quickContent = `# Locanara Community SDK Quick Reference
 
 > Locanara: On-device AI SDK for iOS/macOS and Android
-> Documentation: https://locanara.com
-> Full Reference: https://locanara.com/llms-full.txt
+> Documentation: https://locanara.hyo.dev
+> Full Reference: https://locanara.hyo.dev/llms-full.txt
 > Generated: ${new Date().toISOString()}
 
 ## Overview
@@ -218,7 +218,7 @@ enum LocanaraError: Error {
 
 ## Links
 
-- Docs: https://locanara.com
+- Docs: https://locanara.hyo.dev
 - GitHub: https://github.com/hyodotdev/locanara
 `;
 

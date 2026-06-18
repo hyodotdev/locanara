@@ -5,16 +5,44 @@ on:
     branches: [main]
     paths:
       - 'libraries/react-native-ondevice-ai/**'
+      - '!libraries/react-native-ondevice-ai/**/*.md'
+      - '!libraries/react-native-ondevice-ai/**/*.mdx'
+      - '!libraries/react-native-ondevice-ai/example/src/screens/SettingsScreen.tsx'
       - '.github/workflows/ci-react-native.yml'
   pull_request:
     branches: [main]
     paths:
       - 'libraries/react-native-ondevice-ai/**'
+      - '!libraries/react-native-ondevice-ai/**/*.md'
+      - '!libraries/react-native-ondevice-ai/**/*.mdx'
+      - '!libraries/react-native-ondevice-ai/example/src/screens/SettingsScreen.tsx'
       - '.github/workflows/ci-react-native.yml'
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      library: ${{ steps.filter.outputs.library }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filter changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            library:
+              - '.github/workflows/ci-react-native.yml'
+              - 'libraries/react-native-ondevice-ai/**'
+              - '!libraries/react-native-ondevice-ai/**/*.md'
+              - '!libraries/react-native-ondevice-ai/**/*.mdx'
+              - '!libraries/react-native-ondevice-ai/example/src/screens/SettingsScreen.tsx'
+
   lint-and-test:
     name: Lint & Test
+    needs: changes
+    if: needs.changes.outputs.library == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -64,6 +92,8 @@ jobs:
 
   build-android:
     name: Build Android
+    needs: changes
+    if: needs.changes.outputs.library == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -99,6 +129,8 @@ jobs:
 
   build-ios:
     name: Build iOS
+    needs: changes
+    if: needs.changes.outputs.library == 'true'
     runs-on: macos-latest
 
     steps:
@@ -153,4 +185,3 @@ jobs:
             -configuration Debug \
             build \
             CODE_SIGNING_ALLOWED=NO
-

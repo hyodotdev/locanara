@@ -1,8 +1,8 @@
 # Locanara Community SDK Complete Reference
 
 > Locanara: Unified on-device AI SDK for iOS/macOS and Android
-> Documentation: https://locanara.com
-> Quick Reference: https://locanara.com/llms.txt
+> Documentation: https://locanara.hyo.dev
+> Quick Reference: https://locanara.hyo.dev/llms.txt
 > Generated: 2026-02-16T13:55:08.262Z
 
 ## Table of Contents
@@ -1917,7 +1917,7 @@ try await llmSession?.prewarm()
 
 ## Links & Resources
 
-- Documentation: https://locanara.com
+- Documentation: https://locanara.hyo.dev
 - GitHub: https://github.com/hyodotdev/locanara
-- Types Reference: https://locanara.com/docs/types
-- APIs Reference: https://locanara.com/docs/apis
+- Types Reference: https://locanara.hyo.dev/docs/types
+- APIs Reference: https://locanara.hyo.dev/docs/apis
