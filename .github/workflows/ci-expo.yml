@@ -5,16 +5,44 @@ on:
     branches: [main]
     paths:
       - 'libraries/expo-ondevice-ai/**'
+      - '!libraries/expo-ondevice-ai/**/*.md'
+      - '!libraries/expo-ondevice-ai/**/*.mdx'
+      - '!libraries/expo-ondevice-ai/example/app/(tabs)/settings.tsx'
       - '.github/workflows/ci-expo.yml'
   pull_request:
     branches: [main]
     paths:
       - 'libraries/expo-ondevice-ai/**'
+      - '!libraries/expo-ondevice-ai/**/*.md'
+      - '!libraries/expo-ondevice-ai/**/*.mdx'
+      - '!libraries/expo-ondevice-ai/example/app/(tabs)/settings.tsx'
       - '.github/workflows/ci-expo.yml'
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      library: ${{ steps.filter.outputs.library }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filter changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            library:
+              - '.github/workflows/ci-expo.yml'
+              - 'libraries/expo-ondevice-ai/**'
+              - '!libraries/expo-ondevice-ai/**/*.md'
+              - '!libraries/expo-ondevice-ai/**/*.mdx'
+              - '!libraries/expo-ondevice-ai/example/app/(tabs)/settings.tsx'
+
   lint-and-test:
     name: Lint & Test
+    needs: changes
+    if: needs.changes.outputs.library == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -57,6 +85,8 @@ jobs:
 
   build-android:
     name: Build Android
+    needs: changes
+    if: needs.changes.outputs.library == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -100,6 +130,8 @@ jobs:
 
   build-ios:
     name: Build iOS
+    needs: changes
+    if: needs.changes.outputs.library == 'true'
     runs-on: macos-latest
 
     steps:
@@ -156,6 +188,8 @@ jobs:
 
   build-web:
     name: Build Web
+    needs: changes
+    if: needs.changes.outputs.library == 'true'
     runs-on: ubuntu-latest
 
     steps:
