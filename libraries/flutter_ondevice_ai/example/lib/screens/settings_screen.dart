@@ -77,7 +77,7 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.menu_book,
             label: 'Documentation',
             trailing: Icons.open_in_new,
-            onTap: () => _launchUrl('https://locanara.com/docs'),
+            onTap: () => _launchUrl('https://locanara.hyo.dev/docs'),
           ),
           const _Separator(),
           _ActionRow(

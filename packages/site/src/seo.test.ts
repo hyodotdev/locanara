@@ -18,11 +18,13 @@ describe("SEO", () => {
     });
 
     it("should contain homepage URL", () => {
-      expect(sitemap).toContain("<loc>https://locanara.com/</loc>");
+      expect(sitemap).toContain("<loc>https://locanara.hyo.dev/</loc>");
     });
 
     it("should contain community page URL", () => {
-      expect(sitemap).toContain("<loc>https://locanara.com/community</loc>");
+      expect(sitemap).toContain(
+        "<loc>https://locanara.hyo.dev/community</loc>"
+      );
     });
 
     it("should have valid changefreq values", () => {
@@ -71,7 +73,7 @@ describe("SEO", () => {
     });
 
     it("should reference sitemap", () => {
-      expect(robots).toContain("Sitemap: https://locanara.com/sitemap.xml");
+      expect(robots).toContain("Sitemap: https://locanara.hyo.dev/sitemap.xml");
     });
   });
 
@@ -108,7 +110,7 @@ describe("SEO", () => {
 
       it("should have og:url", () => {
         expect(html).toContain('property="og:url"');
-        expect(html).toContain("https://locanara.com/");
+        expect(html).toContain("https://locanara.hyo.dev/");
       });
 
       it("should have og:title", () => {
@@ -121,7 +123,7 @@ describe("SEO", () => {
 
       it("should have og:image", () => {
         expect(html).toContain('property="og:image"');
-        expect(html).toContain("https://locanara.com/og-image.png");
+        expect(html).toContain("https://locanara.hyo.dev/og-image.png");
       });
 
       it("should have og:site_name", () => {
@@ -160,15 +162,15 @@ describe("SEO", () => {
 
   describe("SEO Component", () => {
     // Test the SEO component constants
-    const SITE_URL = "https://locanara.com";
+    const SITE_URL = "https://locanara.hyo.dev";
     const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
     it("should have correct site URL", () => {
-      expect(SITE_URL).toBe("https://locanara.com");
+      expect(SITE_URL).toBe("https://locanara.hyo.dev");
     });
 
     it("should have correct default image URL", () => {
-      expect(DEFAULT_IMAGE).toBe("https://locanara.com/og-image.png");
+      expect(DEFAULT_IMAGE).toBe("https://locanara.hyo.dev/og-image.png");
     });
 
     it("should generate correct full title with suffix", () => {
@@ -180,7 +182,7 @@ describe("SEO", () => {
     it("should generate correct URL with path", () => {
       const path = "/community";
       const url = `${SITE_URL}${path}`;
-      expect(url).toBe("https://locanara.com/community");
+      expect(url).toBe("https://locanara.hyo.dev/community");
     });
   });
 

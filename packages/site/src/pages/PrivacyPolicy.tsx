@@ -218,10 +218,10 @@ export function PrivacyPolicy() {
               <br />
               Website:{" "}
               <a
-                href="https://locanara.com"
+                href="https://locanara.hyo.dev"
                 className="text-accent hover:underline"
               >
-                https://locanara.com
+                https://locanara.hyo.dev
               </a>
             </p>
 

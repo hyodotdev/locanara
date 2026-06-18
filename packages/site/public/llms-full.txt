@@ -9,9 +9,9 @@ Locanara is a privacy-first, on-device AI SDK that enables mobile developers to 
 ## Project Information
 
 - **Name**: Locanara
-- **Website**: https://locanara.com
-- **Documentation**: https://locanara.com/docs
-- **Community Forum**: https://locanara.com/community
+- **Website**: https://locanara.hyo.dev
+- **Documentation**: https://locanara.hyo.dev/docs
+- **Community Forum**: https://locanara.hyo.dev/community
 - **GitHub Repository**: https://github.com/hyodotdev/locanara
 - **License**: AGPL-3.0 (free and open-source)
 
@@ -431,16 +431,16 @@ A: On iOS, Locanara supports both Apple Intelligence (Foundation Models) and dow
 
 ## Support & Community
 
-- **Documentation**: https://locanara.com/docs
-- **Community Forum**: https://locanara.com/community
+- **Documentation**: https://locanara.hyo.dev/docs
+- **Community Forum**: https://locanara.hyo.dev/community
 - **GitHub Issues**: https://github.com/hyodotdev/locanara/issues
 - **Email**: support@locanara.com
 
 ## Legal
 
 - License: AGPL-3.0 (https://github.com/hyodotdev/locanara/blob/main/LICENSE)
-- Privacy Policy: https://locanara.com/privacy-policy
-- Terms of Service: https://locanara.com/terms-of-service
+- Privacy Policy: https://locanara.hyo.dev/privacy-policy
+- Terms of Service: https://locanara.hyo.dev/terms-of-service
 
 ---
 

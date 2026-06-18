@@ -23,7 +23,7 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://locanara.com/sitemap.xml
+Sitemap: https://locanara.hyo.dev/sitemap.xml
 
 # AI/LLM information
-# See https://locanara.com/llms.txt for structured information about this site
+# See https://locanara.hyo.dev/llms.txt for structured information about this site

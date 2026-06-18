@@ -101,7 +101,7 @@ const translated = await translate('Hello', {
 
 ## Documentation
 
-Full API documentation and guides are available at **[locanara.com/docs/libraries/expo](https://locanara.com/docs/libraries/expo)**.
+Full API documentation and guides are available at **[locanara.hyo.dev/docs/libraries/expo](https://locanara.hyo.dev/docs/libraries/expo)**.
 
 ## License
 
