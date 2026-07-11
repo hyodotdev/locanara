@@ -127,7 +127,7 @@ public actor EmbeddingEngine {
         // Try sentence embedding first (iOS 17+ / macOS 14+)
         if let sentenceEmbedding = try? getSentenceEmbedding(for: language),
            let vector = sentenceEmbedding.vector(for: text) {
-            logger.info("Using SENTENCE embedding for '\(text.prefix(30))...' (lang=\(language.rawValue), dim=\(vector.count))")
+            logger.info("Using sentence embedding (language=\(language.rawValue), dimensions=\(vector.count))")
             return TextEmbedding(
                 text: text,
                 vector: vector,
@@ -139,7 +139,7 @@ public actor EmbeddingEngine {
         logger.warning("SENTENCE embedding unavailable for \(language.rawValue), falling back to WORD embedding")
         let wordEmbedding = try getWordEmbedding(for: language)
         let vector = try computeAverageWordEmbedding(text: text, embedding: wordEmbedding)
-        logger.info("Using WORD embedding for '\(text.prefix(30))...' (lang=\(language.rawValue), dim=\(vector.count))")
+        logger.info("Using word embedding (language=\(language.rawValue), dimensions=\(vector.count))")
 
         return TextEmbedding(
             text: text,

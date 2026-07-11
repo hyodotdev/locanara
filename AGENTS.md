@@ -17,9 +17,9 @@ Locanara is an on-device AI **framework** for iOS, Android, and Web, inspired by
 
 ### Supported Platforms
 
-- **iOS/macOS**: Apple Intelligence (Foundation Models) - iOS 18.1+, macOS 15.1+ (iOS 26+, macOS 26+ recommended)
-- **Android**: Gemini Nano (ML Kit GenAI) - Android 14+
-- **Web**: Chrome Built-in AI (Gemini Nano) - Chrome 138+
+- **iOS/macOS**: Foundation Models on iOS 26+/macOS 26+; local fallback engines support iOS 17+/macOS 14+
+- **Android**: Gemini Nano (ML Kit GenAI Prompt API) on supported Android 14+ devices; ExecuTorch supports API 31+
+- **Web**: Chrome Built-in AI. Treat browser/API availability as runtime capability, not a static browser-version guarantee.
 
 ### Distribution
 
@@ -32,7 +32,7 @@ Locanara is an on-device AI **framework** for iOS, Android, and Web, inspired by
 ## Project Structure
 
 ```text
-locanara-community/
+locanara/
 ├── packages/
 │   ├── apple/          # Swift SDK (SPM + CocoaPods)
 │   │   ├── Sources/
@@ -62,7 +62,8 @@ locanara-community/
 │   │   │       ├── rag/             # VectorStore, RAGManager
 │   │   │       └── personalization/ # PersonalizationManager
 │   │   └── example/    # Example app
-│   ├── gql/            # GraphQL schema definitions
+│   ├── gql/            # GraphQL schema definitions and type generators
+│   ├── web/            # Browser SDK for Chrome Built-in AI
 │   └── site/           # Website (landing + docs + community)
 ├── libraries/          # Third-party framework integrations
 │   ├── expo-ondevice-ai/         # Expo module
@@ -73,15 +74,21 @@ locanara-community/
     └── guides/         # Project guides
 ```
 
-## Skills (Slash Commands)
+## Skills and Slash Commands
 
-- `/gql` - GraphQL schema architect
-- `/apple` - Apple Intelligence SDK development
-- `/android` - Android/Gemini Nano SDK development
-- `/test` - Test engineer
-- `/docs` - Documentation manager
-- `/commit` - Git commit and PR workflow
+- `/locanara` - Project-wide routing and source-of-truth map
+- `/gql` - GraphQL schema and generated-type workflow
+- `/apple` - Apple SDK development
+- `/android` - Android SDK development
+- `/test` - Cross-platform test workflow
+- `/docs` - Documentation workflow
 - `/audit-code` - Code audit against project rules
+- `/verify-all` - Changed-path or full repository verification
+- `/resolve-issue` - Evidence-backed GitHub issue workflow
+- `/review-pr` - Pull request feedback workflow
+- `$review-self` - Self-review and five-minute stabilization loop
+- `/knowledge-compile` - Upstream technology research and impact notes
+- `/commit` - Local commit and PR workflow
 
 ## Commit Conventions
 
@@ -164,9 +171,13 @@ Locanara is structured as a layered framework (similar to LangChain for on-devic
 
 ### Key Concepts
 
+The complete `ModelManager`/downloader/storage lifecycle is currently an Apple
+layer. Android has an ExecuTorch engine and model registry, not the same full
+lifecycle implementation.
+
 - **Chain**: Composable unit of AI logic. Implement the `Chain` protocol to create custom features.
 - **Built-in Chains**: 7 ready-to-use chains (`SummarizeChain`, `ClassifyChain`, etc.) that serve as both utilities and reference implementations.
-- **Pipeline DSL**: Compose chains with compile-time type safety (`model.pipeline { Proofread(); Translate(to: "ko") }.run("text")`).
+- **Pipeline DSL**: Compose native chains while tracking the last step's result type. The current builders do not prove every adjacent step compatible at compile time.
 - **Memory**: `BufferMemory` (last N turns) and `SummaryMemory` (compressed history) for conversation context.
 - **Guardrail**: Input/output validation (`InputLengthGuardrail`, `ContentFilterGuardrail`).
 - **Model Extensions**: One-liner convenience methods (`model.summarize()`, `model.translate()`).
@@ -189,7 +200,7 @@ Developers build their own AI features by:
 
 ### Swift (Apple SDK)
 
-- Use Swift 6.0+ with strict concurrency
+- Use the Swift 6 toolchain. Some targets still compile in Swift 5 language mode; treat concurrency warnings as migration defects.
 - Follow Apple's Swift API Design Guidelines
 - Use `async/await` for all AI operations
 - Prefix errors with `Locanara` (e.g., `LocanaraError`)
@@ -209,7 +220,9 @@ Developers build their own AI features by:
 
 ## API Naming Conventions
 
-All platforms use identical method names:
+Shared feature concepts use the same canonical method names. Platform-only
+features must be capability-gated, and wrapper APIs must return an explicit
+unsupported result rather than simulate success:
 
 - `getDeviceCapability()` - Check device AI support
 - `summarize()` - Text summarization
@@ -222,16 +235,13 @@ All platforms use identical method names:
 
 ## Versioning
 
-All packages share the same version number defined in `locanara-versions.json`:
+`locanara-versions.json` is the only source of truth. Package versions are intentionally allowed to differ, so never copy example version numbers from documentation or infer one package's version from another. Read the file at execution time:
 
-```json
-{
-  "version": "1.0.1",
-  "types": "1.0.1",
-  "apple": "1.0.1",
-  "android": "1.0.2"
-}
+```bash
+jq . locanara-versions.json
 ```
+
+`packages/site/locanara-versions.json` and package manifests are synchronized copies. A mismatch is a defect; do not silently choose one of the copies.
 
 ## Development Commands
 
@@ -240,8 +250,8 @@ All packages share the same version number defined in `locanara-versions.json`:
 ```bash
 cd packages/site
 bun install
-bunx convex dev & bun dev   # Start dev server with Convex
-bun build                   # Build for production
+bun run dev                 # Start Vite and Convex together
+bun run build               # Build for production
 ```
 
 ### Apple
@@ -253,8 +263,11 @@ swift test
 
 # Example app
 cd Example
-xcodebuild -scheme LocanaraExample -destination 'generic/platform=iOS Simulator' build
+xcodebuild -scheme LocanaraExample -destination 'generic/platform=iOS Simulator' -skipMacroValidation build
 ```
+
+Use `-skipMacroValidation` for headless verification only after reviewing the
+resolved macro dependency revision.
 
 ### Android
 
@@ -263,6 +276,39 @@ cd packages/android
 ./gradlew :locanara:build
 ./gradlew :example:assembleDebug
 ./gradlew test
+```
+
+### Web
+
+```bash
+cd packages/web
+bun run lint
+bun run test
+bun run build
+```
+
+### GraphQL Types
+
+```bash
+cd packages/gql
+bun run generate
+git diff -- ../apple/Sources/Types.swift ../android/locanara/src/main/kotlin/com/locanara/Types.kt
+```
+
+Review expected generated changes during development. Use
+`git diff --exit-code` only as a clean-baseline drift check in CI or after
+confirming no generated change is expected.
+
+### AI Context
+
+```bash
+cd scripts/agent
+bun run typecheck
+bun test
+bun run lint:markdown
+bun run compile             # Regenerate after source changes
+bun run check               # Read-only generated-output verification
+bun run check:versions      # Version work only; fails on root/site drift
 ```
 
 ## Build Verification (Required After Code Changes)
@@ -278,7 +324,7 @@ swift build
 
 # Example app (from packages/apple/Example)
 cd Example
-xcodebuild -scheme LocanaraExample -destination 'generic/platform=iOS Simulator' build
+xcodebuild -scheme LocanaraExample -destination 'generic/platform=iOS Simulator' -skipMacroValidation build
 ```
 
 ```bash
@@ -290,12 +336,39 @@ cd packages/android
 
 ### When to Verify
 
-| Changed Files                      | Required Builds           |
-| ---------------------------------- | ------------------------- |
-| `packages/apple/Sources/**`        | iOS SDK + Example App     |
-| `packages/apple/Example/**`        | iOS Example App           |
-| `packages/android/locanara/src/**` | Android SDK + Example App |
-| `packages/android/example/**`      | Android Example App       |
+| Changed Files                                                                    | Required Verification                                                     |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `packages/gql/**`                                                                | Generate types; diff tracked Swift/Kotlin outputs; affected SDK tests     |
+| `packages/apple/Sources/**`                                                      | `swift build`, `swift test`, iOS Example build                            |
+| `packages/apple/Example/**`                                                      | iOS Example build                                                         |
+| `packages/android/locanara/src/**`                                               | `:locanara:test`, `:locanara:build`, `:example:assembleDebug`             |
+| `packages/android/example/**`                                                    | `:example:assembleDebug`                                                  |
+| `packages/web/**`                                                                | lint, test, build                                                         |
+| `packages/site/**`                                                               | typecheck, lint, format check, test, build                                |
+| `libraries/expo-ondevice-ai/**`                                                  | TypeScript check, tests, build                                            |
+| `libraries/react-native-ondevice-ai/**`                                          | TypeScript check, tests, build; run nitrogen for spec/codegen changes     |
+| `libraries/flutter_ondevice_ai/**`                                               | `flutter analyze`, `flutter test`                                         |
+| `AGENTS.md`, `SKILLS_INDEX.md`, `.claude/**`, `.codex/skills/**`, `knowledge/**` | agent typecheck, tests, Markdown lint, regenerate if needed, then `check` |
+| `scripts/agent/**`, root/site `llms*.txt`, agent CI workflow                     | agent typecheck, tests, Markdown lint, regenerate if needed, then `check` |
+
+## Agent Working Agreement
+
+1. Start with `git status --short --branch`, inspect existing diffs, and preserve user-owned changes.
+2. Read the nearest package guide before editing. Verify claims against implementation and manifests; generated docs and old knowledge snapshots are not authority.
+3. Keep source-of-truth order explicit: GraphQL schema for shared generated types, platform SDKs for behavior, wrapper specs/public APIs for bridges, and `locanara-versions.json` for versions.
+4. Never hand-edit generated GraphQL or Nitro output. Run the generator from its source and review the diff.
+5. Use changed-path verification by default. Run the full matrix for cross-platform contracts, generator changes, releases, or when explicitly requested.
+6. Treat logs as a privacy boundary: SDK production code must not print prompts, user input, model output, or extracted entities. Use structured platform logging only for non-sensitive metadata.
+7. Do not describe a feature as compile-time safe, available, or supported unless the implementation and tests establish that exact guarantee.
+
+## Issue Resolution Rules
+
+- Age alone is never a reason to close an issue.
+- Reproduce or compare every acceptance criterion against the current default branch.
+- Check whether a linked PR actually changed all requested surfaces; a `Closes #N` message is not proof of completion.
+- Close as `completed` only when the requested outcome exists and is verified. Use `not planned` only for a deliberate scope decision and explain why.
+- Before a close, leave a concise evidence comment with the relevant files, tests, or superseding issue/PR.
+- If any substantive criterion remains, keep the issue open and report the smallest remaining scope.
 
 ## Libraries
 
@@ -303,7 +376,11 @@ Third-party framework integrations that wrap the Locanara SDK (`packages/`).
 
 ### Source of Truth
 
-**`packages/` is the source of truth.** Libraries in `libraries/` are thin wrappers that call the SDK. When modifying AI behavior (prompts, chains, model management), always change `packages/apple/`, `packages/android/`, or `packages/web/` first — libraries just forward calls to the SDK.
+**`packages/` is the behavioral source of truth.** Libraries are adapters and
+may contain bridge, browser, serialization, or platform glue; do not assume
+every current path merely forwards. Change core AI behavior in
+`packages/apple/`, `packages/android/`, or `packages/web/` first, then keep each
+wrapper honest and aligned.
 
 ### Available Libraries
 
@@ -324,13 +401,16 @@ Libraries depend on the SDK via package managers. During local development:
 **When SDK changes are needed:**
 
 1. Modify code in `packages/apple/`, `packages/android/`, or `packages/web/`
-2. Bump version in `locanara-versions.json` if API changed
-3. User handles local publishing (mavenLocal, etc.) — **AI agents must NEVER publish**
-4. Rebuild library example to verify
+2. Rebuild the affected wrapper examples against the local SDK
+3. Change `locanara-versions.json` only when the user explicitly requests version preparation
+4. User handles local publishing (mavenLocal, etc.) — **AI agents must NEVER publish**
 
 ### API Parity Across Libraries
 
-All three libraries **MUST** expose identical public APIs. When modifying one library, update the others:
+All three libraries **MUST** keep the same public wrapper API surface. When an
+underlying platform lacks a capability, expose that fact through capability
+data or an explicit unsupported error; never return a fabricated success. When
+modifying one library, update the others:
 
 | Function                              | All libraries must expose           |
 | ------------------------------------- | ----------------------------------- |
@@ -341,9 +421,13 @@ All three libraries **MUST** expose identical public APIs. When modifying one li
 | `extract(text, options?)`             | Extract result                      |
 | `chat(message, options?)`             | Chat result                         |
 | `chatStream(message, options?)`       | Chat result with streaming callback |
+| `summarizeStreaming(text, options?)`  | Summarize with streaming callback   |
+| `translateStreaming(text, options)`   | Translate with streaming callback   |
+| `rewriteStreaming(text, options?)`    | Rewrite with streaming callback     |
 | `translate(text, options)`            | Translate result                    |
 | `rewrite(text, options)`              | Rewrite result                      |
 | `proofread(text, options?)`           | Proofread result                    |
+| `describeImage(image, options?)`      | Image description where supported   |
 | `getAvailableModels()`                | List of downloadable models         |
 | `getDownloadedModels()`               | List of downloaded model IDs        |
 | `getLoadedModel()`                    | Currently loaded model ID or null   |
@@ -360,11 +444,15 @@ Expo module wrapping Locanara SDK for React Native/Expo apps.
 
 ```bash
 cd libraries/expo-ondevice-ai
-bun install
-bun run build     # Build TypeScript
-bun run lint:ci   # Run all linters
+bun install --frozen-lockfile --ignore-scripts
+bun run lint:tsc  # Read-only TypeScript check
+bun run lint      # Read-only ESLint check
 bun run test      # Run tests
+bun run build     # Build TypeScript
 ```
+
+Do not use `lint:ci` as a read-only check: it currently runs formatting/fix
+commands that can modify the working tree.
 
 **Structure follows expo-iap pattern:**
 
@@ -380,7 +468,7 @@ React Native module using Nitro Modules for bare React Native apps. Expo users s
 
 ```bash
 cd libraries/react-native-ondevice-ai
-bun install
+bun install --frozen-lockfile --ignore-scripts
 bun run nitrogen    # Generate Nitro bridge code
 bun run lint:tsc    # TypeScript type check
 bun run test        # Run tests
@@ -417,7 +505,10 @@ flutter test
 
 ### CRITICAL: Spec-First Development
 
-The Nitro Module uses **code generation** from a single spec file. **All changes MUST start from the spec file** — otherwise native implementations will be out of sync.
+The Nitro Module uses code generation from a single bridge spec. Every public
+bridge signature or type change **MUST** start from the spec. Native bug fixes,
+tests, or internal refactors that do not change the bridge contract start in
+their owning implementation and must not create needless generated churn.
 
 **Source of truth**: `libraries/react-native-ondevice-ai/src/specs/OndeviceAi.nitro.ts`
 
@@ -452,6 +543,7 @@ Follow this exact order — **never skip a step**:
    - Add test cases for new functionality
 
 7. **Verify**:
+
    ```bash
    npx nitrogen && npx tsc --noEmit && bun run test
    ```
@@ -494,6 +586,6 @@ All publishing and deployment is handled exclusively by the maintainer through C
 ## Important Notes
 
 - Do NOT add cloud AI fallback - this is intentionally on-device only
-- Keep API surface identical across platforms
-- GraphQL schema is the source of truth for types
+- Keep wrapper API surfaces aligned and represent unsupported capabilities honestly
+- GraphQL schema is the source of truth for shared generated Apple/Android types
 - Test on real devices (simulators may not support on-device AI)

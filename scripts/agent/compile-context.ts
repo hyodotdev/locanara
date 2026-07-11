@@ -1,421 +1,599 @@
 /**
- * Claude Code Context Compiler
+ * Locanara agent-context and llms.txt compiler.
  *
- * This script compiles all knowledge files into context files
- * that can be used with Claude Code's --context flag.
+ * Authority order:
+ *   1. AGENTS.md (excluding machine-local memory blocks)
+ *   2. live schema, manifests, code, and tests
+ *   3. explicitly allowlisted knowledge/internal files
+ *   4. knowledge/external inventory (bodies are not embedded)
  *
- * Usage:
- *   bun run compile
- *
- * Output:
- *   knowledge/_claude-context/context.md
- *   llms.txt
- *   llms-full.txt
- *
- * Then use with Claude Code:
- *   claude --context knowledge/_claude-context/context.md
+ * Generated files are deterministic and can be verified with --check.
  */
 
 import * as fs from "fs";
 import * as path from "path";
-import { glob } from "glob";
-import chalk from "chalk";
-
-// ============================================================================
-// Configuration
-// ============================================================================
-
 import { fileURLToPath } from "url";
+
+import chalk from "chalk";
+import { glob } from "glob";
+
+export interface Versions {
+  version: string;
+  types: string;
+  apple: string;
+  android: string;
+  expo: string;
+  "react-native": string;
+  flutter: string;
+}
+
+export interface VersionDrift {
+  key: keyof Versions;
+  authoritative: string;
+  mirror: string;
+}
+
+const VERSION_KEYS: ReadonlyArray<keyof Versions> = [
+  "version",
+  "types",
+  "apple",
+  "android",
+  "expo",
+  "react-native",
+  "flutter",
+];
+
+const INTERNAL_KNOWLEDGE_ALLOWLIST = [
+  "01-naming-conventions.md",
+  "02-architecture.md",
+  "03-coding-style.md",
+  "04-api-design.md",
+  "05-git-deployment.md",
+] as const;
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
-const CONFIG = {
+export const CONFIG = {
   projectRoot: path.resolve(scriptDir, "../.."),
   knowledgeRoot: path.resolve(scriptDir, "../../knowledge"),
-  outputDir: path.resolve(scriptDir, "../../knowledge/_claude-context"),
-  outputFile: "context.md",
-  llmsOutputDir: path.resolve(scriptDir, "../.."),
+  contextPath: path.resolve(
+    scriptDir,
+    "../../knowledge/_claude-context/context.md",
+  ),
+  rootLlmsPath: path.resolve(scriptDir, "../../llms.txt"),
+  rootLlmsFullPath: path.resolve(scriptDir, "../../llms-full.txt"),
+  siteVersionsPath: path.resolve(
+    scriptDir,
+    "../../packages/site/locanara-versions.json",
+  ),
+  siteLlmsPath: path.resolve(scriptDir, "../../packages/site/public/llms.txt"),
+  siteLlmsFullPath: path.resolve(
+    scriptDir,
+    "../../packages/site/public/llms-full.txt",
+  ),
 };
 
-// ============================================================================
-// LLMs.txt Generator
-// ============================================================================
+function readText(filePath: string): string {
+  return fs.readFileSync(filePath, "utf-8").trimEnd();
+}
 
-async function generateLlmsTxt(): Promise<{ quick: number; full: number }> {
-  console.log(chalk.blue("\n🤖 Generating llms.txt files...\n"));
+export function parseVersions(
+  value: unknown,
+  source = "version map",
+): Versions {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${source} must be a JSON object`);
+  }
 
-  // Read all internal docs for full reference
-  const internalFiles = await glob(
-    path.join(CONFIG.knowledgeRoot, "internal/**/*.md"),
-    { absolute: true }
+  const record = value as Record<string, unknown>;
+  const invalidKeys = VERSION_KEYS.filter((key) => {
+    const candidate = record[key];
+    return typeof candidate !== "string" || candidate.trim().length === 0;
+  });
+
+  if (invalidKeys.length > 0) {
+    throw new Error(
+      `${source} has missing or invalid keys: ${invalidKeys.join(", ")}`,
+    );
+  }
+
+  return Object.fromEntries(
+    VERSION_KEYS.map((key) => [key, (record[key] as string).trim()]),
+  ) as unknown as Versions;
+}
+
+function readVersionsFile(filePath: string): Versions {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readText(filePath));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${filePath} is not valid JSON: ${message}`);
+  }
+  return parseVersions(parsed, filePath);
+}
+
+export function readVersions(projectRoot = CONFIG.projectRoot): Versions {
+  return readVersionsFile(path.join(projectRoot, "locanara-versions.json"));
+}
+
+export function compareVersions(
+  authoritative: Versions,
+  mirror: Versions,
+): VersionDrift[] {
+  return VERSION_KEYS.flatMap((key) =>
+    authoritative[key] === mirror[key]
+      ? []
+      : [
+          {
+            key,
+            authoritative: authoritative[key],
+            mirror: mirror[key],
+          },
+        ],
+  );
+}
+
+export function formatVersionDrift(drift: VersionDrift[]): string {
+  if (drift.length === 0) {
+    return "The root and site version maps match.";
+  }
+
+  const details = drift
+    .map(
+      ({ key, authoritative, mirror }) =>
+        `\`${key}\` (root: \`${authoritative}\`, site: \`${mirror}\`)`,
+    )
+    .join(", ");
+
+  return `Version mirror mismatch detected: ${details}. The root map is authoritative; treat the site copy as a synchronization defect.`;
+}
+
+export function assertNoVersionDrift(drift: VersionDrift[]): void {
+  if (drift.length > 0) {
+    throw new Error(formatVersionDrift(drift));
+  }
+}
+
+export function stripLocalMemoryContext(content: string): string {
+  const stripped = content.replace(
+    /\n?<claude-mem-context\b[^>]*>[\s\S]*?<\/claude-mem-context\s*>\s*/gi,
+    "\n",
   );
 
-  // Read all external docs
-  const externalFiles = await glob(
-    path.join(CONFIG.knowledgeRoot, "external/**/*.md"),
-    { absolute: true }
+  if (/<\/?claude-mem-context\b/i.test(stripped)) {
+    throw new Error(
+      "Malformed claude-mem-context block remains in AGENTS.md; refusing to embed machine-local memory",
+    );
+  }
+
+  return stripped.trimEnd();
+}
+
+async function listMarkdownFiles(directory: string): Promise<string[]> {
+  const files = await glob(path.join(directory, "**/*.md"), {
+    absolute: true,
+  });
+  return files.sort();
+}
+
+export function toPosixPath(filePath: string): string {
+  return filePath.replaceAll(path.win32.sep, path.posix.sep);
+}
+
+function relativePosix(from: string, to: string): string {
+  return toPosixPath(path.relative(from, to));
+}
+
+async function readInternalKnowledge(): Promise<
+  Array<{ source: string; content: string }>
+> {
+  const directory = path.join(CONFIG.knowledgeRoot, "internal");
+  const files = await listMarkdownFiles(directory);
+  const actualNames = files.map((filePath) =>
+    relativePosix(directory, filePath),
+  );
+  const allowed = new Set<string>(INTERNAL_KNOWLEDGE_ALLOWLIST);
+  const unexpected = actualNames.filter((name) => !allowed.has(name));
+  const missing = INTERNAL_KNOWLEDGE_ALLOWLIST.filter(
+    (name) => !actualNames.includes(name),
   );
 
-  // Generate llms-full.txt (comprehensive)
-  let fullContent = `# Locanara Community SDK Complete Reference
+  if (unexpected.length > 0 || missing.length > 0) {
+    const problems = [
+      ...unexpected.map((name) => `unreviewed internal source: ${name}`),
+      ...missing.map((name) => `missing allowlisted source: ${name}`),
+    ];
+    throw new Error(
+      `Internal knowledge allowlist mismatch:\n${problems.map((item) => `- ${item}`).join("\n")}`,
+    );
+  }
 
-> Locanara: Unified on-device AI SDK for iOS/macOS and Android
-> Documentation: https://locanara.hyo.dev
-> Quick Reference: https://locanara.hyo.dev/llms.txt
-> Generated: ${new Date().toISOString()}
+  return INTERNAL_KNOWLEDGE_ALLOWLIST.map((name) => {
+    const filePath = path.join(directory, name);
+    return {
+      source: relativePosix(CONFIG.projectRoot, filePath),
+      content: readText(filePath),
+    };
+  });
+}
 
-## Table of Contents
+async function listExternalReferences(): Promise<string[]> {
+  const directory = path.join(CONFIG.knowledgeRoot, "external");
+  const files = await listMarkdownFiles(directory);
+  return files.map((filePath) => relativePosix(CONFIG.projectRoot, filePath));
+}
 
-1. Overview
-2. Installation
-3. API Reference
-4. iOS/macOS (Swift)
-5. Android (Kotlin)
-6. Internal Guidelines
+function renderVersionStatus(drift: VersionDrift[]): string {
+  return `## Version Mirror Status
 
----
-
+${formatVersionDrift(drift)}
 `;
+}
 
-  // Add internal rules
-  fullContent += `# Internal Guidelines (MANDATORY)\n\n`;
-  fullContent += `These rules define Locanara's development philosophy.\n`;
-  fullContent += `**You MUST follow these rules EXACTLY. No exceptions.**\n\n---\n\n`;
+export function buildQuickReference(
+  versions: Versions,
+  drift: VersionDrift[] = [],
+): string {
+  return `# Locanara
 
-  for (const filePath of internalFiles.sort()) {
-    const content = fs.readFileSync(filePath, "utf-8");
-    const filename = path.basename(filePath, ".md");
-    console.log(chalk.magenta(`  📜 Adding ${filename} to llms-full.txt`));
-    fullContent += content;
-    fullContent += "\n\n---\n\n";
-  }
+> Free, open-source, privacy-first on-device AI framework for Apple, Android, and Web.
 
-  // Add external docs
-  fullContent += `# External API Reference\n\n`;
-  fullContent += `Use this documentation for API details.\n\n---\n\n`;
+Locanara provides chains, memory, guardrails, native Pipeline builders, local
+RAG, model/engine integrations, and browser-native inference. Prompt inference
+stays on device: there is no cloud fallback and no API key.
 
-  for (const filePath of externalFiles.sort()) {
-    const content = fs.readFileSync(filePath, "utf-8");
-    const filename = path.basename(filePath, ".md");
-    console.log(chalk.cyan(`  📖 Adding ${filename} to llms-full.txt`));
-    fullContent += content;
-    fullContent += "\n\n---\n\n";
-  }
+## Packages
 
-  // Add links
-  fullContent += `## Links & Resources
+- Apple SDK: ${versions.apple} via Swift Package Manager or CocoaPods
+- Android SDK: ${versions.android} via \`com.locanara:locanara\`
+- Web SDK: \`locanara\` (read the live manifest; the version map has no dedicated Web key)
+- Expo wrapper: ${versions.expo} via \`expo-ondevice-ai\`
+- React Native wrapper: ${versions["react-native"]} via \`react-native-ondevice-ai\`
+- Flutter wrapper: ${versions.flutter} via \`flutter_ondevice_ai\`
 
-- Documentation: https://locanara.hyo.dev
+${renderVersionStatus(drift)}
+## Start Here
+
+- Check device/runtime capability before inference.
+- Apple and Android provide Pipeline composition; Web does not.
+- Verify model-management support in the concrete platform implementation.
+
+## Links
+
+- Documentation: https://locanara.hyo.dev/docs
+- Full AI reference: https://locanara.hyo.dev/llms-full.txt
 - GitHub: https://github.com/hyodotdev/locanara
-- Types Reference: https://locanara.hyo.dev/docs/types
-- APIs Reference: https://locanara.hyo.dev/docs/apis
+- Community: https://locanara.hyo.dev/community
 `;
+}
 
-  // Generate llms.txt (quick reference)
-  const quickContent = `# Locanara Community SDK Quick Reference
+export function buildFullReference(
+  versions: Versions,
+  drift: VersionDrift[] = [],
+): string {
+  return `# Locanara Reference for AI Systems
 
-> Locanara: On-device AI SDK for iOS/macOS and Android
-> Documentation: https://locanara.hyo.dev
-> Full Reference: https://locanara.hyo.dev/llms-full.txt
-> Generated: ${new Date().toISOString()}
+## Product Contract
 
-## Overview
+Locanara is an AGPL-3.0 on-device AI framework. User prompts and model outputs
+must not be sent to hosted inference services. Network access is limited to
+explicit model/package asset downloads and non-inference product surfaces.
 
-Locanara provides unified on-device AI capabilities. Privacy-first, no cloud.
+## Current Package Versions
 
-## Installation
+| Surface | Version |
+| --- | --- |
+| Core version key | ${versions.version} |
+| Generated types | ${versions.types} |
+| Apple | ${versions.apple} |
+| Android | ${versions.android} |
+| Expo | ${versions.expo} |
+| React Native | ${versions["react-native"]} |
+| Flutter | ${versions.flutter} |
 
-### iOS (Swift Package Manager)
-\`\`\`
-https://github.com/hyodotdev/locanara
-\`\`\`
-Requires: iOS 26+ / macOS 26+
+The live source is \`locanara-versions.json\`; package versions may differ.
 
-### iOS (CocoaPods)
-\`\`\`ruby
-pod 'Locanara', '~> 1.0'
-\`\`\`
+${renderVersionStatus(drift)}
+## Architecture
 
-### Android (Gradle)
-\`\`\`kotlin
-implementation("com.locanara:locanara:1.0.0")
-\`\`\`
-Requires: Android 14+ (API 34+)
+- Core: model, prompts, output parsers, schema
+- Composable: chains, tools, memory, guardrails
+- Built-in chains: summarize, classify, extract, chat, translate, rewrite, proofread
+- DSL: Pipeline and model convenience extensions on Apple and Android
+- Runtime: agent, session, chain executor
+- Engines: Foundation Models, Gemini Nano/ML Kit GenAI, and local engines
+- Local data: platform-specific model lifecycle, RAG, personalization
 
-## API (All Platforms)
+## Public API Concepts
 
-\`\`\`
-getDeviceCapability() -> DeviceCapability
-summarize(text, options?) -> String
-classify(text, categories) -> String
-extract(text, schema) -> String
-translate(text, targetLanguage) -> String
-rewrite(text, tone) -> String
-proofread(text) -> String
-chat(messages) -> AsyncStream<String>
-describeImage(imageData) -> String
-\`\`\`
+### Native Apple and Android Frameworks
 
-## iOS Usage
+- \`LocanaraModel.generate\` and \`stream\` provide the raw model abstraction.
+- Convenience methods: \`summarize\`, \`classify\`, \`extract\`, \`chat\`,
+  \`translate\`, \`rewrite\`, and \`proofread\`.
+- Built-in \`Chain\` types expose configurable behavior.
+- Custom features implement \`Chain\` and return a typed result through
+  \`ChainOutput\`.
+- Native Pipeline builders compose steps and track the final result type.
+
+### Web SDK
+
+Create the singleton with \`Locanara.getInstance()\`, call
+\`getDeviceCapability()\`, then use only reported features. The Web class
+currently includes summarize, translate, chat, rewrite, classify, extract,
+proofread, image description, language detection, and writing APIs. Streaming
+methods include \`summarizeStreaming\`, \`translateStreaming\`,
+\`chatStreaming\`, \`rewriteStreaming\`, and \`writeStreaming\`.
+
+\`preloadModels\`, \`unloadModels\`, \`cancelExecution\`, and \`downloadModel\`
+are currently no-ops because Chrome manages model lifecycle. They do not prove
+preloading, manual unloading, cancellation, or model download support; resolving
+success instead of an explicit unsupported result is a known contract defect.
+
+## Minimal Usage
+
+### Apple
 
 \`\`\`swift
 import Locanara
 
-// Check capability
-let capability = await Locanara.getDeviceCapability()
-
-// Summarize
-let summary = try await Locanara.summarize("Long text...")
-
-// Chat (streaming)
-for try await chunk in Locanara.chat(messages: [...]) {
-    print(chunk)
-}
+let model = RouterModel()
+let result = try await model.summarize("Long text", bulletCount: 3)
+print(result.summary)
 \`\`\`
 
-## Android Usage
+### Android
 
 \`\`\`kotlin
-import com.locanara.Locanara
+import com.locanara.dsl.summarize
+import com.locanara.platform.PromptApiModel
 
-// Check capability
-val capability = Locanara.getDeviceCapability()
-
-// Summarize
-val summary = Locanara.summarize(text = "Long text...")
-
-// Chat (streaming)
-Locanara.chat(messages = listOf(...)).collect { chunk ->
-    print(chunk)
-}
+val model = PromptApiModel(context)
+val result = model.summarize("Long text", bulletCount = 3)
+println(result.summary)
 \`\`\`
 
-## Core Types
+Check live Prompt API status and download readiness before using this model in
+production.
 
-### DeviceCapability
-\`\`\`swift
-struct DeviceCapability {
-    let tier: Tier                    // .community
-    let isAppleIntelligenceAvailable: Bool
-    let isFoundationModelsAvailable: Bool
-    let supportedFeatures: [Feature]
-}
+### Web
+
+\`\`\`typescript
+import { Locanara } from "locanara";
+
+const locanara = Locanara.getInstance();
+const capability = await locanara.getDeviceCapability();
+const result = await locanara.summarize("Long text");
+console.log(capability, result.summary);
 \`\`\`
 
-### Error Handling
-\`\`\`swift
-enum LocanaraError: Error {
-    case notAvailable              // AI not available
-    case executionFailed(String)
-}
+## Pipeline Guarantee
+
+- Apple and Android expose native Pipeline builders.
+- The current builder API tracks the last step's result type through the
+  Pipeline value returned by each builder call.
+- Do not claim that every adjacent step is statically compatibility-checked.
+- Web has no Pipeline builder; compose feature calls and streaming methods
+  manually.
+
+## Capability and Wrapper Boundaries
+
+- Browser and on-device model availability are runtime capabilities. Check
+  capability/status APIs instead of relying on a hard-coded device list.
+- Wrapper API parity does not prove native behavior parity. Trace download,
+  load, delete, capability, and inference calls to the real SDK before relying
+  on them.
+- Unsupported platforms must report an unavailable capability or explicit
+  error; fabricated success is not support.
+
+## Installation Coordinates
+
+\`\`\`text
+Apple SPM: https://github.com/hyodotdev/locanara
+Android:  com.locanara:locanara:${versions.android}
+Web:      npm install locanara
+Expo:     npm install expo-ondevice-ai
+RN:       npm install react-native-ondevice-ai
+Flutter:  flutter_ondevice_ai: ^${versions.flutter}
 \`\`\`
 
-## Naming Conventions
+## Sources of Truth
 
-- Cross-platform: No suffix (\`summarize\`, \`classify\`)
-- iOS-only: \`IOS\` suffix (\`getStorefrontIOS\`)
-- Android-only: \`Android\` suffix (in cross-platform package)
-- Errors: \`Locanara\` prefix (\`LocanaraError\`)
+- Shared generated types: \`packages/gql/src/*.graphql\`
+- Apple behavior: \`packages/apple/Sources/\`
+- Android behavior: \`packages/android/locanara/src/main/\`
+- Web behavior: \`packages/web/src/\`
+- Nitro bridge: \`libraries/react-native-ondevice-ai/src/specs/OndeviceAi.nitro.ts\`
+- Versions: \`locanara-versions.json\`
+- Agent policy: \`AGENTS.md\`
 
 ## Links
 
-- Docs: https://locanara.hyo.dev
+- Documentation: https://locanara.hyo.dev/docs
 - GitHub: https://github.com/hyodotdev/locanara
+- Issue tracker: https://github.com/hyodotdev/locanara/issues
 `;
-
-  // Write files
-  const llmsPath = path.join(CONFIG.llmsOutputDir, "llms.txt");
-  const llmsFullPath = path.join(CONFIG.llmsOutputDir, "llms-full.txt");
-
-  fs.writeFileSync(llmsPath, quickContent);
-  fs.writeFileSync(llmsFullPath, fullContent);
-
-  console.log(chalk.green(`  ✓ llms.txt: ${(quickContent.length / 1024).toFixed(1)} KB`));
-  console.log(chalk.green(`  ✓ llms-full.txt: ${(fullContent.length / 1024).toFixed(1)} KB`));
-
-  return { quick: quickContent.length, full: fullContent.length };
 }
 
-// ============================================================================
-// Main Function
-// ============================================================================
-
-async function compileContext(): Promise<void> {
-  console.log(chalk.bold.cyan("\n" + "═".repeat(60)));
-  console.log(chalk.bold.cyan("📝 Locanara Knowledge Base Compiler"));
-  console.log(chalk.bold.cyan("═".repeat(60)));
-  console.log(chalk.gray(`\nKnowledge Root: ${CONFIG.knowledgeRoot}`));
-
-  // Ensure output directory exists
-  if (!fs.existsSync(CONFIG.outputDir)) {
-    fs.mkdirSync(CONFIG.outputDir, { recursive: true });
-  }
-
-  let output = `# Locanara Project Context
-
-> **Auto-generated for Claude Code**
-> Last updated: ${new Date().toISOString()}
->
-> Usage: \`claude --context knowledge/_claude-context/context.md\`
-
----
-
-`;
-
-  // =========================================================================
-  // INTERNAL RULES (HIGHEST PRIORITY)
-  // =========================================================================
-
-  console.log(chalk.blue("\n📚 Processing Internal Rules...\n"));
-
-  output += `# 🚨 INTERNAL RULES (MANDATORY)
-
-These rules define Locanara's development philosophy.
-**You MUST follow these rules EXACTLY. No exceptions.**
-
----
-
-`;
-
-  const internalFiles = await glob(
-    path.join(CONFIG.knowledgeRoot, "internal/**/*.md"),
-    { absolute: true }
+export async function buildAgentContext(
+  versions = readVersions(),
+  drift: VersionDrift[] = [],
+): Promise<string> {
+  const agents = stripLocalMemoryContext(
+    readText(path.join(CONFIG.projectRoot, "AGENTS.md")),
   );
+  const internal = await readInternalKnowledge();
+  const externalReferences = await listExternalReferences();
 
-  for (const filePath of internalFiles.sort()) {
-    const content = fs.readFileSync(filePath, "utf-8");
-    const relativePath = path.relative(CONFIG.knowledgeRoot, filePath);
+  const internalText = internal
+    .map(({ source, content }) => `<!-- Source: ${source} -->\n\n${content}`)
+    .join("\n\n---\n\n");
+  const externalInventory = externalReferences
+    .map((source) => `- \`${source}\``)
+    .join("\n");
 
-    console.log(chalk.magenta(`  📜 ${relativePath}`));
+  return `# Locanara Agent Context
 
-    output += `<!-- Source: ${relativePath} -->\n\n`;
-    output += content;
-    output += "\n\n---\n\n";
-  }
+> Auto-generated by \`scripts/agent/compile-context.ts\`. Do not edit by hand.
 
-  console.log(chalk.green(`  ✓ ${internalFiles.length} internal files processed`));
+## Authority
 
-  // =========================================================================
-  // EXTERNAL API DOCS (REFERENCE)
-  // =========================================================================
+1. The embedded \`AGENTS.md\` policy below has highest priority.
+2. Live schema, manifests, implementation, and tests override copied guidance.
+3. Allowlisted internal knowledge adds detail without overriding those sources.
+4. External reference bodies are excluded; load only what a task requires and
+   re-verify it against official primary documentation.
 
-  console.log(chalk.blue("\n📖 Processing External Docs...\n"));
+## Live Version Map
 
-  output += `# 📚 EXTERNAL API REFERENCE
-
-Use this documentation for API details, but **ALWAYS adapt patterns to match Internal Rules above**.
-
----
-
-`;
-
-  const externalFiles = await glob(
-    path.join(CONFIG.knowledgeRoot, "external/**/*.md"),
-    { absolute: true }
-  );
-
-  for (const filePath of externalFiles.sort()) {
-    const content = fs.readFileSync(filePath, "utf-8");
-    const relativePath = path.relative(CONFIG.knowledgeRoot, filePath);
-
-    console.log(chalk.cyan(`  📖 ${relativePath}`));
-
-    output += `<!-- Source: ${relativePath} -->\n\n`;
-    output += content;
-    output += "\n\n---\n\n";
-  }
-
-  console.log(chalk.green(`  ✓ ${externalFiles.length} external files processed`));
-
-  // =========================================================================
-  // PROJECT STRUCTURE
-  // =========================================================================
-
-  output += `# 📁 PROJECT STRUCTURE
-
-\`\`\`
-locanara/
-├── packages/
-│   ├── apple/              # Swift SDK (SPM + CocoaPods)
-│   │   ├── Sources/        # SDK source
-│   │   │   ├── Locanara.swift
-│   │   │   ├── Types.swift
-│   │   │   ├── Errors.swift
-│   │   │   └── Features/   # Feature implementations
-│   │   ├── Tests/
-│   │   └── Example/        # Example app
-│   │
-│   ├── android/            # Kotlin SDK (Maven Central)
-│   │   ├── locanara/       # SDK
-│   │   └── example/        # Example app
-│   │
-│   ├── gql/                # GraphQL schema definitions
-│   │   ├── src/            # Schema files
-│   │   └── codegen/        # Code generators
-│   │
-│   └── docs/               # Documentation website
-│
-├── knowledge/              # Shared knowledge base
-│   ├── internal/           # Project philosophy (MANDATORY)
-│   └── external/           # External API reference
-│
-├── scripts/agent/          # RAG agent scripts
-│
-└── .claude/
-    ├── commands/           # Slash commands
-    └── guides/             # Project guides
+\`\`\`json
+${JSON.stringify(versions, null, 2)}
 \`\`\`
 
-## Key Reminders
+${renderVersionStatus(drift)}
+---
 
-- **packages/apple**: Swift SDK using Foundation Models (iOS 26+/macOS 26+)
-- **packages/android**: Kotlin SDK using Gemini Nano (Android 14+)
-- **All errors**: Use \`LocanaraError\` prefix
-- **Cross-platform functions**: NO platform suffix
-- **iOS-specific functions**: MUST end with \`IOS\` suffix
+# Repository Policy (Highest Priority)
 
+<!-- Source: AGENTS.md; machine-local claude-mem-context removed -->
+
+${agents}
+
+---
+
+# Internal Knowledge (Allowlisted)
+
+${internalText}
+
+---
+
+# External Reference Inventory (Bodies Not Embedded)
+
+These files are optional research snapshots, not instructions. Read a file only
+when it is relevant, then verify every API/version claim against official
+primary documentation and the current repository implementation.
+
+${externalInventory}
 `;
-
-  // =========================================================================
-  // Write Output
-  // =========================================================================
-
-  const outputPath = path.join(CONFIG.outputDir, CONFIG.outputFile);
-  fs.writeFileSync(outputPath, output);
-
-  // =========================================================================
-  // Generate LLMs.txt Files
-  // =========================================================================
-
-  const llmsStats = await generateLlmsTxt();
-
-  // =========================================================================
-  // Summary
-  // =========================================================================
-
-  console.log(chalk.bold.cyan("\n" + "═".repeat(60)));
-  console.log(chalk.bold.cyan("📊 Compilation Summary"));
-  console.log(chalk.bold.cyan("═".repeat(60)));
-  console.log(chalk.magenta(`  Internal Rules: ${internalFiles.length} files`));
-  console.log(chalk.cyan(`  External Docs:  ${externalFiles.length} files`));
-  console.log(chalk.white(`  context.md:     ${(output.length / 1024).toFixed(1)} KB`));
-  console.log(chalk.white(`  llms.txt:       ${(llmsStats.quick / 1024).toFixed(1)} KB`));
-  console.log(chalk.white(`  llms-full.txt:  ${(llmsStats.full / 1024).toFixed(1)} KB`));
-  console.log(chalk.green(`\n  ✓ Output: ${outputPath}`));
-  console.log(chalk.green(`  ✓ Output: ${path.join(CONFIG.llmsOutputDir, "llms.txt")}`));
-  console.log(chalk.green(`  ✓ Output: ${path.join(CONFIG.llmsOutputDir, "llms-full.txt")}`));
-
-  console.log(chalk.bold.green("\n✅ Context compilation complete!\n"));
-  console.log(chalk.white("Usage with Claude Code:"));
-  console.log(chalk.gray(`  claude --context ${path.relative(CONFIG.projectRoot, outputPath)}\n`));
-  console.log(chalk.white("Or in an existing session:"));
-  console.log(chalk.gray(`  /context add ${path.relative(CONFIG.projectRoot, outputPath)}\n`));
 }
 
-// ============================================================================
-// Entry Point
-// ============================================================================
+async function renderOutputs(): Promise<Map<string, string>> {
+  const versions = readVersions();
+  const siteVersions = readVersionsFile(CONFIG.siteVersionsPath);
+  const drift = compareVersions(versions, siteVersions);
 
-compileContext().catch((error) => {
-  console.error(chalk.red("\n❌ Compilation failed:"), error);
-  process.exit(1);
-});
+  if (drift.length > 0) {
+    console.warn(chalk.yellow(formatVersionDrift(drift)));
+  }
+
+  const quick = buildQuickReference(versions, drift);
+  const full = buildFullReference(versions, drift);
+  const context = await buildAgentContext(versions, drift);
+
+  return new Map([
+    [CONFIG.contextPath, context],
+    [CONFIG.rootLlmsPath, quick],
+    [CONFIG.rootLlmsFullPath, full],
+    [CONFIG.siteLlmsPath, quick],
+    [CONFIG.siteLlmsFullPath, full],
+  ]);
+}
+
+function writeOutputs(outputs: Map<string, string>): void {
+  const pending: Array<{
+    filePath: string;
+    tempPath: string;
+    content: string;
+  }> = [];
+
+  try {
+    let index = 0;
+    for (const [filePath, content] of outputs) {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      const tempPath = `${filePath}.tmp-${process.pid}-${index}`;
+      fs.writeFileSync(tempPath, content);
+      pending.push({ filePath, tempPath, content });
+      index += 1;
+    }
+
+    for (const { filePath, tempPath, content } of pending) {
+      fs.renameSync(tempPath, filePath);
+      console.log(
+        chalk.green(
+          `  wrote ${relativePosix(CONFIG.projectRoot, filePath)} (${Buffer.byteLength(content, "utf-8")} bytes)`,
+        ),
+      );
+    }
+  } finally {
+    for (const { tempPath } of pending) {
+      if (fs.existsSync(tempPath)) {
+        fs.unlinkSync(tempPath);
+      }
+    }
+  }
+}
+
+function checkOutputs(outputs: Map<string, string>): void {
+  const stale: string[] = [];
+
+  for (const [filePath, content] of outputs) {
+    if (
+      !fs.existsSync(filePath) ||
+      fs.readFileSync(filePath, "utf-8") !== content
+    ) {
+      stale.push(relativePosix(CONFIG.projectRoot, filePath));
+    }
+  }
+
+  if (stale.length > 0) {
+    throw new Error(
+      `Generated AI context is stale:\n${stale.map((file) => `- ${file}`).join("\n")}\nRun: bun run compile`,
+    );
+  }
+
+  console.log(chalk.green("Generated AI context is up to date."));
+}
+
+export type RunMode = "write" | "check" | "check-versions";
+
+export function parseRunMode(args: string[]): RunMode {
+  if (args.length === 0) {
+    return "write";
+  }
+  if (args.length === 1 && args[0] === "--check") {
+    return "check";
+  }
+  if (args.length === 1 && args[0] === "--check-versions") {
+    return "check-versions";
+  }
+  throw new Error(
+    `Unknown arguments: ${args.join(" ")}. Usage: bun run compile-context.ts [--check|--check-versions]`,
+  );
+}
+
+export async function main(args = process.argv.slice(2)): Promise<void> {
+  const mode = parseRunMode(args);
+  if (mode === "check-versions") {
+    const authoritative = readVersions();
+    const mirror = readVersionsFile(CONFIG.siteVersionsPath);
+    assertNoVersionDrift(compareVersions(authoritative, mirror));
+    console.log(chalk.green("The root and site version maps match."));
+    return;
+  }
+
+  const outputs = await renderOutputs();
+  if (mode === "check") {
+    checkOutputs(outputs);
+  } else {
+    writeOutputs(outputs);
+  }
+}
+
+if (import.meta.main) {
+  main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Context compilation failed: ${message}`));
+    process.exit(1);
+  });
+}

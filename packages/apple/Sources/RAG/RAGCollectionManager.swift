@@ -326,9 +326,6 @@ public actor RAGCollectionManager {
         )
 
         logger.debug("Found \(results.count) vectors in collection")
-        for (i, result) in results.prefix(5).enumerated() {
-            logger.debug("Result \(i): similarity=\(result.similarity), content=\(result.vector.content.prefix(50))...")
-        }
 
         // Filter by minRelevance after logging
         let filteredResults = results.filter { $0.similarity >= minRelevance }.prefix(topK)

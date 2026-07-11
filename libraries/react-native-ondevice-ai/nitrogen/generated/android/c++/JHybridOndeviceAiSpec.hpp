@@ -62,7 +62,7 @@ namespace margelo::nitro::ondeviceai {
     std::shared_ptr<Promise<NitroChatResult>> chat(const std::string& message, const std::optional<std::variant<nitro::NullType, NitroChatOptions>>& options) override;
     std::shared_ptr<Promise<NitroTranslateResult>> translate(const std::string& text, const NitroTranslateOptions& options) override;
     std::shared_ptr<Promise<NitroRewriteResult>> rewrite(const std::string& text, const NitroRewriteOptions& options) override;
-    std::shared_ptr<Promise<NitroProofreadResult>> proofread(const std::string& text) override;
+    std::shared_ptr<Promise<NitroProofreadResult>> proofread(const std::string& text, const NitroProofreadOptions& options) override;
     std::shared_ptr<Promise<NitroChatResult>> chatStream(const std::string& message, const std::optional<std::variant<nitro::NullType, NitroChatOptions>>& options) override;
     void addChatStreamListener(const std::function<void(const NitroChatStreamChunk& /* chunk */)>& listener) override;
     void removeChatStreamListener(const std::function<void(const NitroChatStreamChunk& /* chunk */)>& listener) override;

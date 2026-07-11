@@ -1,242 +1,81 @@
-# Locanara Git & Deployment
+# Locanara Git and Release Safety
 
-> **Priority: MANDATORY**
-> Follow these conventions for all git operations and deployments.
+> Priority: mandatory. `AGENTS.md` is the higher-level authority.
 
-## Branch Strategy
+## Working-Tree Safety
 
-```
-main                    # Production-ready code
-  │
-  ├── feat/xxx          # New features
-  ├── fix/xxx           # Bug fixes
-  ├── docs/xxx          # Documentation
-  ├── refactor/xxx      # Code refactoring
-  └── chore/xxx         # Maintenance tasks
-```
+1. Inspect `git status --short --branch` and all relevant diffs first.
+2. Preserve pre-existing user changes and unrelated untracked files.
+3. Stage only explicit task paths; never use `git add -A` in an agent workflow.
+4. Never rewrite history, discard changes, force-push, or amend user commits
+   without explicit authorization.
 
-## Commit Message Format
+## Branches and Commits
 
-```
+Use focused branches such as `feat/`, `fix/`, `docs/`, `test/`, `ci/`,
+`refactor/`, or `chore/`. Never push directly to `main`.
+
+Commit format:
+
+```text
 <type>: <description>
-
-[optional body]
 ```
 
-### Types
+Use an English imperative subject under 72 characters. Supported types are
+`feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, and `ci`. Never add
+`Co-Authored-By` or other co-author attribution.
 
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation changes |
-| `style` | Code style (formatting, no logic change) |
-| `refactor` | Code refactoring |
-| `test` | Adding or updating tests |
-| `chore` | Maintenance tasks |
+Before committing:
 
-### Rules
+- Run the affected verification matrix.
+- Inspect `git diff --cached --check` and the complete staged diff.
+- Confirm no credentials, generated build artifacts, dependency caches, or
+  unrelated files are staged.
 
-1. **Use lowercase** for type
-2. **Keep description under 72 characters**
-3. **Use imperative mood** ("add" not "added")
-4. **NEVER add Co-Authored-By** or any co-author attribution
+## Pull Requests
 
-### Examples
+PR titles follow the commit format. Bodies include:
 
-```bash
-# CORRECT
-feat: add streaming support for chat API
-fix: resolve memory leak in LlamaCppEngine
-docs: update API documentation
-refactor: simplify model loading logic
-test: add unit tests for ModelManager
-chore: update dependencies
+- Summary
+- Test plan with exact commands and results
+- Skipped or real-device-only verification
+- Screenshots/video when the user-visible surface changed
 
-# INCORRECT
-Feat: Add streaming support          # Wrong case
-feat: Added streaming support        # Past tense
-feat: add streaming support for chat API with better performance and error handling  # Too long
-feat: add streaming
-Co-Authored-By: Someone              # Never add co-author
-```
+Creating a branch, commit, push, PR, review reply, or thread resolution is an
+external write. Perform only the actions explicitly requested by the user.
 
-## Pull Request Guidelines
+## Version Authority
 
-### Title Format
+`locanara-versions.json` is the only version source of truth. Platform and
+wrapper versions may differ. Never copy static example versions or infer one
+package's version from another.
 
-Same as commit message:
+When version work is explicitly requested, first check every synchronized copy
+and runtime constant. A mismatch must fail verification; do not silently pick a
+winner. Generated version constants must come from the repository generator.
+Run `cd scripts/agent && bun run check:versions` to fail on root/site map drift;
+AI context generation only reports that drift and never chooses or rewrites a
+version.
 
-```
-feat: add model download progress UI
-```
+## Release and Deployment Boundary
 
-### PR Body Template
+AI agents must never:
 
-```markdown
-## Summary
-<1-3 bullet points describing the change>
+- publish to Maven Central, CocoaPods, npm, pub.dev, GitHub Packages, or another
+  registry;
+- deploy the site or a preview;
+- create or move release tags;
+- create GitHub releases;
+- trigger release or deployment workflows;
+- delete or replace an existing release/tag;
+- modify versions unless the user explicitly requested version preparation.
 
-## Test plan
-- [ ] Unit tests pass
-- [ ] Manual testing on iOS device
-- [ ] Manual testing on macOS
-- [ ] Memory usage verified
+Maintainers own publication through CI. Agents may inspect release workflows,
+prepare local changes when explicitly requested, and report the exact commands
+a maintainer should run, but must stop before external publication.
 
-## Screenshots (if UI changes)
-[Attach screenshots or screen recordings]
-```
+## Hotfixes
 
-### Review Checklist
-
-- [ ] Code follows naming conventions
-- [ ] Error handling is complete
-- [ ] No cloud fallbacks added
-- [ ] Tests added/updated
-- [ ] Documentation updated
-
-## Versioning
-
-All packages share versions from `locanara-versions.json` (single source of truth):
-
-```json
-{
-  "version": "1.0.1",      // Root package
-  "types": "1.0.1",        // GraphQL types
-  "apple": "1.0.1",        // iOS/macOS SDK
-  "android": "1.0.2"       // Android SDK
-}
-```
-
-### Semantic Versioning
-
-```
-MAJOR.MINOR.PATCH
-
-MAJOR: Breaking API changes
-MINOR: New features (backward compatible)
-PATCH: Bug fixes (backward compatible)
-```
-
-### Version Sync (Automatic in CI)
-
-All release workflows automatically sync package.json versions:
-
-```bash
-# Manual sync (if needed)
-bun run version:sync
-```
-
-CI workflows (`release-types.yml`, `release-android.yml`, `release-apple.yml`) automatically:
-
-1. Update `locanara-versions.json`
-2. Run `bun run version:sync`
-3. Commit all synced files
-4. Build and publish
-
-See `docs/VERSION_SYNC.md` for implementation details.
-
-## Release Process
-
-### 1. Pre-Release Checks
-
-```bash
-# Run tests
-swift test
-
-# Build all targets
-swift build -c release
-
-# Check for warnings
-swift build 2>&1 | grep warning
-```
-
-### 2. Create Release
-
-```bash
-# 1. Update version
-bun run scripts/bump-version.mjs minor
-
-# 2. Update CHANGELOG.md
-# Add release notes under new version header
-
-# 3. Commit version bump
-git add .
-git commit -m "chore: bump version to 1.1.0"
-
-# 4. Create tag
-git tag -a v1.1.0 -m "Release 1.1.0"
-
-# 5. Push
-git push origin main --tags
-```
-
-### 3. Post-Release
-
-- Create GitHub Release with release notes
-- Update documentation site
-- Notify users via appropriate channels
-
-## Distribution
-
-### Swift Package Manager
-
-Packages are distributed via GitHub:
-
-```swift
-// Package.swift in consumer app
-dependencies: [
-    .package(url: "https://github.com/locanara/locanara", from: "1.0.0")
-]
-```
-
-## CI/CD
-
-### GitHub Actions Workflows
-
-```yaml
-# .github/workflows/test.yml
-name: Test
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build
-        run: swift build
-      - name: Test
-        run: swift test
-```
-
-### Required Checks
-
-- Build succeeds
-- Tests pass
-- No new warnings
-- Code coverage maintained
-
-## Hotfix Process
-
-For critical production issues:
-
-```bash
-# 1. Create hotfix branch from main
-git checkout main
-git pull
-git checkout -b fix/critical-issue
-
-# 2. Fix the issue
-# Make minimal, targeted changes
-
-# 3. Test thoroughly
-swift test
-
-# 4. Create PR with urgency label
-# PR title: fix: critical issue description
-
-# 5. After merge, create patch release
-bun run scripts/bump-version.mjs patch
-git tag -a v1.0.1 -m "Hotfix 1.0.1"
-git push origin main --tags
-```
+Hotfixes use the normal branch, review, verification, and maintainer-release
+flow. Urgency does not relax tests, privacy rules, generated-source checks, or
+the no-direct-main/no-publish boundary.

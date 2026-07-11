@@ -3,6 +3,25 @@ import os.log
 
 private let logger = Logger(subsystem: "com.locanara", category: "ModelManager")
 
+/// Sendable ownership wrapper for an ObjC bridge prepared without router side
+/// effects. `ModelManager` commits or discards this exact provider instance.
+final class PreparedBridgeBackend: @unchecked Sendable {
+    let provider: LlamaCppPreparedBridgeProvider
+
+    init(_ provider: LlamaCppPreparedBridgeProvider) {
+        self.provider = provider
+    }
+}
+
+/// Result of preparing a local-model backend. Neither backend is registered
+/// until the lifecycle token and verified files pass their final checks.
+enum ModelLoadBackend: Sendable {
+    case bridge(PreparedBridgeBackend)
+    case engine(any InferenceEngine & LlamaCppEngineProtocol)
+}
+
+typealias ModelEngineLoader = @Sendable (URL, URL?) async throws -> ModelLoadBackend
+
 /// Central manager for model lifecycle operations
 ///
 /// Coordinates:
@@ -12,6 +31,13 @@ private let logger = Logger(subsystem: "com.locanara", category: "ModelManager")
 /// - Storage management
 @available(iOS 15.0, macOS 14.0, *)
 public final class ModelManager: @unchecked Sendable {
+
+    static let defaultEngineLoader: ModelEngineLoader = { modelPath, mmprojPath in
+        try await ModelManager.loadDefaultBackend(
+            modelPath: modelPath,
+            mmprojPath: mmprojPath
+        )
+    }
 
     // MARK: - Types
 
@@ -49,9 +75,9 @@ public final class ModelManager: @unchecked Sendable {
     private var stateChangeCallbacks: [@Sendable (ModelStateChange) -> Void] = []
 
     /// Dependencies
-    private let registry = ModelRegistry.shared
-    private let storage = ModelStorage.shared
-    private let downloader = ModelDownloader.shared
+    private let registry: ModelRegistry
+    private let storage: ModelStorage
+    private let downloader: ModelDownloader
 
     /// Currently loaded model ID
     private var loadedModelId: String?
@@ -59,18 +85,65 @@ public final class ModelManager: @unchecked Sendable {
     /// Engine reference (set after loading)
     private var currentEngine: LlamaCppEngineProtocol?
 
+    /// Exact external bridge instance committed for the loaded model.
+    private var currentBridge: LlamaCppPreparedBridgeProvider?
+
     /// Serial queue for state management
     private let stateQueue = DispatchQueue(label: "com.locanara.modelmanager.state")
+
+    /// Callbacks run outside `stateQueue` so listeners can safely query state.
+    private let callbackQueue = DispatchQueue(label: "com.locanara.modelmanager.callbacks")
+
+    /// Generation tokens prevent a cancelled/deleted verification task from
+    /// publishing a stale downloaded state afterward.
+    private var activeOperations: [String: UUID] = [:]
+
+    /// Cancelled operations remain active until their processing task reaches a
+    /// safe quiescent point, preventing a replacement download from reusing the
+    /// same paths while an older checksum task is still running.
+    private var cancelledOperations: Set<UUID> = []
+
+    /// Only one asynchronous engine construction may exist at a time because
+    /// `InferenceRouter` owns a single active local engine.
+    private var activeLoadOperation: (modelId: String, token: UUID)?
+
+    /// Internal barrier used by deterministic lifecycle race tests. Production
+    /// instances use the default no-op closure.
+    private let beforeSuccessfulCompletion: @Sendable () -> Void
+
+    /// Injectable loader makes load/delete races deterministic in tests.
+    private let engineLoader: ModelEngineLoader
 
     /// Lock for loadedModelId and currentEngine access
     private let engineLock = NSLock()
 
     // MARK: - Initialization
 
-    private init() {
+    private convenience init() {
+        self.init(
+            registry: .shared,
+            storage: .shared,
+            downloader: .shared
+        )
+    }
+
+    /// Internal dependency injection for deterministic lifecycle tests.
+    init(
+        registry: ModelRegistry,
+        storage: ModelStorage,
+        downloader: ModelDownloader,
+        beforeSuccessfulCompletion: @Sendable @escaping () -> Void = {},
+        engineLoader: @escaping ModelEngineLoader = ModelManager.defaultEngineLoader
+    ) {
+        self.registry = registry
+        self.storage = storage
+        self.downloader = downloader
+        self.beforeSuccessfulCompletion = beforeSuccessfulCompletion
+        self.engineLoader = engineLoader
+
         // Initialize states for all registered models
         for model in registry.models {
-            let isDownloaded = storage.isModelDownloaded(model.modelId)
+            let isDownloaded = storage.isModelPackageDownloaded(model)
             modelStates[model.modelId] = isDownloaded ? .downloaded : .notDownloaded
         }
 
@@ -95,8 +168,8 @@ public final class ModelManager: @unchecked Sendable {
     ///
     /// - Parameter callback: Callback for state changes
     public func onStateChange(_ callback: @Sendable @escaping (ModelStateChange) -> Void) {
-        stateQueue.async { [weak self] in
-            self?.stateChangeCallbacks.append(callback)
+        stateQueue.sync {
+            stateChangeCallbacks.append(callback)
         }
     }
 
@@ -115,13 +188,127 @@ public final class ModelManager: @unchecked Sendable {
                 timestamp: Date()
             )
 
-            // Notify all listeners
-            for callback in self.stateChangeCallbacks {
-                callback(change)
+            let callbacks = self.stateChangeCallbacks
+            self.callbackQueue.async {
+                for callback in callbacks {
+                    callback(change)
+                }
             }
 
             logger.debug("Model \(modelId) state: \(String(describing: previousState)) -> \(String(describing: newState))")
         }
+    }
+
+    private func beginOperation(_ modelId: String) -> UUID? {
+        stateQueue.sync {
+            guard activeOperations[modelId] == nil else { return nil }
+            let token = UUID()
+            activeOperations[modelId] = token
+            return token
+        }
+    }
+
+    private func beginLoadOperation(_ modelId: String) -> UUID? {
+        stateQueue.sync {
+            guard activeLoadOperation == nil,
+                  activeOperations[modelId] == nil else {
+                return nil
+            }
+            let token = UUID()
+            activeOperations[modelId] = token
+            activeLoadOperation = (modelId, token)
+            return token
+        }
+    }
+
+    private func isCurrentOperation(_ modelId: String, token: UUID) -> Bool {
+        stateQueue.sync { activeOperations[modelId] == token }
+    }
+
+    @discardableResult
+    private func finishOperation(_ modelId: String, token: UUID) -> Bool {
+        stateQueue.sync {
+            let wasCancelled = cancelledOperations.contains(token)
+            if activeOperations[modelId] == token {
+                _ = activeOperations.removeValue(forKey: modelId)
+            }
+            if activeLoadOperation?.modelId == modelId,
+               activeLoadOperation?.token == token {
+                activeLoadOperation = nil
+            }
+            _ = cancelledOperations.remove(token)
+            return wasCancelled
+        }
+    }
+
+    @discardableResult
+    private func markOperationCancelled(_ modelId: String) -> Bool {
+        stateQueue.sync {
+            if let token = activeOperations[modelId] {
+                _ = cancelledOperations.insert(token)
+                return true
+            }
+            return false
+        }
+    }
+
+    private func isOperationCancelled(_ modelId: String, token: UUID) -> Bool {
+        stateQueue.sync {
+            activeOperations[modelId] == token && cancelledOperations.contains(token)
+        }
+    }
+
+    /// Atomically publish successful state and the terminal stream event only
+    /// if cancellation/deletion did not win after the final manifest write.
+    /// Keeping both actions inside the same state-queue critical section means
+    /// delete can never return before an older task publishes success.
+    private func publishSuccessfulCompletion(
+        _ modelInfo: DownloadableModelInfo,
+        token: UUID,
+        progress: ModelDownloadProgress,
+        continuation: AsyncStream<ModelDownloadProgress>.Continuation
+    ) -> Bool {
+        let modelId = modelInfo.modelId
+        beforeSuccessfulCompletion()
+
+        let publication: (ModelStateChange, [@Sendable (ModelStateChange) -> Void])? = stateQueue.sync {
+            guard activeOperations[modelId] == token,
+                  !cancelledOperations.contains(token) else {
+                return nil
+            }
+            do {
+                try storage.savePackageCommit(modelInfo)
+            } catch {
+                logger.error("Failed to commit verified model package: \(error.localizedDescription)")
+                return nil
+            }
+            _ = activeOperations.removeValue(forKey: modelId)
+            let previousState = modelStates[modelId] ?? .notDownloaded
+            modelStates[modelId] = .downloaded
+            let change = ModelStateChange(
+                modelId: modelId,
+                previousState: previousState,
+                currentState: .downloaded,
+                timestamp: Date()
+            )
+
+            continuation.yield(ModelDownloadProgress(
+                modelId: modelId,
+                bytesDownloaded: progress.totalBytes,
+                totalBytes: progress.totalBytes,
+                state: .completed
+            ))
+            return (change, stateChangeCallbacks)
+        }
+
+        guard let (change, callbacks) = publication else { return false }
+        callbackQueue.async {
+            for callback in callbacks {
+                callback(change)
+            }
+        }
+        logger.debug("Model \(modelId) state published as downloaded")
+        return true
     }
 
     // MARK: - Model Discovery
@@ -145,7 +332,9 @@ public final class ModelManager: @unchecked Sendable {
     ///
     /// - Returns: Array of downloaded model IDs
     public func getDownloadedModels() -> [String] {
-        return storage.listDownloadedModels()
+        return registry.models.compactMap { model in
+            storage.isModelPackageDownloaded(model) ? model.modelId : nil
+        }
     }
 
     /// Check if model is downloaded
@@ -153,7 +342,8 @@ public final class ModelManager: @unchecked Sendable {
     /// - Parameter modelId: Model identifier
     /// - Returns: true if model is downloaded
     public func isModelDownloaded(_ modelId: String) -> Bool {
-        return storage.isModelDownloaded(modelId)
+        guard let modelInfo = registry.getModel(modelId) else { return false }
+        return storage.isModelPackageDownloaded(modelInfo)
     }
 
     /// Check if model is loaded
@@ -177,14 +367,20 @@ public final class ModelManager: @unchecked Sendable {
             throw LocanaraError.custom(.modelDownloadRequired, "Unknown model: \(modelId)")
         }
 
+        guard let assets = modelInfo.packageAssets,
+              assets.allSatisfy({ ModelStorage.isValidSHA256Checksum($0.checksum) }) else {
+            throw LocanaraError.modelDownloadFailed("Model package metadata is incomplete or invalid")
+        }
+
         // Check if already downloaded
-        if storage.isModelDownloaded(modelId) {
+        if storage.isModelPackageDownloaded(modelInfo) {
             logger.info("Model already downloaded: \(modelId)")
             return AsyncStream { continuation in
+                let totalBytes = Int64(modelInfo.totalDownloadSizeMB) * 1024 * 1024
                 continuation.yield(ModelDownloadProgress(
                     modelId: modelId,
-                    bytesDownloaded: Int64(modelInfo.sizeMB) * 1024 * 1024,
-                    totalBytes: Int64(modelInfo.sizeMB) * 1024 * 1024,
+                    bytesDownloaded: totalBytes,
+                    totalBytes: totalBytes,
                     state: .completed
                 ))
                 continuation.finish()
@@ -192,11 +388,15 @@ public final class ModelManager: @unchecked Sendable {
         }
 
         // Check storage space
-        guard storage.hasEnoughSpace(forSizeMB: modelInfo.sizeMB) else {
+        guard storage.hasEnoughSpace(forSizeMB: modelInfo.totalDownloadSizeMB) else {
             throw LocanaraError.custom(
                 .insufficientMemory,
-                "Not enough storage space. Required: \(modelInfo.sizeMB)MB"
+                "Not enough storage space. Required: \(modelInfo.totalDownloadSizeMB)MB"
             )
+        }
+
+        guard let operationToken = beginOperation(modelId) else {
+            throw LocanaraError.modelDownloadFailed("A model operation is already in progress for \(modelId)")
         }
 
         // Update state
@@ -208,17 +408,42 @@ public final class ModelManager: @unchecked Sendable {
 
         // Return a transformed stream that updates state
         return AsyncStream { continuation in
-            Task { [weak self, progressStream] in
+            let processingTask = Task { [weak self, progressStream] in
+                guard let self else {
+                    continuation.finish()
+                    return
+                }
+
                 for await progress in progressStream {
+                    guard self.isCurrentOperation(modelId, token: operationToken) else {
+                        break
+                    }
+
+                    if self.isOperationCancelled(modelId, token: operationToken) {
+                        self.cleanupPackage(modelInfo)
+                        self.finishOperation(modelId, token: operationToken)
+                        self.updateState(modelId, to: .notDownloaded)
+                        continuation.yield(ModelDownloadProgress(
+                            modelId: modelId,
+                            bytesDownloaded: progress.bytesDownloaded,
+                            totalBytes: progress.totalBytes,
+                            state: .cancelled
+                        ))
+                        continuation.finish()
+                        return
+                    }
+
                     // Update state based on progress
                     switch progress.state {
                     case .downloading:
-                        self?.updateState(modelId, to: .downloading(progress: progress.progress))
+                        self.updateState(modelId, to: .downloading(progress: progress.progress))
                     case .verifying:
-                        self?.updateState(modelId, to: .verifying)
+                        self.updateState(modelId, to: .verifying)
                     case .completed:
-                        // Verify checksum
-                        self?.updateState(modelId, to: .verifying)
+                        // The downloader emits package completion only after all
+                        // files have transferred. Verify every asset before
+                        // publishing the one terminal success event.
+                        self.updateState(modelId, to: .verifying)
                         continuation.yield(ModelDownloadProgress(
                             modelId: modelId,
                             bytesDownloaded: progress.bytesDownloaded,
@@ -226,32 +451,95 @@ public final class ModelManager: @unchecked Sendable {
                             state: .verifying
                         ))
 
-                        let isValid = await self?.verifyDownload(modelId, modelInfo: modelInfo) ?? false
-                        if isValid {
-                            self?.updateState(modelId, to: .downloaded)
-                            continuation.yield(ModelDownloadProgress(
-                                modelId: modelId,
-                                bytesDownloaded: progress.totalBytes,
-                                totalBytes: progress.totalBytes,
-                                state: .completed
-                            ))
-                        } else {
-                            self?.updateState(modelId, to: .error("Checksum verification failed"))
+                        let isValid = await self.verifyDownload(modelInfo, token: operationToken)
+                        guard self.isCurrentOperation(modelId, token: operationToken) else {
+                            self.cleanupPackage(modelInfo)
+                            self.updateState(modelId, to: .notDownloaded)
+                            continuation.finish()
+                            return
+                        }
+
+                        if self.isOperationCancelled(modelId, token: operationToken) {
+                            self.cleanupPackage(modelInfo)
+                            self.finishOperation(modelId, token: operationToken)
+                            self.updateState(modelId, to: .notDownloaded)
                             continuation.yield(ModelDownloadProgress(
                                 modelId: modelId,
                                 bytesDownloaded: progress.bytesDownloaded,
                                 totalBytes: progress.totalBytes,
-                                state: .failed
+                                state: .cancelled
+                            ))
+                            continuation.finish()
+                            return
+                        }
+
+                        if isValid {
+                            if !self.publishSuccessfulCompletion(
+                                modelInfo,
+                                token: operationToken,
+                                progress: progress,
+                                continuation: continuation
+                            ) {
+                                self.cleanupPackage(modelInfo)
+                                let wasCancelled = self.isOperationCancelled(
+                                    modelId,
+                                    token: operationToken
+                                )
+                                self.finishOperation(modelId, token: operationToken)
+                                self.updateState(
+                                    modelId,
+                                    to: wasCancelled ? .notDownloaded : .error("Operation superseded")
+                                )
+                                continuation.yield(ModelDownloadProgress(
+                                    modelId: modelId,
+                                    bytesDownloaded: progress.bytesDownloaded,
+                                    totalBytes: progress.totalBytes,
+                                    state: wasCancelled ? .cancelled : .failed
+                                ))
+                            }
+                        } else {
+                            let wasCancelled = self.finishOperation(
+                                modelId,
+                                token: operationToken
+                            )
+                            self.updateState(
+                                modelId,
+                                to: wasCancelled
+                                    ? .notDownloaded
+                                    : .error("Package verification failed")
+                            )
+                            continuation.yield(ModelDownloadProgress(
+                                modelId: modelId,
+                                bytesDownloaded: progress.bytesDownloaded,
+                                totalBytes: progress.totalBytes,
+                                state: wasCancelled ? .cancelled : .failed
                             ))
                         }
                         continue
                     case .failed:
-                        self?.updateState(modelId, to: .error("Download failed"))
-                        continuation.yield(progress)
+                        self.cleanupPackage(modelInfo)
+                        let wasCancelled = self.finishOperation(modelId, token: operationToken)
+                        self.updateState(
+                            modelId,
+                            to: wasCancelled ? .notDownloaded : .error("Download failed")
+                        )
+                        continuation.yield(ModelDownloadProgress(
+                            modelId: modelId,
+                            bytesDownloaded: progress.bytesDownloaded,
+                            totalBytes: progress.totalBytes,
+                            state: wasCancelled ? .cancelled : .failed
+                        ))
                         continue
                     case .cancelled:
-                        self?.updateState(modelId, to: .notDownloaded)
-                        continuation.yield(progress)
+                        self.cleanupPackage(modelInfo)
+                        self.finishOperation(modelId, token: operationToken)
+                        self.updateState(modelId, to: .notDownloaded)
+                        continuation.yield(ModelDownloadProgress(
+                            modelId: modelId,
+                            bytesDownloaded: progress.bytesDownloaded,
+                            totalBytes: progress.totalBytes,
+                            state: .cancelled
+                        ))
                         continue
                     default:
                         break
@@ -259,7 +547,27 @@ public final class ModelManager: @unchecked Sendable {
 
                     continuation.yield(progress)
                 }
+
+                if self.isCurrentOperation(modelId, token: operationToken) {
+                    self.cleanupPackage(modelInfo)
+                    let wasCancelled = self.isOperationCancelled(modelId, token: operationToken)
+                    self.finishOperation(modelId, token: operationToken)
+                    self.updateState(
+                        modelId,
+                        to: wasCancelled
+                            ? .notDownloaded
+                            : .error("Download ended without a terminal result")
+                    )
+                }
                 continuation.finish()
+            }
+
+            continuation.onTermination = { [weak self] termination in
+                if case .cancelled = termination,
+                   self?.isCurrentOperation(modelId, token: operationToken) == true {
+                    processingTask.cancel()
+                    self?.cancelDownload(modelId)
+                }
             }
         }
     }
@@ -268,34 +576,200 @@ public final class ModelManager: @unchecked Sendable {
     ///
     /// - Parameter modelId: Model identifier
     public func cancelDownload(_ modelId: String) {
+        guard markOperationCancelled(modelId) else {
+            logger.debug("No active model download to cancel: \(modelId)")
+            return
+        }
         downloader.cancelDownload(modelId)
+        if let modelInfo = registry.getModel(modelId) {
+            cleanupPackage(modelInfo)
+        }
         updateState(modelId, to: .notDownloaded)
     }
 
     /// Verify downloaded model
-    private func verifyDownload(_ modelId: String, modelInfo: DownloadableModelInfo) async -> Bool {
-        // Verify checksum
-        let isValid = await storage.verifyChecksum(modelId, expectedChecksum: modelInfo.checksum)
+    private func verifyDownload(_ modelInfo: DownloadableModelInfo, token: UUID) async -> Bool {
+        guard let assets = modelInfo.packageAssets else { return false }
+        var verifiedMetadata: [String: ModelStorage.ModelFileMetadata] = [:]
 
-        if isValid {
-            // Create manifest
-            let manifest = ModelStorage.ModelManifest(
-                modelId: modelId,
-                version: modelInfo.version,
-                downloadedAt: Date(),
-                fileSize: storage.getModelSize(modelId) ?? 0,
-                checksum: modelInfo.checksum,
-                checksumVerified: true
-            )
-            try? storage.saveManifest(manifest, for: modelId)
-            logger.info("Model verified and manifest saved: \(modelId)")
-        } else {
-            // Delete corrupted download
-            try? storage.deleteModel(modelId)
-            logger.error("Model verification failed, deleted: \(modelId)")
+        for asset in assets {
+            guard isCurrentOperation(modelInfo.modelId, token: token),
+                  !isOperationCancelled(modelInfo.modelId, token: token) else {
+                return false
+            }
+            guard let metadata = await storage.verifyChecksumAndMetadata(
+                asset.modelId,
+                expectedChecksum: asset.checksum
+            ) else {
+                cleanupPackage(modelInfo)
+                logger.error("Model package verification failed: \(asset.modelId)")
+                return false
+            }
+            verifiedMetadata[asset.modelId] = metadata
+            guard isCurrentOperation(modelInfo.modelId, token: token),
+                  !isOperationCancelled(modelInfo.modelId, token: token) else {
+                return false
+            }
         }
 
-        return isValid
+        do {
+            for asset in assets {
+                guard let metadata = verifiedMetadata[asset.modelId],
+                      storage.getModelFileMetadata(asset.modelId) == metadata else {
+                    throw LocanaraError.modelDownloadFailed("Missing verified asset: \(asset.modelId)")
+                }
+                let manifest = ModelStorage.ModelManifest(
+                    modelId: asset.modelId,
+                    version: modelInfo.version,
+                    downloadedAt: Date(),
+                    fileSize: metadata.fileSize,
+                    checksum: asset.checksum,
+                    checksumVerified: true,
+                    fileModificationTime: metadata.modificationTime
+                )
+                let persisted = try stateQueue.sync {
+                    guard activeOperations[modelInfo.modelId] == token,
+                          !cancelledOperations.contains(token) else {
+                        return false
+                    }
+                    try storage.saveManifest(manifest, for: asset.modelId)
+                    return true
+                }
+                guard persisted else { return false }
+            }
+            logger.info("Model package verified and manifests saved: \(modelInfo.modelId)")
+            return true
+        } catch {
+            cleanupPackage(modelInfo)
+            logger.error("Failed to persist verified model package: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func cleanupPackage(_ modelInfo: DownloadableModelInfo) {
+        guard let assets = modelInfo.packageAssets else {
+            try? storage.deleteModel(modelInfo.modelId)
+            try? storage.deleteModel("\(modelInfo.modelId)-mmproj")
+            return
+        }
+
+        for asset in assets {
+            try? storage.deleteModel(asset.modelId)
+        }
+    }
+
+    static func validatedPreparedBridge(
+        _ bridge: LlamaCppBridgeProvider
+    ) throws -> LlamaCppPreparedBridgeProvider {
+        guard let preparedBridge = bridge as? LlamaCppPreparedBridgeProvider else {
+            throw LocanaraError.modelLoadFailed(
+                "Linked llama.cpp bridge does not support the safe prepared-model lifecycle"
+            )
+        }
+        return preparedBridge
+    }
+
+    static func loadDefaultBackend(modelPath: URL, mmprojPath: URL?) async throws -> ModelLoadBackend {
+        // External bridges isolate C++ interop for wrapper builds. Preparation
+        // must not register globally before ModelManager validates its token.
+        if let bridge = LlamaCppBridge.findBridge() {
+            let preparedBridge = try validatedPreparedBridge(bridge)
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                preparedBridge.prepareModel(
+                    modelPath.path,
+                    mmprojPath: mmprojPath?.path
+                ) { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+            return .bridge(PreparedBridgeBackend(preparedBridge))
+        }
+
+        guard #available(iOS 17.0, *) else {
+            throw LocanaraError.modelLoadFailed("LlamaCppEngine requires iOS 17.0+")
+        }
+        let engine = try await LlamaCppEngine.create(
+            modelPath: modelPath,
+            mmprojPath: mmprojPath
+        )
+        return .engine(engine)
+    }
+
+    private func discardPreparedBackend(_ backend: ModelLoadBackend) {
+        switch backend {
+        case let .bridge(preparedBridge):
+            preparedBridge.provider.discardPreparedModel()
+        case let .engine(engine):
+            engine.unload()
+        }
+    }
+
+    /// Commit a prepared engine only while the load token and every verified
+    /// file snapshot are still current. Delete/unload synchronizes on the same
+    /// queue, so registration cannot happen after either operation returns.
+    private func publishLoadedBackend(
+        _ backend: ModelLoadBackend,
+        modelInfo: DownloadableModelInfo,
+        token: UUID,
+        verifiedMetadata: [String: ModelStorage.ModelFileMetadata]
+    ) throws -> Bool {
+        let publication: (ModelStateChange, [@Sendable (ModelStateChange) -> Void])? = try stateQueue.sync {
+            guard activeOperations[modelInfo.modelId] == token,
+                  activeLoadOperation?.modelId == modelInfo.modelId,
+                  activeLoadOperation?.token == token,
+                  !cancelledOperations.contains(token),
+                  let assets = modelInfo.packageAssets,
+                  assets.allSatisfy({ asset in
+                      guard let verified = verifiedMetadata[asset.modelId] else { return false }
+                      return storage.getModelFileMetadata(asset.modelId) == verified
+                  }),
+                  storage.isModelPackageDownloaded(modelInfo) else {
+                return nil
+            }
+
+            switch backend {
+            case let .bridge(preparedBridge):
+                try preparedBridge.provider.commitPreparedModel()
+                engineLock.withLock {
+                    currentEngine = nil
+                    currentBridge = preparedBridge.provider
+                    loadedModelId = modelInfo.modelId
+                }
+            case let .engine(engine):
+                InferenceRouter.shared.registerEngine(engine as any InferenceEngine)
+                engineLock.withLock {
+                    currentEngine = engine
+                    currentBridge = nil
+                    loadedModelId = modelInfo.modelId
+                }
+            }
+
+            _ = activeOperations.removeValue(forKey: modelInfo.modelId)
+            activeLoadOperation = nil
+            _ = cancelledOperations.remove(token)
+
+            let previousState = modelStates[modelInfo.modelId] ?? .downloaded
+            modelStates[modelInfo.modelId] = .loaded
+            let change = ModelStateChange(
+                modelId: modelInfo.modelId,
+                previousState: previousState,
+                currentState: .loaded,
+                timestamp: Date()
+            )
+            return (change, stateChangeCallbacks)
+        }
+
+        guard let (change, callbacks) = publication else { return false }
+        callbackQueue.async {
+            for callback in callbacks {
+                callback(change)
+            }
+        }
+        return true
     }
 
     // MARK: - Load/Unload Operations
@@ -305,6 +779,10 @@ public final class ModelManager: @unchecked Sendable {
     /// - Parameter modelId: Model identifier to load
     /// - Throws: LocanaraError if load fails
     public func loadModel(_ modelId: String) async throws {
+        guard let modelInfo = registry.getModel(modelId) else {
+            throw LocanaraError.invalidInput("Unknown model: \(modelId)")
+        }
+
         // Check if already loaded
         let (alreadyLoaded, currentId) = engineLock.withLock {
             (loadedModelId == modelId, loadedModelId)
@@ -314,9 +792,52 @@ public final class ModelManager: @unchecked Sendable {
             return
         }
 
+        guard let operationToken = beginLoadOperation(modelId) else {
+            throw LocanaraError.modelLoadFailed("Another model operation is already in progress")
+        }
+
         // Check if downloaded
-        guard storage.isModelDownloaded(modelId) else {
+        guard storage.isModelPackageDownloaded(modelInfo) else {
+            finishOperation(modelId, token: operationToken)
             throw LocanaraError.modelNotDownloaded(modelId)
+        }
+
+        // A manifest is a fast readiness index, not a substitute for checking
+        // the bytes that will enter the native engine. Rehash every package
+        // asset immediately before load so same-size local corruption cannot
+        // survive a process restart and reach llama.cpp.
+        guard let assets = modelInfo.packageAssets else {
+            finishOperation(modelId, token: operationToken)
+            throw LocanaraError.modelLoadFailed("Model package metadata is incomplete")
+        }
+        var verifiedMetadata: [String: ModelStorage.ModelFileMetadata] = [:]
+        for asset in assets {
+            guard let metadata = await storage.verifyChecksumAndMetadata(
+                asset.modelId,
+                expectedChecksum: asset.checksum
+            ) else {
+                cleanupPackage(modelInfo)
+                finishOperation(modelId, token: operationToken)
+                updateState(modelId, to: .notDownloaded)
+                throw LocanaraError.modelNotDownloaded(modelId)
+            }
+            verifiedMetadata[asset.modelId] = metadata
+
+            guard !Task.isCancelled,
+                  isCurrentOperation(modelId, token: operationToken),
+                  !isOperationCancelled(modelId, token: operationToken) else {
+                if Task.isCancelled {
+                    markOperationCancelled(modelId)
+                }
+                finishOperation(modelId, token: operationToken)
+                updateState(
+                    modelId,
+                    to: storage.isModelPackageDownloaded(modelInfo)
+                        ? .downloaded
+                        : .notDownloaded
+                )
+                throw LocanaraError.modelLoadFailed("Model load was cancelled")
+            }
         }
 
         // Unload current model if any
@@ -327,6 +848,7 @@ public final class ModelManager: @unchecked Sendable {
         // Update state
         updateState(modelId, to: .loading)
 
+        var preparedBackend: ModelLoadBackend?
         do {
             // Create engine instance with optional mmproj for multimodal support
             let modelPath = storage.getModelPath(modelId)
@@ -334,7 +856,7 @@ public final class ModelManager: @unchecked Sendable {
             // Check if mmproj exists for this model (multimodal support)
             let mmprojId = "\(modelId)-mmproj"
             let mmprojPath: URL?
-            if storage.isModelDownloaded(mmprojId) {
+            if modelInfo.isMultimodal {
                 mmprojPath = storage.getModelPath(mmprojId)
                 logger.info("Multimodal projector found: \(mmprojId)")
             } else {
@@ -342,53 +864,43 @@ public final class ModelManager: @unchecked Sendable {
                 logger.debug("No multimodal projector found for: \(modelId)")
             }
 
-            // Try external bridge first (for environments where C++ interop is isolated,
-            // e.g. Expo/React Native builds where the bridge pod has C++ interop enabled
-            // but the main module does not)
-            if let bridge = LlamaCppBridge.findBridge() {
-                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                    bridge.loadAndRegisterModel(
-                        modelPath.path,
-                        mmprojPath: mmprojPath?.path
-                    ) { error in
-                        if let error {
-                            continuation.resume(throwing: error)
-                        } else {
-                            continuation.resume()
-                        }
-                    }
-                }
-                engineLock.withLock { loadedModelId = modelId }
-                updateState(modelId, to: .loaded)
-                let multimodalStatus = mmprojPath != nil ? " (multimodal enabled)" : ""
-                logger.info("Model loaded via bridge: \(modelId)\(multimodalStatus)")
-                return
+            let backend = try await engineLoader(modelPath, mmprojPath)
+            preparedBackend = backend
+            if Task.isCancelled {
+                markOperationCancelled(modelId)
+                discardPreparedBackend(backend)
+                preparedBackend = nil
+                throw CancellationError()
             }
-
-            // Fall through to built-in LlamaCppEngine
-            guard #available(iOS 17.0, *) else {
-                throw LocanaraError.modelLoadFailed("LlamaCppEngine requires iOS 17.0+")
+            guard try publishLoadedBackend(
+                backend,
+                modelInfo: modelInfo,
+                token: operationToken,
+                verifiedMetadata: verifiedMetadata
+            ) else {
+                discardPreparedBackend(backend)
+                preparedBackend = nil
+                throw LocanaraError.modelLoadFailed("Model load was cancelled or superseded")
             }
-            let engine = try await LlamaCppEngine.create(
-                modelPath: modelPath,
-                mmprojPath: mmprojPath
-            )
-
-            // Store references
-            engineLock.withLock {
-                currentEngine = engine
-                loadedModelId = modelId
-            }
-
-            // Register with inference router (using InferenceEngine protocol)
-            InferenceRouter.shared.registerEngine(engine as any InferenceEngine)
-
-            updateState(modelId, to: .loaded)
+            preparedBackend = nil
             let multimodalStatus = mmprojPath != nil ? " (multimodal enabled)" : ""
             logger.info("Model loaded: \(modelId)\(multimodalStatus)")
 
         } catch {
-            updateState(modelId, to: .error(error.localizedDescription))
+            if let preparedBackend {
+                discardPreparedBackend(preparedBackend)
+            }
+            let wasCancelled = finishOperation(modelId, token: operationToken)
+            if wasCancelled {
+                updateState(
+                    modelId,
+                    to: storage.isModelPackageDownloaded(modelInfo)
+                        ? .downloaded
+                        : .notDownloaded
+                )
+            } else if !isModelLoaded(modelId) {
+                updateState(modelId, to: .error(error.localizedDescription))
+            }
             throw LocanaraError.modelLoadFailed(error.localizedDescription)
         }
     }
@@ -397,28 +909,66 @@ public final class ModelManager: @unchecked Sendable {
     ///
     /// - Parameter modelId: Model identifier to unload
     public func unloadModel(_ modelId: String) {
-        let isLoaded = engineLock.withLock { loadedModelId == modelId }
-        guard isLoaded else {
+        let result: ([ModelStateChange], [@Sendable (ModelStateChange) -> Void])? = stateQueue.sync {
+            if activeLoadOperation?.modelId == modelId,
+               let token = activeLoadOperation?.token {
+                _ = cancelledOperations.insert(token)
+            }
+
+            guard engineLock.withLock({ loadedModelId == modelId }) else {
+                return nil
+            }
+
+            let previousState = modelStates[modelId] ?? .loaded
+            modelStates[modelId] = .unloading
+            let unloadingChange = ModelStateChange(
+                modelId: modelId,
+                previousState: previousState,
+                currentState: .unloading,
+                timestamp: Date()
+            )
+
+            let loadedBackend = engineLock.withLock {
+                let engine = currentEngine
+                let bridge = currentBridge
+                currentEngine = nil
+                currentBridge = nil
+                loadedModelId = nil
+                return (engine, bridge)
+            }
+
+            // Unload the exact backend committed for this model.
+            if let bridge = loadedBackend.1 {
+                bridge.unloadModel()
+            } else {
+                (loadedBackend.0 as? any InferenceEngine)?.unload()
+                InferenceRouter.shared.unregisterEngine()
+            }
+
+            let finalState: ModelLifecycleState = registry.getModel(modelId).map {
+                storage.isModelPackageDownloaded($0) ? .downloaded : .notDownloaded
+            } ?? .notDownloaded
+            modelStates[modelId] = finalState
+            let unloadedChange = ModelStateChange(
+                modelId: modelId,
+                previousState: .unloading,
+                currentState: finalState,
+                timestamp: Date()
+            )
+            return ([unloadingChange, unloadedChange], stateChangeCallbacks)
+        }
+
+        guard let (changes, callbacks) = result else {
             logger.debug("Model not loaded, nothing to unload: \(modelId)")
             return
         }
-
-        updateState(modelId, to: .unloading)
-
-        // Use bridge for unloading if available, otherwise direct unregister
-        if let bridge = LlamaCppBridge.findBridge(), bridge.isModelLoaded {
-            bridge.unloadModel()
-        } else {
-            InferenceRouter.shared.unregisterEngine()
+        callbackQueue.async {
+            for change in changes {
+                for callback in callbacks {
+                    callback(change)
+                }
+            }
         }
-
-        // Release engine
-        engineLock.withLock {
-            currentEngine = nil
-            loadedModelId = nil
-        }
-
-        updateState(modelId, to: .downloaded)
         logger.info("Model unloaded: \(modelId)")
     }
 
@@ -443,13 +993,25 @@ public final class ModelManager: @unchecked Sendable {
     /// - Parameter modelId: Model identifier to delete
     /// - Throws: Error if deletion fails
     public func deleteModel(_ modelId: String) throws {
-        // Unload if loaded
-        if engineLock.withLock({ loadedModelId == modelId }) {
-            unloadModel(modelId)
+        guard let modelInfo = registry.getModel(modelId) else {
+            throw LocanaraError.invalidInput("Unknown model: \(modelId)")
         }
 
-        // Delete from storage
-        try storage.deleteModel(modelId)
+        // Cancel an in-flight download/load before checking loaded state. Both
+        // final publication paths synchronize on `stateQueue`, so either the
+        // operation wins first and is unloaded below, or deletion wins and the
+        // older task can no longer publish.
+        markOperationCancelled(modelId)
+        downloader.cancelDownload(modelId)
+        unloadModel(modelId)
+
+        // Delete the complete package, including its vision projector.
+        guard let assets = modelInfo.packageAssets else {
+            throw LocanaraError.modelDownloadFailed("Model package metadata is incomplete")
+        }
+        for asset in assets {
+            try storage.deleteModel(asset.modelId)
+        }
         updateState(modelId, to: .notDownloaded)
 
         logger.info("Model deleted: \(modelId)")
@@ -459,7 +1021,13 @@ public final class ModelManager: @unchecked Sendable {
     ///
     /// - Throws: Error if deletion fails
     public func deleteAllModels() throws {
-        // Unload current model
+        for model in registry.models {
+            markOperationCancelled(model.modelId)
+        }
+        downloader.cancelAllDownloads()
+
+        // Unload after cancellation is recorded. If a load committed first,
+        // its loaded ID is visible here; otherwise its token prevents commit.
         if let currentId = engineLock.withLock({ loadedModelId }) {
             unloadModel(currentId)
         }

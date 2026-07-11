@@ -391,6 +391,15 @@ final class EngineIntegrationTests: XCTestCase {
         XCTAssertGreaterThan(capability.availableMemoryMB, 0)
         XCTAssertFalse(capability.chipset.isEmpty)
         XCTAssertFalse(capability.iosVersion.isEmpty)
+
+        if let recommendedModel = capability.recommendedModel {
+            let registeredModel = ModelRegistry.shared.getModel(recommendedModel)
+            XCTAssertNotNil(registeredModel)
+            XCTAssertGreaterThanOrEqual(
+                capability.totalMemoryMB,
+                registeredModel?.minMemoryMB ?? .max
+            )
+        }
     }
 
     func testAvailableEngines() {

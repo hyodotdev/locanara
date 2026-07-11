@@ -1,3 +1,5 @@
+/* global jest */
+
 const mockListeners = {};
 
 const mockModule = {
@@ -58,6 +60,59 @@ const mockModule = {
       suggestedPrompts: ['Tell me more'],
     });
   }),
+  summarizeStreaming: jest.fn().mockImplementation(() => {
+    const chunk = {
+      delta: 'Mock summary',
+      accumulated: 'Mock summary',
+      isFinal: true,
+    };
+    Promise.resolve().then(() => {
+      (mockListeners['onSummarizeStreamChunk'] || []).forEach((listener) =>
+        listener(chunk),
+      );
+    });
+    return Promise.resolve({
+      summary: 'Mock summary',
+      originalLength: 100,
+      summaryLength: 12,
+      confidence: 0.9,
+    });
+  }),
+  translateStreaming: jest.fn().mockImplementation(() => {
+    const chunk = {
+      delta: 'Mock translation',
+      accumulated: 'Mock translation',
+      isFinal: true,
+    };
+    Promise.resolve().then(() => {
+      (mockListeners['onTranslateStreamChunk'] || []).forEach((listener) =>
+        listener(chunk),
+      );
+    });
+    return Promise.resolve({
+      translatedText: 'Mock translation',
+      sourceLanguage: 'en',
+      targetLanguage: 'ko',
+      confidence: 0.9,
+    });
+  }),
+  rewriteStreaming: jest.fn().mockImplementation(() => {
+    const chunk = {
+      delta: 'Mock rewritten text',
+      accumulated: 'Mock rewritten text',
+      isFinal: true,
+    };
+    Promise.resolve().then(() => {
+      (mockListeners['onRewriteStreamChunk'] || []).forEach((listener) =>
+        listener(chunk),
+      );
+    });
+    return Promise.resolve({
+      rewrittenText: 'Mock rewritten text',
+      style: 'PROFESSIONAL',
+      confidence: 0.9,
+    });
+  }),
   translate: jest.fn().mockResolvedValue({
     translatedText: 'Mock translation',
     sourceLanguage: 'en',
@@ -79,12 +134,12 @@ const mockModule = {
     }
     mockListeners[eventName].push(listener);
     return {
-      remove: () => {
+      remove: jest.fn(() => {
         const idx = mockListeners[eventName]?.indexOf(listener);
         if (idx !== undefined && idx >= 0) {
           mockListeners[eventName].splice(idx, 1);
         }
-      },
+      }),
     };
   }),
 };

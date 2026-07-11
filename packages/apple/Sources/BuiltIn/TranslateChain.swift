@@ -35,10 +35,8 @@ public struct TranslateChain: Chain {
             "targetLang": targetLang
         ])
 
-        print("[TranslateChain] input: \(input.text.prefix(200))")
         let response = try await model.generate(prompt: prompt, config: .structured)
         let translated = BuiltInPrompts.stripPreamble(response.text.trimmingCharacters(in: .whitespacesAndNewlines))
-        print("[TranslateChain] output: \(translated)")
 
         let result = TranslateResult(
             translatedText: translated,

@@ -19,6 +19,9 @@ import com.margelo.nitro.core.NullType
 data class NitroChatOptions(
   @DoNotStrip
   @Keep
+  val conversationId: Variant_NullType_String?,
+  @DoNotStrip
+  @Keep
   val systemPrompt: Variant_NullType_String?,
   @DoNotStrip
   @Keep
@@ -34,8 +37,8 @@ data class NitroChatOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(systemPrompt: Variant_NullType_String?, history: Variant_NullType_Array_NitroChatMessage_?): NitroChatOptions {
-      return NitroChatOptions(systemPrompt, history)
+    private fun fromCpp(conversationId: Variant_NullType_String?, systemPrompt: Variant_NullType_String?, history: Variant_NullType_Array_NitroChatMessage_?): NitroChatOptions {
+      return NitroChatOptions(conversationId, systemPrompt, history)
     }
   }
 }

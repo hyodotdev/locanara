@@ -1,127 +1,49 @@
 # Locanara Architecture
 
-> **Priority: MANDATORY**
-> Understand and follow this architecture exactly.
+## Product Boundary
 
-## Core Principle: On-Device Only
+All prompt inference is on-device. There is no cloud inference, server
+fallback, provider API key, or user-content telemetry. Network access may be
+used for explicit model/package asset downloads and non-inference site
+features, never as an inference fallback.
 
-**All AI processing happens locally. No cloud fallback. Privacy first.**
+## Repository Surfaces
 
-- User data NEVER leaves the device
-- No network calls for AI inference
-- No telemetry or analytics on user content
-
-## Platform Support
-
-```
-┌─────────────────────────────────────────────┐
-│              LOCANARA SDK                   │
-├─────────────────────────────────────────────┤
-│  iOS/macOS: Foundation Models (Apple)       │
-│  Android: Gemini Nano (ML Kit GenAI)        │
-│  Requirements: iOS 26+ / macOS 26+          │
-│               Android 14+                   │
-│  NPU: Required                              │
-│  App Size Impact: < 5MB                     │
-│  External Dependencies: None                │
-└─────────────────────────────────────────────┘
+```text
+packages/gql      shared schemas and generators
+packages/apple    Swift SDK and example
+packages/android  Kotlin SDK and example
+packages/web      browser SDK
+packages/site     website and documentation
+libraries/*       Expo, React Native, and Flutter wrappers
 ```
 
-## Package Structure
+## Framework Layers
 
-```
-locanara/
-├── packages/
-│   ├── apple/              # Swift SDK (SPM + CocoaPods)
-│   │   ├── Sources/        # SDK source
-│   │   │   ├── Core/       # LocanaraModel, PromptTemplate, OutputParser, Schema
-│   │   │   ├── Composable/ # Chain, Tool, Memory, Guardrail
-│   │   │   ├── BuiltIn/    # SummarizeChain, ClassifyChain, etc.
-│   │   │   ├── DSL/        # Pipeline, PipelineStep, ModelExtensions
-│   │   │   ├── Runtime/    # Agent, Session, ChainExecutor
-│   │   │   ├── Platform/   # FoundationLanguageModel
-│   │   │   └── Features/   # Legacy feature executors
-│   │   ├── Tests/
-│   │   └── Example/        # Example app
-│   │
-│   ├── android/            # Kotlin SDK (Maven Central)
-│   │   ├── locanara/       # SDK
-│   │   └── example/        # Example app
-│   │
-│   ├── gql/                # GraphQL schema definitions
-│   └── docs/               # Documentation website
-│
-├── knowledge/              # Shared knowledge base
-└── .claude/
-    ├── commands/           # Slash commands
-    └── guides/             # Project guides
+Core model abstractions feed composable chains, built-in chains, the Pipeline
+DSL, runtime/session/agent utilities, platform adapters, inference engines,
+model management, local RAG, and personalization. Platform availability and
+download state are runtime concerns.
+
+## Source-of-Truth Flow
+
+```text
+GraphQL schema -> generated shared platform types
+Platform SDK implementation -> real behavior
+Wrapper spec/public API -> native bridge behavior
+Implementation + tests -> docs and examples
+locanara-versions.json -> version copies and runtime constants
 ```
 
-## Dependency Graph
+Wrappers are thin adapters. They must not simulate download, load, capability,
+or inference success with local in-memory state when the SDK did not perform
+the operation.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      APPLICATION                            │
-└─────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┴───────────────┐
-              │                               │
-              ▼                               ▼
-       ┌──────────────┐              ┌──────────────┐
-       │   Locanara   │              │   Locanara   │
-       │  (Apple SDK) │              │ (Android SDK)│
-       └──────────────┘              └──────────────┘
-              │                               │
-              ▼                               ▼
-       ┌──────────────┐              ┌──────────────┐
-       │  Foundation   │              │  ML Kit      │
-       │  Models (OS)  │              │  GenAI (OS)  │
-       └──────────────┘              └──────────────┘
-```
+## Capability Routing
 
-## Inference Flow
+Check the actual engine/feature status. OS version, device name, or available
+class alone is insufficient. A capability response must match the engine the
+subsequent API call will use.
 
-```
-User Request
-     │
-     ▼
-┌─────────────────┐
-│ Check Device    │
-│ Capability      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     No    ┌─────────────────┐
-│ Platform Model  │──────────▶│ Return Error    │
-│ Ready?          │           │ .notAvailable   │
-└────────┬────────┘           └─────────────────┘
-         │ Yes
-         ▼
-┌─────────────────┐
-│ Execute via     │
-│ Platform AI API │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Return Result   │
-└─────────────────┘
-```
-
-## Error Handling Strategy
-
-```swift
-// All errors use LocanaraError enum
-enum LocanaraError: Error {
-    case notAvailable              // AI not available
-    case modelNotDownloaded(String) // Model ID not downloaded
-    case modelLoadFailed(String)   // Failed to load
-    case insufficientMemory(required: Int, available: Int)
-    case executionFailed(String)   // Inference failed
-    case invalidInput(String)      // Bad input
-    case featureNotAvailable       // Feature not supported
-    case networkError(String)      // Download failed
-    case cancelled                 // User cancelled
-    case custom(ErrorCode, String) // Generic with code
-}
-```
+When no on-device engine is ready, return a Locanara availability error. Never
+route the prompt to a remote service.

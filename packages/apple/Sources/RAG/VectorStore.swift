@@ -331,10 +331,10 @@ public actor VectorStore {
         guard let db = db else { throw VectorStoreError.databaseNotOpen }
 
         // Delete vectors first
-        try execute("DELETE FROM vectors WHERE collection_id = '\(id)';")
+        try execute("DELETE FROM vectors WHERE collection_id = ?;", textBindings: [id])
 
         // Delete documents
-        try execute("DELETE FROM documents WHERE collection_id = '\(id)';")
+        try execute("DELETE FROM documents WHERE collection_id = ?;", textBindings: [id])
 
         // Delete collection
         let sql = "DELETE FROM collections WHERE id = ?;"
@@ -517,10 +517,10 @@ public actor VectorStore {
         guard db != nil else { throw VectorStoreError.databaseNotOpen }
 
         // Delete vectors first
-        try execute("DELETE FROM vectors WHERE document_id = '\(documentId)';")
+        try execute("DELETE FROM vectors WHERE document_id = ?;", textBindings: [documentId])
 
         // Delete document
-        try execute("DELETE FROM documents WHERE id = '\(documentId)';")
+        try execute("DELETE FROM documents WHERE id = ?;", textBindings: [documentId])
 
         // Update collection timestamp
         try updateCollectionTimestamp(collectionId)
@@ -532,7 +532,7 @@ public actor VectorStore {
     public func storeVector(_ storedVector: StoredVector) throws {
         guard let db = db else { throw VectorStoreError.databaseNotOpen }
 
-        logger.debug("storeVector: id=\(storedVector.id), collectionId=\(storedVector.collectionId), docId=\(storedVector.documentId), chunkIndex=\(storedVector.chunkIndex), vectorDim=\(storedVector.vector.count)")
+        logger.debug("Storing vector (chunkIndex=\(storedVector.chunkIndex), dimensions=\(storedVector.vector.count))")
 
         guard storedVector.vector.count == expectedDimension else {
             logger.error("Vector dimension mismatch: expected=\(self.expectedDimension), got=\(storedVector.vector.count)")
@@ -560,7 +560,7 @@ public actor VectorStore {
         let vectorData: Data = storedVector.vector.withUnsafeBytes { rawBuffer in
             Data(rawBuffer)
         }
-        logger.debug("vectorData size: \(vectorData.count) bytes, first 3 doubles: \(storedVector.vector.prefix(3))")
+        logger.debug("Serialized vector size: \(vectorData.count) bytes")
 
         // Use withCString to ensure string pointers remain valid during binding
         // Keep vectorData.withUnsafeBytes scope around sqlite3_step to ensure blob data stays valid
@@ -603,7 +603,7 @@ public actor VectorStore {
             throw VectorStoreError.insertFailed(message: errMsg)
         }
 
-        logger.info("storeVector SUCCESS: id=\(storedVector.id)")
+        logger.info("Stored vector successfully")
     }
 
     /// Store multiple vectors in a batch
@@ -632,7 +632,7 @@ public actor VectorStore {
     ) throws -> [VectorSearchResult] {
         guard let db = db else { throw VectorStoreError.databaseNotOpen }
 
-        logger.debug("search: collectionId=\(collectionId), queryVectorDim=\(queryVector.count), topK=\(topK)")
+        logger.debug("Searching vectors (queryDimensions=\(queryVector.count), topK=\(topK))")
 
         guard queryVector.count == expectedDimension else {
             throw VectorStoreError.vectorDimensionMismatch(
@@ -675,20 +675,18 @@ public actor VectorStore {
             // Read vector blob
             let vectorBytes = sqlite3_column_bytes(statement, 5)
             guard let vectorBlob = sqlite3_column_blob(statement, 5) else {
-                logger.warning("search: row \(rowCount) has NULL blob, id=\(id)")
+                logger.warning("search: row \(rowCount) has NULL blob")
                 skippedBlob += 1
                 continue
             }
 
             let vectorCount = Int(vectorBytes) / MemoryLayout<Double>.size
-            logger.debug("search: row \(rowCount) id=\(id), blobBytes=\(vectorBytes), vectorCount=\(vectorCount)")
+            logger.debug("search: row \(rowCount), blobBytes=\(vectorBytes), vectorCount=\(vectorCount)")
 
             let vector = Array(UnsafeBufferPointer(
                 start: vectorBlob.assumingMemoryBound(to: Double.self),
                 count: vectorCount
             ))
-
-            logger.debug("search: row \(rowCount) first 3 doubles: \(vector.prefix(3))")
 
             guard vector.count == self.expectedDimension else {
                 logger.warning("search: row \(rowCount) dimension mismatch: expected=\(self.expectedDimension), got=\(vector.count)")
@@ -770,6 +768,31 @@ public actor VectorStore {
             let message = errorMessage.map { String(cString: $0) } ?? "Unknown error"
             sqlite3_free(errorMessage)
             throw VectorStoreError.queryFailed(message: message)
+        }
+    }
+
+    private func execute(_ sql: String, textBindings: [String]) throws {
+        guard let db = db else { throw VectorStoreError.databaseNotOpen }
+
+        var statement: OpaquePointer?
+        defer { sqlite3_finalize(statement) }
+
+        guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+            throw VectorStoreError.queryFailed(message: String(cString: sqlite3_errmsg(db)))
+        }
+
+        for (index, value) in textBindings.enumerated() {
+            sqlite3_bind_text(
+                statement,
+                Int32(index + 1),
+                value,
+                -1,
+                unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+            )
+        }
+
+        guard sqlite3_step(statement) == SQLITE_DONE else {
+            throw VectorStoreError.queryFailed(message: String(cString: sqlite3_errmsg(db)))
         }
     }
 

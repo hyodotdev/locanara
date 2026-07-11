@@ -45,10 +45,7 @@ Instructions:
     ): RAGQueryResult = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
 
-        Log.i(TAG, "=== RAG Query Start ===")
-        Log.i(TAG, "Collection: $collectionId")
-        Log.i(TAG, "Query: $query")
-        Log.i(TAG, "TopK: $topK, MinRelevance: $minRelevance")
+        Log.i(TAG, "Starting RAG query: topK=$topK, minRelevance=$minRelevance")
 
         // Search for relevant chunks
         val searchResults = ragManager.search(
@@ -59,9 +56,6 @@ Instructions:
         )
 
         Log.i(TAG, "Search returned ${searchResults.size} results")
-        searchResults.forEachIndexed { index, result ->
-            Log.i(TAG, "  Result[$index]: doc='${result.documentTitle}', score=${result.relevanceScore}, content='${result.content.take(50)}...'")
-        }
 
         if (searchResults.isEmpty()) {
             Log.w(TAG, "No results found! Returning empty answer.")

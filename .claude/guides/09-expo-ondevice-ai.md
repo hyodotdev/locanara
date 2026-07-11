@@ -1,268 +1,84 @@
-# expo-ondevice-ai (Expo Library)
-
-## Overview
+# expo-ondevice-ai
 
 Location: `libraries/expo-ondevice-ai/`
 
-Expo module wrapping the Locanara native SDKs for React Native/Expo apps. Provides TypeScript API for all 8 AI features plus model management, with native modules bridging to Locanara chains on iOS, Android, and web (Chrome Built-in AI).
+Expo module for the Locanara Apple/Android SDKs with a separate browser
+implementation.
 
-## Requirements
+## Authority
 
-- Expo SDK 52+
-- Bun 1.1+
-- iOS 17+ (for llama.cpp engine)
-- Android API 26+ (for ML Kit GenAI)
-- Web: Chrome 138+ (Chrome Built-in AI / Gemini Nano)
+- Public API: `src/index.ts`, `src/types.ts`, and
+  `src/ExpoOndeviceAiModule.ts`.
+- Native implementations: `ios/` and `android/`.
+- Browser implementation: `src/ExpoOndeviceAiModule.web.ts`.
+- Config plugin: `plugin/src/withOndeviceAi.ts`.
+- Actual requirements: package manifests, Podspec, Gradle, and example config.
 
-## Build Commands
+Do not copy fixed Expo, Android, or Chrome versions from old docs. The module's
+Gradle fallback and the underlying Android SDK minimum currently differ; the
+effective host requirement must satisfy the Locanara dependency and example
+build.
+
+## Read-Only Verification
 
 ```bash
 cd libraries/expo-ondevice-ai
-
-bun install       # Install dependencies
-bun run build     # Build TypeScript + plugin
-bun run lint:ci   # Run all linters
-bun test          # Run tests
+bun install --frozen-lockfile --ignore-scripts
+bun run lint:tsc
+bun run lint
+bun run test -- --runInBand
+bun run build
 ```
 
-## Project Structure
+Do not use `lint:ci` as a read-only command: its current sub-scripts run ESLint
+fixes, Prettier writes, and optional ktlint formatting.
+
+Build generated native examples when native code or the config plugin changes.
+Inspect the working tree before and after Expo prebuild because it is
+intentionally mutating.
+
+## Structure
 
 ```text
-libraries/expo-ondevice-ai/
-├── src/
-│   ├── index.ts                      # Public API exports
-│   ├── ExpoOndeviceAiModule.ts       # Native module bridge
-│   ├── ExpoOndeviceAiModule.web.ts   # Web implementation (Chrome Built-in AI)
-│   ├── types.ts                      # TypeScript type definitions
-│   ├── log.ts                        # Logging utilities
-│   └── __tests__/                    # Unit tests
-├── ios/
-│   ├── ExpoOndeviceAiModule.swift    # iOS native module (uses Locanara chains)
-│   ├── ExpoOndeviceAiHelper.swift    # Option extractors, PrefilledMemory adapter
-│   ├── ExpoOndeviceAiSerialization.swift # Chain result → JS dictionary
-│   └── ExpoOndeviceAiLog.swift       # Logging wrapper
-├── android/
-│   └── src/main/java/expo/modules/ondeviceai/
-│       ├── ExpoOndeviceAiModule.kt           # Android native module
-│       ├── ExpoOndeviceAiHelper.kt           # Option extractors
-│       └── ExpoOndeviceAiSerialization.kt    # Chain result → JS map
-├── plugin/
-│   └── src/
-│       └── withOndeviceAi.ts         # Expo config plugin
-├── example/                          # Example Expo app
-│   ├── app/                          # Expo Router pages
-│   │   ├── (tabs)/                   # Tab navigation (Features, Device, Settings)
-│   │   └── feature/[id].tsx          # Feature detail/demo screen
-│   ├── components/
-│   │   ├── AppState.tsx              # React Context for SDK state
-│   │   ├── pages/FeatureDetail/      # Feature demo components
-│   │   └── shared/                   # AIStatusBanner, ModelSelectionSheet, etc.
-│   └── ios/
-│       ├── LocanaraLlamaBridge/      # Generated bridge pod (C++ interop isolation)
-│       └── Podfile                   # CocoaPods config with bridge helper
-├── expo-module.config.json
-└── package.json
+src/          public TypeScript facade, types, Web implementation, tests
+ios/          Swift Expo module and serializers
+android/      Kotlin Expo module and serializers
+plugin/       Expo config plugin
+example/      Expo Router app, native projects, feature/framework demos
 ```
 
-## How It Works
+The current example includes Features, Device, Framework, and Settings routes;
+do not enforce an old three-tab template.
 
-### TypeScript → Native Chain Mapping
+## Platform Rules
 
-Each TypeScript function maps to a built-in Locanara chain:
+- Apple feature calls should use real Locanara chains/client behavior.
+- Android feature calls must reflect live ML Kit/engine status.
+- Web must capability-check each Chrome Built-in AI surface at runtime; a
+  browser version string is not a sufficient check.
+- Streaming listeners must be removed on success, failure, and cancellation.
+- Model-management results must represent native state. The current Android
+  download/load/delete path uses in-memory placeholder state and remains a
+  defect; do not document it as a real download implementation.
+- Some Web model operations currently resolve as no-op success. Treat that as a
+  contract defect, not support; converge on explicit unsupported behavior and
+  document browser-managed lifecycle honestly.
 
-| TypeScript API              | iOS Chain                                  | Android              | Web (Chrome Built-in AI)              |
-| --------------------------- | ------------------------------------------ | -------------------- | ------------------------------------- |
-| `summarize(text, opts)`     | `SummarizeChain(bulletCount:).run(text)`   | ML Kit Summarization | `Summarizer` API (key-points)         |
-| `classify(text, opts)`      | `ClassifyChain(categories:).run(text)`     | Prompt API           | `LanguageModel` API                   |
-| `extract(text, opts)`       | `ExtractChain(entityTypes:).run(text)`     | Prompt API           | `LanguageModel` API                   |
-| `chat(message, opts)`       | `ChatChain(memory:).run(message)`          | Prompt API           | `LanguageModel` API                   |
-| `chatStream(message, opts)` | `ChatChain(memory:).streamRun(message)`    | Prompt API           | `LanguageModel.promptStreaming()`     |
-| `translate(text, opts)`     | `TranslateChain(source:target:).run(text)` | Prompt API           | `Translator` API                      |
-| `rewrite(text, opts)`       | `RewriteChain(style:).run(text)`           | ML Kit Rewriting     | `Rewriter` API                        |
-| `proofread(text, opts)`     | `ProofreadChain().run(text)`               | ML Kit Proofreading  | `LanguageModel` API (structured JSON) |
+## Config Plugin Safety
 
-### Model Management API (iOS)
+The local-development plugin path can rewrite native projects and populate a
+local Maven repository. AI agents must not run local Maven publication or the
+plugin path that performs that installation. Inspect and edit the plugin when
+authorized, then hand the mutating prebuild/local-install step to the
+maintainer.
 
-| TypeScript API          | Native call                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| `getAvailableModels()`  | `LocanaraClient.shared.getAvailableModels()`                 |
-| `getDownloadedModels()` | `LocanaraClient.shared.getDownloadedModels()`                |
-| `downloadModel(id)`     | `LocanaraClient.shared.downloadModelWithProgress(id)`        |
-| `loadModel(id)`         | `LocanaraClient.shared.loadModel(id)` → auto-switches engine |
-| `deleteModel(id)`       | `LocanaraClient.shared.deleteModel(id)`                      |
-| `getLoadedModel()`      | `LocanaraClient.shared.getLoadedModel()`                     |
-| `getCurrentEngine()`    | `LocanaraClient.shared.getCurrentEngine()`                   |
+iOS llama.cpp support may require a generated bridge target to isolate C++
+interop. Verify the current plugin output, Podfile, resolved package revision,
+and build phases instead of reproducing a stale bridge recipe from this guide.
 
-### Native Module Architecture
+## Parity Checklist
 
-- `LocanaraClient` is only used for `initialize()`, `getDeviceCapability()`, and model management
-- All AI features use built-in chains directly (not `LocanaraClient.executeFeature()`)
-- `PrefilledMemory` adapts JS chat history `[{role, content}]` to the `Memory` protocol
-
-### Web Implementation (`ExpoOndeviceAiModule.web.ts`)
-
-Metro auto-resolves `.web.ts` over `.ts` for the web platform. The web module uses Chrome Built-in AI APIs (Gemini Nano) directly — no native bridge needed.
-
-**Chrome APIs used:**
-
-- `Summarizer` — text summarization (key-points mode, post-processed to match bullet count)
-- `LanguageModel` — classify, extract, chat, chatStream, proofread (via structured JSON prompts)
-- `Translator` — language translation
-- `Rewriter` — text rewriting (tone/length mapping)
-- `Writer` — fallback for proofread if LanguageModel unavailable
-
-**Key implementation details:**
-
-- **Availability detection**: Lenient checks with 3s timeout; accepts `readily`, `available`, `downloadable`, `after-download` statuses; falls back to API object existence
-- **Streaming**: Uses `LanguageModel.promptStreaming()` with auto-detection of cumulative vs delta chunk format (varies by Chrome version)
-- **Event emitter**: Web polyfill for Expo's native `addListener`/`removeListeners` pattern using a `Map<string, Set<Function>>`
-- **Instance caching**: Summarizer, LanguageModel, Translator, Rewriter, Writer instances are cached and reused
-- **Model management**: No-op on web (Chrome manages models automatically)
-
-## Config Plugin (`withOndeviceAi.ts`)
-
-The Expo config plugin automates native setup at prebuild time.
-
-### Plugin Options
-
-```typescript
-{
-  enableLocalDev?: boolean;   // Use local Locanara SDK (default: false)
-  localPath?: string;         // Path to local packages/apple
-  enableLlamaCpp?: boolean;   // Enable llama.cpp bridge (default: same as enableLocalDev)
-}
-```
-
-### What the Plugin Does
-
-#### iOS
-
-1. **Info.plist** - Adds logging config
-2. **Xcode Project** (when `enableLlamaCpp`):
-   - Adds `LocalLLMClient` SPM package reference to main project
-   - Adds "Embed llama.framework" shell script build phase (copies + codesigns dynamic framework)
-3. **Dangerous Mod** (when `enableLocalDev`):
-   - Generates `LocanaraLlamaBridge/` pod directory with:
-     - `LocanaraLlamaBridge.podspec` - CocoaPods spec with C++ interop settings
-     - `Sources/LlamaCppBridgeEngine.swift` - Bridge engine implementation
-   - Modifies `Podfile`:
-     - Adds `pod 'Locanara'` pointing to local SDK path
-     - Adds `pod 'LocanaraLlamaBridge'` pointing to generated bridge
-     - Appends Ruby helper for post_install (SPM deps, C++ interop, deployment target)
-
-#### Android
-
-- Builds local Locanara SDK AAR and installs to mavenLocal
-- Configures Gradle to resolve from mavenLocal
-
-### LlamaCppBridge Isolation Architecture
-
-C++ interop is **viral** in Swift — any module importing a C++ interop module must also enable C++ interop. React Native's `ExpoModulesCore-Swift.h` has a `GenericTypedArray` class that collides with llama.cpp's types, making it impossible to enable C++ interop on any pod that touches React Native.
-
-**Solution**: Isolated bridge pod
-
-```text
-┌─────────────────────────────┐     ┌──────────────────────────┐
-│  ExpoOndeviceAi pod         │     │  LocanaraLlamaBridge pod │
-│  (NO C++ interop)           │     │  (C++ interop enabled)   │
-│                             │     │                          │
-│  imports:                   │     │  imports:                │
-│  - ExpoModulesCore          │     │  - Locanara              │
-│  - Locanara                 │     │  - LocalLLMClient        │
-│  - React Native             │     │  - LocalLLMClientLlama   │
-│                             │     │                          │
-│  uses LocanaraClient for    │     │  implements:             │
-│  chains (via RouterModel)   │     │  - LlamaCppBridgeProvider│
-│                             │     │  - InferenceEngine       │
-└─────────────────────────────┘     └──────────────────────────┘
-         │                                    │
-         │  discovered at runtime via         │
-         │  NSClassFromString                 │
-         └────────────────────────────────────┘
-```
-
-The bridge is discovered at runtime by `LlamaCppBridge.findBridge()` using `NSClassFromString("LocanaraLlamaBridge.LlamaCppBridgeEngine")`.
-
-### Key Build Settings
-
-Bridge pod (`pod_target_xcconfig`):
-
-- `SWIFT_INCLUDE_PATHS` / `FRAMEWORK_SEARCH_PATHS` → `$(PODS_CONFIGURATION_BUILD_DIR)` (for SPM modules)
-- `IPHONEOS_DEPLOYMENT_TARGET` → `17.0` (LocalLLMClient requirement)
-- `OTHER_SWIFT_FLAGS` → `-cxx-interoperability-mode=default -Xcc -std=c++20`
-
-App target (`user_target_xcconfig`):
-
-- `OTHER_LDFLAGS` → `-framework "llama"` (link dynamic framework)
-- `FRAMEWORK_SEARCH_PATHS` → `$(PODS_CONFIGURATION_BUILD_DIR)` (find llama.framework)
-
-Embed phase:
-
-- Copies `llama.framework` from `PackageFrameworks/` to app's `Frameworks/`
-- Re-signs with `EXPANDED_CODE_SIGN_IDENTITY`
-
-## Example App
-
-### Running
-
-```bash
-cd libraries/expo-ondevice-ai/example
-
-# Prebuild (generates native projects)
-bunx expo prebuild --clean
-
-# Run on iOS device
-bun ios --device
-
-# Run on Android
-bun android
-
-# Run on Web (Chrome 138+ required for AI features)
-bun web
-```
-
-### App Structure
-
-- 3-tab navigation: Features, Device, Settings
-- Feature list → tappable demo screens for each AI feature
-- AI Status Banner → opens Model Selection Sheet for engine/model management
-- Model Selection Sheet: download, load, delete GGUF models; switch engines
-
-## Cross-Library iOS llama.cpp Bridge Comparison
-
-All three libraries (expo, react-native, flutter) use the same `LocanaraLlamaBridge` isolation pattern for llama.cpp, but Flutter requires extra steps due to its framework linking model.
-
-### Why the Bridge Exists
-
-C++ interop is **viral** in Swift — any module importing a C++ interop module must also enable it. React Native's `ExpoModulesCore-Swift.h` has a `GenericTypedArray` class that collides with llama.cpp types. The bridge pod isolates C++ interop from framework headers.
-
-### Key Differences by Library
-
-| Aspect                            | Expo                            | React Native (bare)         | Flutter                               |
-| --------------------------------- | ------------------------------- | --------------------------- | ------------------------------------- |
-| `use_frameworks!`                 | Not used (static libs)          | Not used (static libs)      | **Required** (`:linkage => :static`)  |
-| SPM `llama.framework` type        | Static (linked into binary)     | Static (linked into binary) | **Dynamic** (must be embedded)        |
-| Extra embed phase                 | Config plugin handles it        | Not needed                  | **Required** (`embed_spm_frameworks`) |
-| Bridge pod generation             | Auto-generated by config plugin | Manual in example           | Manual in example                     |
-| Bridge podspec `static_framework` | Not needed                      | Not needed                  | **Required** (`true`)                 |
-
-### Common Components (All Libraries)
-
-1. **`LocanaraLlamaBridge/Sources/LlamaCppBridgeEngine.swift`** — identical bridge engine implementing `InferenceEngine` + `LlamaCppBridgeProvider`
-2. **`configure_llama_bridge(installer)`** — post_install hook adding SPM packages + C++ interop to bridge target
-3. **`user_target_xcconfig`** — `-framework "llama"` linker flag + framework search paths
-
-### Flutter-Only Requirements
-
-1. **`use_frameworks! :linkage => :static`** — without this, hundreds of `Undefined symbol: _ggml_*` errors
-2. **`embed_spm_frameworks`** — copies `llama.framework` from `BUILT_PRODUCTS_DIR` to `Runner.app/Frameworks/` (must run BEFORE "Thin Binary" phase)
-3. **`static_framework = true`** in bridge podspec
-
-See `12-flutter-ondevice-ai.md` for complete Flutter-specific details.
-
-## Notes
-
-- `enableLocalDev` requires `localPath` pointing to the monorepo root
-- The bridge pod is auto-generated at prebuild time — do not edit `example/ios/LocanaraLlamaBridge/` directly
-- llama.cpp models are stored in the app's Documents directory
-- The `RouterModel` ensures chains automatically use whichever engine is active
+For an API change, update the TypeScript facade/types, native module contracts,
+both native implementations, Web implementation where supported, tests, mocks,
+example, and the React Native/Flutter wrappers. Unsupported capability must be
+explicit; parity is not simulated success.

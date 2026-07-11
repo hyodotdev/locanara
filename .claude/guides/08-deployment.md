@@ -1,102 +1,50 @@
-# Deployment
+# Distribution and Deployment Boundary
 
-## Overview
+## Agent Boundary
 
-Distribution is via public package registries.
+Distribution is maintainer-owned. AI agents may inspect workflows and prepare
+local fixes when requested, but must never publish, deploy, tag, create a
+release, delete/replace a release, or trigger release/deploy automation.
 
-## Package Distribution
+## Distribution Surfaces
 
-| Platform | Package                 | Registry        |
-| -------- | ----------------------- | --------------- |
-| Apple    | `Locanara`              | SPM + CocoaPods |
-| Android  | `com.locanara:locanara` | Maven Central   |
-| Expo     | `expo-ondevice-ai`      | npm             |
+| Surface | Coordinate |
+| --- | --- |
+| Apple | `Locanara` through SPM/CocoaPods |
+| Android | `com.locanara:locanara` through Maven Central |
+| Web | `locanara` through npm |
+| Expo | `expo-ondevice-ai` through npm |
+| React Native | `react-native-ondevice-ai` through npm |
+| Flutter | `flutter_ondevice_ai` through pub.dev |
 
-## Release Workflows
+Read current versions from `locanara-versions.json`; do not embed example
+versions in workflow guidance.
 
-Located in `.github/workflows/`:
+## Workflow Audit Checklist
 
-| Workflow              | Purpose                     |
-| --------------------- | --------------------------- |
-| `release-apple.yml`   | Apple SDK → SPM + CocoaPods |
-| `release-android.yml` | Android SDK → Maven Central |
-| `release-expo.yml`    | Expo module → npm           |
-| `deploy-site.yml`     | Site → Firebase Hosting     |
+When reviewing `.github/workflows/release-*.yml` or `deploy-site.yml`, check:
 
-### Workflow Inputs
+- explicit branch/ref guard;
+- protected environment and least-privilege permissions;
+- concurrency to prevent overlapping releases;
+- verification before version mutation or publication;
+- version synchronization for the actual package manifest/runtime constants;
+- no destructive `current` flow that deletes an existing tag/release;
+- immutable artifact/checksum handling;
+- deployment only from the intended production branch.
 
-Each workflow has one input:
+Do not print, request, or expose registry/deployment secrets.
 
-- **version**: Version bump type (`current`, `patch`, `minor`, `major`)
+## SPM Notes
 
-### Required Secrets
+The root `Package.swift` is the consumer entry point and maps sources under
+`packages/apple`. Apple release tags must remain semver-compatible for SPM, but
+tag creation is maintainer-only. The package deployment target and Foundation
+Models runtime availability are different constraints: local engines support
+older package targets, while Foundation Models requires the newer OS API.
 
-| Secret                       | Purpose                  |
-| ---------------------------- | ------------------------ |
-| `COCOAPODS_TRUNK_TOKEN`      | CocoaPods publishing     |
-| `MAVEN_CENTRAL_USERNAME`     | Maven Central username   |
-| `MAVEN_CENTRAL_PASSWORD`     | Maven Central password   |
-| `SIGNING_KEY`                | Android signing key      |
-| `SIGNING_KEY_PASSWORD`       | Android signing password |
-| `FIREBASE_SERVICE_ACCOUNT_*` | Firebase deployment      |
+## Verification Before Maintainer Handoff
 
-> npm (expo-ondevice-ai) uses OIDC trusted publishing — no token secret needed.
-
-## SPM Distribution
-
-The root `Package.swift` mirrors `packages/apple/Package.swift` but points paths to `packages/apple/Sources` and `packages/apple/Tests`. This allows SPM consumers to add Locanara via:
-
-```swift
-.package(url: "https://github.com/hyodotdev/locanara", from: "1.1.0")
-```
-
-Apple release tags **must use plain version numbers** (e.g., `1.1.0`, not `apple-1.1.0`) for SPM compatibility. Android tags use the `android-` prefix.
-
-## Versioning
-
-Versions are tracked in `locanara-versions.json` (single source of truth):
-
-```json
-{
-  "version": "1.0.0", // Root package
-  "types": "1.0.0", // GraphQL types
-  "apple": "1.0.0", // iOS/macOS SDK
-  "android": "1.0.0", // Android SDK
-  "expo": "0.1.0" // Expo module (npm)
-}
-```
-
-### Automatic Version Sync
-
-All release workflows automatically sync package.json versions using `bun run version:sync`:
-
-1. Workflow updates `locanara-versions.json`
-2. Runs `bun run version:sync`
-3. Commits synced package.json files
-4. Builds and publishes
-
-See [docs/VERSION_SYNC.md](../../docs/VERSION_SYNC.md) for implementation details.
-
-## CI/CD
-
-This repository uses **standard GitHub-hosted runners**.
-
-- iOS: `macos-latest`
-- Android/Docs: `ubuntu-latest`
-
-## Platform Requirements
-
-### iOS
-
-- SPM minimum deployment target: iOS 17 (Package.swift)
-- Foundation Models (Apple Intelligence):
-  - **Minimum**: iOS 18.1+ (iPhone 15 Pro or later)
-  - **Recommended**: iOS 26+ for full feature support
-  - **Storage**: 7GB+ free space required
-- llama.cpp engine: iOS 17+ with Apple Silicon
-- Devices without Apple Intelligence can use llama.cpp with downloaded GGUF models
-
-### Android
-
-- Minimum SDK: API 31
-- Requires Gemini Nano support
+Run `/verify-all` for affected surfaces, check version drift, inspect generated
+outputs, and report any real-device-only rows. Stop before the first external
+publication or deployment action.

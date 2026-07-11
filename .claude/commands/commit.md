@@ -1,75 +1,44 @@
-# Commit Skill
+# /commit
 
-Automates commit and PR creation workflow.
+Prepare an intentional commit and, only when explicitly requested, push it or
+open a pull request.
 
 ## Usage
 
 ```text
-/commit                    # Commit on current branch
-/commit --pr               # New branch + commit + create PR
-/commit --pr "PR title"    # Specify PR title
+/commit                 # verify and create a local commit
+/commit --push          # local commit, then push the current non-main branch
+/commit --pr            # branch, commit, push, and open a PR
 ```
+
+Do not infer `--push` or `--pr` from an ordinary implementation request.
 
 ## Workflow
 
-### Basic Commit (`/commit`)
+1. Read `AGENTS.md`, `git status --short --branch`, and all relevant diffs.
+2. Separate task files from pre-existing or unrelated user changes.
+3. Run the verification required for the files being committed.
+4. Stage only explicit paths with `git add -- <paths>`; never use `git add -A`.
+5. Inspect `git diff --cached --check` and `git diff --cached`.
+6. Create a local commit using `<type>: <description>` with an English subject
+   under 72 characters and no co-author attribution.
+7. Stop after the commit unless push or PR creation was explicitly requested.
 
-1. Check changes with `git status`
-2. Analyze changes and compose commit message
-3. Run `git add -A && git commit`
-4. Run `git push`
+## Push and PR Rules
 
-### Create PR (`/commit --pr`)
+- Never push directly to `main`.
+- Create a focused `feat/`, `fix/`, `docs/`, `test/`, `ci/`, `refactor/`, or
+  `chore/` branch for a PR.
+- Before pushing, confirm the branch, commit list, remote, and verification
+  result.
+- A PR body must include Summary, Test plan, and any skipped/device-only rows.
+- Internal AI-workflow-only changes stay local unless the user explicitly asks
+  to push them or open a pull request.
 
-1. Check changes with `git status`
-2. Analyze changes for branch name and commit message
-3. Create new branch (`feat/`, `fix/`, `docs/`, etc.)
-4. Run `git add -A && git commit`
-5. Run `git push -u origin <branch>`
-6. Run `gh pr create`
+## Forbidden
 
-## Commit Message Format
-
-```text
-<type>: <description>
-```
-
-Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation
-- `style`: Formatting
-- `refactor`: Code refactoring
-- `test`: Tests
-- `chore`: Maintenance
-- `ci`: CI/CD changes
-
-**IMPORTANT**: NEVER add Co-Authored-By
-
-## Examples
-
-### Basic Commit
-
-```bash
-# Agent executes:
-git add -A
-git commit -m "feat: add new summarize API"
-git push
-```
-
-### Create PR
-
-```bash
-# Agent executes:
-git checkout -b feat/new-summarize-api
-git add -A
-git commit -m "feat: add new summarize API"
-git push -u origin feat/new-summarize-api
-gh pr create --title "feat: add new summarize API" --body "..."
-```
-
-## Important Notes
-
-- Never commit sensitive files (.env, credentials, etc.)
-- Never push directly to main branch (use PR)
-- Split large changes into multiple commits
+- Staging unrelated files or secrets.
+- Amending, rebasing, force-pushing, or rewriting user commits without explicit
+  authorization.
+- Publishing packages, deploying the site, tagging releases, creating GitHub
+  releases, or triggering release workflows.

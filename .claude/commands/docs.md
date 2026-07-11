@@ -2,6 +2,9 @@
 
 Manages and updates the project documentation website.
 
+Validation, scan, and status requests are read-only. Edit pages or styles only
+when the user asks for a documentation change.
+
 ## Usage
 
 ```text
@@ -16,7 +19,7 @@ Manages and updates the project documentation website.
 /docs update API documentation
 /docs add new Feature page
 /docs fix styles
-/docs build and deploy
+/docs build and verify
 ```
 
 ## Documentation Website Structure
@@ -81,7 +84,8 @@ packages/site/
 ## Tech Stack
 
 - **React 19** + TypeScript
-- **Tailwind CSS** for styling (NOT CSS modules or CSS variables)
+- **Tailwind CSS** plus the existing shared styles in `src/index.css` and
+  `src/styles/`
 - **Convex** for backend (auth, database)
 - **Vite 6** for build
 - **Firebase Hosting** for deployment
@@ -96,14 +100,15 @@ When this command is executed, automatically perform the following:
 Classify the user's request into one of:
 
 - **Document Validation**: Scan all pages and find issues
-- **Add Page**: Auto-generate missing pages
-- **API Doc Generation**: Auto-generate from GraphQL schema
+- **Add Page**: Create a requested missing page
+- **API Documentation**: Derive shared types from GraphQL and behavior from the
+  current implementation
 - **Style Fix**: Update Tailwind styles
-- **Build/Deploy**: Build docs and deploy to Firebase
+- **Build Verification**: Typecheck, lint, test, and build locally
 
 ### 2. Key File Locations
 
-#### Docs Pages
+#### Content
 
 - **Sidebar + routing**: `src/pages/docs/index.tsx`
 - **API pages**: `src/pages/docs/apis/*.tsx`
@@ -127,28 +132,36 @@ Classify the user's request into one of:
 1. Create new file in `src/pages/docs/apis/`
 2. Add route in `src/pages/docs/index.tsx` (import + Route)
 3. Add to sidebar menu in `src/pages/docs/index.tsx` (MenuDropdown items)
-4. Use `doc-page` CSS class wrapper and import components from `../../components/docs/`
+4. Use the `doc-page` CSS class wrapper and import components from
+   `../../../components/docs/` when the page lives under `src/pages/docs/apis/`
 
-### 4. Build and Deploy
+### 4. Build and Verification
 
 ```bash
 # Local development
 cd packages/site
-bunx convex dev & bun dev
+bun run dev
 
-# Build
+# Verify independently so one failure does not hide the remaining results
+bun run typecheck
+bun run lint
+bun run format:check
+bun run test
 bun run build
-
-# Auto deploy: push to main triggers .github/workflows/deploy-site.yml
 ```
+
+AI agents must never run `firebase deploy`, trigger the deploy workflow, or
+publish a preview. Deployment is maintainer-only and requires an explicit
+release workflow outside `/docs`.
 
 ### 5. Validation Items
 
 #### Docs Pages
 
-- [ ] Matches GraphQL schema
+- [ ] Shared generated types match the GraphQL schema
+- [ ] Behavioral claims and code samples match the current implementation
 - [ ] All parameters are documented
-- [ ] iOS/Android example code exists
+- [ ] Relevant Apple, Android, Web, and wrapper examples exist
 - [ ] Error cases are documented
 
 #### Styles
@@ -159,12 +172,14 @@ bun run build
 
 ## Key Principles
 
-1. **GraphQL is Truth**: API docs are always generated from GraphQL schema
+1. **Use the Right Truth**: GraphQL controls shared generated types; platform behavior comes from the current implementation
 2. **Maintain Consistency**: Unify styles and format across all pages
-3. **Examples Required**: All APIs include Swift + Kotlin examples
+3. **Examples Required**: Include every platform on which the API is actually available; do not invent parity
 4. **Dark Mode Support**: Use Tailwind `dark:` prefix
 5. **Responsive Required**: Test mobile view
-6. **Tailwind Only**: Never add new CSS files. Use Tailwind classes inline.
+6. **Follow Existing Styles**: Prefer Tailwind utilities and reuse the current
+   shared CSS/tokens; inspect the implementation before adding a new stylesheet.
+7. **No Deployment**: `/docs` may build and verify, but never deploy or trigger release automation.
 
 ## Reference Documents
 

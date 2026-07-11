@@ -29,10 +29,8 @@ class TranslateChain(
             mapOf("text" to input.text, "sourceLang" to sourceLang, "targetLang" to targetLang)
         )
 
-        println("[TranslateChain] input: ${input.text.take(200)}")
         val response = model.generate(prompt, GenerationConfig.STRUCTURED)
         val translated = BuiltInPrompts.stripPreamble(response.text.trim())
-        println("[TranslateChain] output: $translated")
 
         val result = TranslateResult(
             translatedText = translated,

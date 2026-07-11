@@ -69,6 +69,8 @@ public struct DownloadableModelInfo: Codable, Sendable {
     public let mmprojURL: URL?
     /// Size of mmproj file in MB (for vision models)
     public let mmprojSizeMB: Int?
+    /// SHA-256 checksum of the mmproj file (for vision models)
+    public let mmprojChecksum: String?
     /// Whether this model supports image input
     public var isMultimodal: Bool { mmprojURL != nil }
 
@@ -85,7 +87,8 @@ public struct DownloadableModelInfo: Codable, Sendable {
         supportedFeatures: [FeatureType],
         promptFormat: PromptFormat = .chatml,
         mmprojURL: URL? = nil,
-        mmprojSizeMB: Int? = nil
+        mmprojSizeMB: Int? = nil,
+        mmprojChecksum: String? = nil
     ) {
         self.modelId = modelId
         self.name = name
@@ -100,6 +103,51 @@ public struct DownloadableModelInfo: Codable, Sendable {
         self.promptFormat = promptFormat
         self.mmprojURL = mmprojURL
         self.mmprojSizeMB = mmprojSizeMB
+        self.mmprojChecksum = mmprojChecksum
+    }
+}
+
+/// A single immutable file that belongs to a downloadable model package.
+struct DownloadableModelAsset: Sendable {
+    let modelId: String
+    let url: URL
+    let sizeMB: Int
+    let checksum: String
+}
+
+extension DownloadableModelInfo {
+    /// Files that must all be present and verified before this model is ready.
+    ///
+    /// Returning `nil` for incomplete companion metadata prevents a multimodal
+    /// model from silently degrading into an unverified text-only install.
+    var packageAssets: [DownloadableModelAsset]? {
+        let main = DownloadableModelAsset(
+            modelId: modelId,
+            url: downloadURL,
+            sizeMB: sizeMB,
+            checksum: checksum
+        )
+
+        switch (mmprojURL, mmprojSizeMB, mmprojChecksum) {
+        case (nil, nil, nil):
+            return [main]
+        case let (url?, sizeMB?, checksum?) where sizeMB > 0:
+            return [
+                main,
+                DownloadableModelAsset(
+                    modelId: "\(modelId)-mmproj",
+                    url: url,
+                    sizeMB: sizeMB,
+                    checksum: checksum
+                ),
+            ]
+        default:
+            return nil
+        }
+    }
+
+    var totalDownloadSizeMB: Int {
+        packageAssets?.reduce(0) { $0 + $1.sizeMB } ?? sizeMB
     }
 }
 

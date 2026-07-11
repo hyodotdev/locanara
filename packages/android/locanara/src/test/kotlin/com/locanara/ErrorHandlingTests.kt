@@ -1,5 +1,6 @@
 package com.locanara
 
+import com.google.mlkit.genai.common.GenAiException
 import com.locanara.builtin.ChatChain
 import com.locanara.builtin.ClassifyChain
 import com.locanara.builtin.ExtractChain
@@ -7,6 +8,7 @@ import com.locanara.builtin.ProofreadChain
 import com.locanara.builtin.RewriteChain
 import com.locanara.builtin.SummarizeChain
 import com.locanara.builtin.TranslateChain
+import com.locanara.mlkit.mapGenAiException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 
@@ -69,6 +71,39 @@ class ErrorHandlingTest {
     fun `PermissionDenied has correct code`() {
         val exception = LocanaraException.PermissionDenied
         assertEquals(ErrorCode.PERMISSION_DENIED, exception.code)
+    }
+
+    @Test
+    fun `ML Kit busy error code maps without relying on localized message`() {
+        val upstream = GenAiException(
+            "localized text without an English busy keyword",
+            null,
+            GenAiException.ErrorCode.BUSY
+        )
+
+        assertTrue(mapGenAiException(upstream) is LocanaraException.ModelBusy)
+    }
+
+    @Test
+    fun `ML Kit battery quota error maps to model busy`() {
+        val upstream = GenAiException(
+            "battery limit",
+            null,
+            GenAiException.ErrorCode.PER_APP_BATTERY_USE_QUOTA_EXCEEDED
+        )
+
+        assertTrue(mapGenAiException(upstream) is LocanaraException.ModelBusy)
+    }
+
+    @Test
+    fun `ML Kit background error code maps without relying on message`() {
+        val upstream = GenAiException(
+            "localized text",
+            null,
+            GenAiException.ErrorCode.BACKGROUND_USE_BLOCKED
+        )
+
+        assertTrue(mapGenAiException(upstream) is LocanaraException.BackgroundUseBlocked)
     }
 
     // --- Chain error propagation tests ---

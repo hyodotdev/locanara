@@ -33,8 +33,6 @@ public struct ClassifyChain: Chain {
         let response = try await model.generate(prompt: prompt, config: .structured)
         let text = response.text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        print("[ClassifyChain] raw response:\n---\n\(text)\n---")
-
         var classifications = text.components(separatedBy: "\n")
             .filter { !$0.isEmpty }
             .compactMap { line -> Classification? in
@@ -56,8 +54,6 @@ public struct ClassifyChain: Chain {
                 classifications = [Classification(label: text, score: 1.0)]
             }
         }
-
-        print("[ClassifyChain] parsed: \(classifications.map { "\($0.label): \($0.score)" })")
 
         let sorted = Array(classifications.sorted { $0.score > $1.score }.prefix(maxResults))
         let result = ClassifyResult(

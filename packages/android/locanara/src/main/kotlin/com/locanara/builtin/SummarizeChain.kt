@@ -29,10 +29,8 @@ class SummarizeChain(
             mapOf("text" to input.text, "bulletCount" to bulletCount.toString(), "inputTypeHint" to inputType)
         )
 
-        println("[SummarizeChain] input: ${input.text.take(200)}")
         val response = model.generate(prompt, GenerationConfig.STRUCTURED)
         val summary = BuiltInPrompts.stripPreamble(response.text.trim())
-        println("[SummarizeChain] output: $summary")
 
         val result = SummarizeResult(
             summary = summary,

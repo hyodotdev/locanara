@@ -1,171 +1,63 @@
 # Locanara Naming Conventions
 
-> **Priority: MANDATORY**
-> These rules MUST be followed without exception.
+> `AGENTS.md` and the live public APIs are authoritative.
 
-## API Method Naming
+## Shared Public Methods
 
-All platforms use **identical method names** for cross-platform consistency:
+Use the same base names wherever a platform supports the behavior:
 
-```
-getDeviceCapability() - Check device AI support
-summarize()           - Text summarization
-classify()            - Text classification
-extract()             - Entity extraction
-translate()           - Language translation
-rewrite()             - Text rewriting
-proofread()           - Grammar correction
-chat()                - Conversational AI (streaming)
-describeImage()       - Image description
-```
-
-### Action Prefix Rules
-
-| Prefix | When to Use | Examples |
-|--------|-------------|----------|
-| `get` | Synchronous data retrieval | `getDeviceCapability`, `getActiveEngine` |
-| `list` | Return array of items | `listDownloadedModels`, `listSupportedFeatures` |
-| `download` | Async fetch from network | `downloadModel` |
-| `delete` | Remove data | `deleteModel` |
-| `set` | Configure settings | `setPreferredEngine` |
-| `is/has` | Boolean checks | `isLoaded`, `hasActiveModel` |
-| `detect` | Capability detection | `detectCapability` |
-
-## Swift Naming (iOS/macOS)
-
-### Class/Struct Naming
-
-```swift
-// CORRECT - PascalCase
-Locanara
-LocanaraPro
-DeviceCapability
-ModelManager
-InferenceEngine
-
-// INCORRECT
-locanara        // No lowercase
-LOCANARA        // No all caps
-Device_Capability  // No underscores
+```text
+initialize
+getDeviceCapability
+summarize
+classify
+extract
+chat
+chatStream
+translate
+rewrite
+proofread
+describeImage
+getAvailableModels
+getDownloadedModels
+getLoadedModel
+getCurrentEngine
+downloadModel
+loadModel
+deleteModel
+getPromptApiStatus
+downloadPromptApiModel
 ```
 
-### Protocol Naming
+Streaming variants use the established public name in that package (for
+example `summarizeStreaming`). Do not rename one platform in isolation.
 
-```swift
-// CORRECT - End with -able, -ible, or descriptive noun
-InferenceEngine      // Describes capability
-LlamaCppEngineProtocol
-Sendable
-Codable
+## Platform Suffixes
 
-// INCORRECT
-IEngine             // No I- prefix
-EngineInterface     // Avoid -Interface suffix
-```
+- Shared features have no suffix.
+- GraphQL iOS-only enum/type names use `IOS` at the end.
+- Swift identifiers follow Swift API design (`Ios` when title-casing a
+  three-letter acronym in a camel-case method).
+- Android-only public names use `Android` at the end.
 
-### Error Naming
+## Language Conventions
 
-All errors MUST use `Locanara` prefix:
+- Swift types/files: `PascalCase`; values/methods: `camelCase`; two-letter
+  initialisms such as `AI` and `ID` stay uppercase where Swift conventions
+  require it.
+- Kotlin types/files: `PascalCase`; values/functions: `camelCase`; packages are
+  lowercase under `com.locanara`.
+- TypeScript/Dart public names follow the existing package style; do not invent
+  a second spelling for a shared contract.
 
-```swift
-// CORRECT
-LocanaraError.notAvailable
-LocanaraError.modelNotDownloaded
-LocanaraError.insufficientMemory
-LocanaraError.executionFailed
+## Errors
 
-// INCORRECT
-AIError.notAvailable    // Missing Locanara prefix
-Error.modelNotFound     // Missing Locanara prefix
-```
+Public Swift errors use `LocanaraError`; Kotlin uses `LocanaraException` and
+its established subtypes. Wrappers translate native failures to their public
+error type without discarding useful context or leaking provider internals.
 
-### Acronym Rules
+## Generated Names
 
-- **Acronyms 2 letters: ALL CAPS** (AI, UI, ID)
-- **Acronyms 3+ letters: PascalCase** (Llm, Mlx, Api)
-
-```swift
-// CORRECT
-AICapability      // AI = 2 letters, ALL CAPS
-LlmEngine         // Llm = 3 letters, PascalCase
-ModelID           // ID = 2 letters, ALL CAPS
-ApiResponse       // Api = 3 letters, PascalCase
-
-// INCORRECT
-AiCapability      // AI should be ALL CAPS
-LLMEngine         // LLM should be Llm
-ModelId           // ID should be ALL CAPS
-APIResponse       // API should be Api
-```
-
-## Kotlin Naming (Android)
-
-### Class Naming
-
-```kotlin
-// CORRECT - PascalCase
-Locanara
-DeviceCapability
-ModelManager
-
-// INCORRECT
-locanara
-LOCANARA
-```
-
-### Package Naming
-
-```kotlin
-// CORRECT - all lowercase, dot-separated
-com.locanara
-com.locanara.types
-com.locanara.features
-
-// INCORRECT
-com.Locanara
-com.locanara.Types
-```
-
-## File Naming
-
-### Swift Files
-
-- Use `PascalCase`: `Locanara.swift`, `ModelManager.swift`
-- Group by feature in directories: `Features/`, `Engine/`, `Types/`
-
-### Kotlin Files
-
-- Use `PascalCase`: `Locanara.kt`, `ModelManager.kt`
-- Match class name to file name
-
-### TypeScript/JavaScript
-
-- Use `kebab-case` for file names: `device-capability.ts`
-- Use `PascalCase` for single class files: `DeviceCapability.ts`
-
-## Variable Naming
-
-```swift
-// CORRECT - camelCase for variables
-let modelPath: URL
-let isLoaded: Bool
-let contextSize: Int
-var availableMemory: Int
-
-// INCORRECT
-let ModelPath: URL      // No PascalCase
-let is_loaded: Bool     // No snake_case
-let CONTEXT_SIZE: Int   // No ALL_CAPS (unless constant)
-```
-
-## Constants
-
-```swift
-// CORRECT - static let with descriptive name
-static let defaultContextSize = 4096
-static let minimumMemoryMB = 500
-
-// INCORRECT
-static let DEFAULT_CONTEXT_SIZE = 4096  // No ALL_CAPS
-static let k = 4096                      // Too short
-```
+GraphQL-generated `Types.swift` and `Types.kt`, plus Nitro-generated bridges,
+are outputs. Change the schema/spec and regenerate rather than correcting names
+inside generated files.

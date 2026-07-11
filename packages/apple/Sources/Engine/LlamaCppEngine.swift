@@ -370,7 +370,7 @@ public final class LlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
             return s
         }
 
-        logger.info("Generating image description for prompt: \(prompt.prefix(50))...")
+        logger.info("Generating image description (prompt length: \(prompt.count) characters)")
 
         #if os(iOS)
         guard let image = UIImage(data: imageData) else {

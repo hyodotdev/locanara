@@ -96,7 +96,7 @@ public actor RAGQueryEngine {
     ) async throws -> RAGQueryResult {
         let startTime = Date()
 
-        logger.info("RAG query: '\(query)' in collection: \(collectionId)")
+        logger.info("Starting RAG query")
 
         // Step 1: Retrieve relevant chunks
         let chunks = try await collectionManager.search(
@@ -332,4 +332,3 @@ public enum RAGStreamEvent: Sendable {
     /// Generation complete
     case complete
 }
-

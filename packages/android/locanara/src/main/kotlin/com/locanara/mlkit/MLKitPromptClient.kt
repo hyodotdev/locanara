@@ -17,6 +17,7 @@ import com.locanara.Entity
 import com.locanara.ExtractResult
 import com.locanara.KeyValuePair
 import com.locanara.TranslateResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -101,17 +102,16 @@ class MLKitPromptClient(private val context: Context) : Closeable {
                     Log.w(TAG, "Prompt API is UNAVAILABLE")
                     PromptApiStatus.NotAvailable("Prompt API is not available on this device")
                 }
-                else -> {
-                    Log.w(TAG, "Unknown Prompt API status: $status")
-                    PromptApiStatus.NotAvailable("Unknown status: $status")
-                }
+                else -> throw IllegalStateException("Unknown Prompt API status: $status")
             }
 
             _status = result
             result
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to check Prompt API status: ${e.javaClass.simpleName}: ${e.message}", e)
-            PromptApiStatus.NotAvailable("Error checking status: ${e.message}").also { _status = it }
+            Log.e(TAG, "Failed to check Prompt API status: ${e.javaClass.simpleName}")
+            throw LocanaraException.ExecutionFailed("Failed to check Prompt API status", e)
         }
     }
 
@@ -207,8 +207,6 @@ class MLKitPromptClient(private val context: Context) : Closeable {
             }
             val response = model.generateContent(request)
             val responseText = response.candidates.firstOrNull()?.text?.trim() ?: ""
-
-            Log.d(TAG, "Chat response received: ${responseText.take(50)}...")
 
             ChatResult(
                 message = responseText,
@@ -324,8 +322,6 @@ class MLKitPromptClient(private val context: Context) : Closeable {
             val response = model.generateContent(request)
             val responseText = response.candidates.firstOrNull()?.text ?: ""
 
-            Log.d(TAG, "Classify response: $responseText")
-
             val classifications = parseClassifyResponse(responseText, categories)
 
             // Sort by score descending and limit results
@@ -381,13 +377,13 @@ class MLKitPromptClient(private val context: Context) : Closeable {
                         }
                     }
                 }
-            } catch (e: Exception) {
-                Log.d(TAG, "Classify JSON fallback failed: ${e.message}")
+            } catch (_: Exception) {
+                Log.d(TAG, "Classify JSON fallback failed")
             }
         }
 
         if (classifications.isEmpty()) {
-            throw IllegalStateException("Failed to parse classification response from model (length=${responseText.length}): ${responseText.take(200)}")
+            throw IllegalStateException("Failed to parse classification response from model (length=${responseText.length})")
         }
 
         return classifications
@@ -432,8 +428,6 @@ class MLKitPromptClient(private val context: Context) : Closeable {
             val response = model.generateContent(request)
             val responseText = response.candidates.firstOrNull()?.text ?: ""
 
-            Log.d(TAG, "Extract response: $responseText")
-
             parseExtractResponse(responseText, extractKeyValues)
         } catch (e: Exception) {
             throw mapGenAiException(e)
@@ -467,8 +461,8 @@ class MLKitPromptClient(private val context: Context) : Closeable {
                     }
                 }
             }
-        } catch (e: Exception) {
-            Log.d(TAG, "Entity JSON parsing failed: ${e.message}")
+        } catch (_: Exception) {
+            Log.d(TAG, "Entity JSON parsing failed")
         }
 
         // Parse key-value pairs from "kv" field if present (independent try/catch)
@@ -491,8 +485,8 @@ class MLKitPromptClient(private val context: Context) : Closeable {
                         }
                     }
                 }
-            } catch (e: Exception) {
-                Log.d(TAG, "KV JSON parsing failed: ${e.message}")
+            } catch (_: Exception) {
+                Log.d(TAG, "KV JSON parsing failed")
             }
         }
 
@@ -598,8 +592,6 @@ class MLKitPromptClient(private val context: Context) : Closeable {
             }
             val response = model.generateContent(request)
             val translatedText = response.candidates.firstOrNull()?.text?.trim() ?: text
-
-            Log.d(TAG, "Translate response: ${translatedText.take(50)}...")
 
             TranslateResult(
                 translatedText = translatedText,

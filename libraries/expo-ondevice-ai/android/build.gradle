@@ -40,7 +40,7 @@ if (useManagedAndroidSdkVersions) {
   project.android {
     compileSdkVersion safeExtGet("compileSdkVersion", 34)
     defaultConfig {
-      minSdkVersion safeExtGet("minSdkVersion", 24)
+      minSdkVersion safeExtGet("minSdkVersion", 31)
       targetSdkVersion safeExtGet("targetSdkVersion", 34)
     }
   }

@@ -1,13 +1,13 @@
-import 'react-native-nitro-modules';
-import {NitroModules} from 'react-native-nitro-modules';
-import {Platform} from 'react-native';
+import "react-native-nitro-modules";
+import { NitroModules } from "react-native-nitro-modules";
+import { Platform } from "react-native";
 
 import type {
   OndeviceAi,
   NitroChatStreamChunk,
   NitroModelDownloadProgress,
   NitroTextStreamChunk,
-} from './specs/OndeviceAi.nitro';
+} from "./specs/OndeviceAi.nitro";
 import type {
   DeviceCapability,
   SummarizeOptions,
@@ -36,7 +36,7 @@ import type {
   ModelDownloadProgress,
   DescribeImageOptions,
   DescribeImageResult,
-} from './types';
+} from "./types";
 
 // Re-export all public types
 export type {
@@ -72,7 +72,7 @@ export type {
   SummarizeStreamOptions,
   DescribeImageOptions,
   DescribeImageResult,
-} from './types';
+} from "./types";
 
 export type {
   SummarizeInputType,
@@ -81,7 +81,7 @@ export type {
   ProofreadInputType,
   Platform as OndeviceAiPlatform,
   ModelDownloadState,
-} from './types';
+} from "./types";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Lazy HybridObject Singleton
@@ -89,16 +89,43 @@ export type {
 
 let ref: OndeviceAi | null = null;
 
+type StreamKind = "chat" | "summarize" | "translate" | "rewrite";
+
+const streamTails: Record<StreamKind, Promise<void>> = {
+  chat: Promise.resolve(),
+  summarize: Promise.resolve(),
+  translate: Promise.resolve(),
+  rewrite: Promise.resolve(),
+};
+
+async function runSerializedStream<T>(
+  kind: StreamKind,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const previous = streamTails[kind];
+  let release = () => {};
+  streamTails[kind] = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    release();
+  }
+}
+
 const toErrorMessage = (error: unknown): string => {
   if (
-    typeof error === 'object' &&
+    typeof error === "object" &&
     error !== null &&
-    'message' in error &&
-    (error as {message?: unknown}).message != null
+    "message" in error &&
+    (error as { message?: unknown }).message != null
   ) {
-    return String((error as {message?: unknown}).message);
+    return String((error as { message?: unknown }).message);
   }
-  return String(error ?? '');
+  return String(error ?? "");
 };
 
 /**
@@ -107,7 +134,7 @@ const toErrorMessage = (error: unknown): string => {
 export const isNitroReady = (): boolean => {
   if (ref) return true;
   try {
-    ref = NitroModules.createHybridObject<OndeviceAi>('OndeviceAi');
+    ref = NitroModules.createHybridObject<OndeviceAi>("OndeviceAi");
     return true;
   } catch {
     return false;
@@ -119,17 +146,17 @@ const AI = {
     if (ref) return ref;
 
     try {
-      ref = NitroModules.createHybridObject<OndeviceAi>('OndeviceAi');
+      ref = NitroModules.createHybridObject<OndeviceAi>("OndeviceAi");
     } catch (e) {
       const msg = toErrorMessage(e);
       if (
-        msg.includes('Nitro') ||
-        msg.includes('JSI') ||
-        msg.includes('dispatcher') ||
-        msg.includes('HybridObject')
+        msg.includes("Nitro") ||
+        msg.includes("JSI") ||
+        msg.includes("dispatcher") ||
+        msg.includes("HybridObject")
       ) {
         throw new Error(
-          'Nitro runtime not installed yet. Ensure react-native-nitro-modules is initialized before calling on-device AI.',
+          "Nitro runtime not installed yet. Ensure react-native-nitro-modules is initialized before calling on-device AI.",
         );
       }
       throw e;
@@ -147,7 +174,7 @@ const AI = {
  */
 export async function initialize(): Promise<InitializeResult> {
   const success = await AI.instance.initialize();
-  return {success};
+  return { success };
 }
 
 /**
@@ -159,7 +186,7 @@ export async function getDeviceCapability(): Promise<DeviceCapability> {
     isSupported: cap.isSupported,
     isModelReady: cap.isModelReady,
     supportsAppleIntelligence: cap.supportsAppleIntelligence,
-    platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
+    platform: Platform.OS === "ios" ? "IOS" : "ANDROID",
     features: {
       summarize: cap.featureSummarize,
       classify: cap.featureClassify,
@@ -239,7 +266,7 @@ export async function extract(
 ): Promise<ExtractResult> {
   const result = await AI.instance.extract(
     text,
-    options?.entityTypes ? {entityTypes: options.entityTypes} : null,
+    options?.entityTypes ? { entityTypes: options.entityTypes } : null,
   );
   return {
     entities: result.entities.map((e) => ({
@@ -263,6 +290,7 @@ export async function chat(
     message,
     options
       ? {
+          conversationId: options.conversationId ?? null,
           systemPrompt: options.systemPrompt ?? null,
           history:
             options.history?.map((m) => ({
@@ -287,47 +315,51 @@ export async function chatStream(
   message: string,
   options?: ChatStreamOptions,
 ): Promise<ChatResult> {
-  const onChunk = options?.onChunk;
+  return runSerializedStream("chat", async () => {
+    const onChunk = options?.onChunk;
 
-  let listener: ((chunk: NitroChatStreamChunk) => void) | null = null;
+    let listener: ((chunk: NitroChatStreamChunk) => void) | null = null;
 
-  if (onChunk) {
-    listener = (chunk: NitroChatStreamChunk) => {
-      const converted: ChatStreamChunk = {
-        delta: chunk.delta,
-        accumulated: chunk.accumulated,
-        isFinal: chunk.isFinal,
+    if (onChunk) {
+      listener = (chunk: NitroChatStreamChunk) => {
+        const converted: ChatStreamChunk = {
+          delta: chunk.delta,
+          accumulated: chunk.accumulated,
+          isFinal: chunk.isFinal,
+          conversationId: options?.conversationId,
+        };
+        onChunk(converted);
       };
-      onChunk(converted);
-    };
-    AI.instance.addChatStreamListener(listener);
-  }
-
-  try {
-    const result = await AI.instance.chatStream(
-      message,
-      options
-        ? {
-            systemPrompt: options.systemPrompt ?? null,
-            history:
-              options.history?.map((m) => ({
-                role: m.role,
-                content: m.content,
-              })) ?? null,
-          }
-        : null,
-    );
-
-    return {
-      message: result.message,
-      conversationId: result.conversationId || undefined,
-      canContinue: result.canContinue,
-    };
-  } finally {
-    if (listener) {
-      AI.instance.removeChatStreamListener(listener);
+      AI.instance.addChatStreamListener(listener);
     }
-  }
+
+    try {
+      const result = await AI.instance.chatStream(
+        message,
+        options
+          ? {
+              conversationId: options.conversationId ?? null,
+              systemPrompt: options.systemPrompt ?? null,
+              history:
+                options.history?.map((m) => ({
+                  role: m.role,
+                  content: m.content,
+                })) ?? null,
+            }
+          : null,
+      );
+
+      return {
+        message: result.message,
+        conversationId: result.conversationId || undefined,
+        canContinue: result.canContinue,
+      };
+    } finally {
+      if (listener) {
+        AI.instance.removeChatStreamListener(listener);
+      }
+    }
+  });
 }
 
 /**
@@ -338,7 +370,7 @@ export async function translate(
   options: TranslateOptions,
 ): Promise<TranslateResult> {
   const result = await AI.instance.translate(text, {
-    sourceLanguage: options.sourceLanguage ?? 'en',
+    sourceLanguage: options.sourceLanguage ?? "en",
     targetLanguage: options.targetLanguage,
   });
   return {
@@ -361,7 +393,7 @@ export async function rewrite(
   });
   return {
     rewrittenText: result.rewrittenText,
-    style: (result.style as RewriteOptions['outputType']) || undefined,
+    style: (result.style as RewriteOptions["outputType"]) || undefined,
     confidence: result.confidence,
   };
 }
@@ -371,9 +403,11 @@ export async function rewrite(
  */
 export async function proofread(
   text: string,
-  _options?: ProofreadOptions,
+  options?: ProofreadOptions,
 ): Promise<ProofreadResult> {
-  const result = await AI.instance.proofread(text);
+  const result = await AI.instance.proofread(text, {
+    inputType: options?.inputType ?? "KEYBOARD",
+  });
   return {
     correctedText: result.correctedText,
     corrections: result.corrections.map((c) => ({
@@ -392,110 +426,125 @@ export async function proofread(
 // Streaming Variants
 // ──────────────────────────────────────────────────────────────────────────
 
-/** Summarize text with progressive token streaming via onChunk callback. */
+/** Stream summaries where supported; unsupported platforms reject explicitly. */
 export async function summarizeStreaming(
   text: string,
   options?: SummarizeStreamOptions,
 ): Promise<SummarizeResult> {
-  let listener: ((chunk: NitroTextStreamChunk) => void) | null = null;
+  return runSerializedStream("summarize", async () => {
+    let listener: ((chunk: NitroTextStreamChunk) => void) | null = null;
 
-  try {
-    if (options?.onChunk) {
-      listener = (chunk: NitroTextStreamChunk) => {
-        const converted: TextStreamChunk = {
-          delta: chunk.delta,
-          accumulated: chunk.accumulated,
-          isFinal: chunk.isFinal,
+    try {
+      if (options?.onChunk) {
+        listener = (chunk: NitroTextStreamChunk) => {
+          const converted: TextStreamChunk = {
+            delta: chunk.delta,
+            accumulated: chunk.accumulated,
+            isFinal: chunk.isFinal,
+          };
+          options.onChunk!(converted);
         };
-        options.onChunk!(converted);
+        AI.instance.addSummarizeStreamListener(listener);
+      }
+
+      const result = await AI.instance.summarizeStreaming(
+        text,
+        options
+          ? {
+              inputType: options.inputType
+                ? (options.inputType as never)
+                : null,
+              outputType: options.outputType
+                ? (options.outputType as never)
+                : null,
+            }
+          : null,
+      );
+
+      return {
+        summary: result.summary,
+        originalLength: result.originalLength,
+        summaryLength: result.summaryLength,
+        confidence: result.confidence,
       };
-      AI.instance.addSummarizeStreamListener(listener);
+    } finally {
+      if (listener) AI.instance.removeSummarizeStreamListener(listener);
     }
-
-    const result = await AI.instance.summarizeStreaming(text, options ? {
-      inputType: options.inputType ? (options.inputType as never) : null,
-      outputType: options.outputType ? (options.outputType as never) : null,
-    } : null);
-
-    return {
-      summary: result.summary,
-      originalLength: result.originalLength,
-      summaryLength: result.summaryLength,
-      confidence: result.confidence,
-    };
-  } finally {
-    if (listener) AI.instance.removeSummarizeStreamListener(listener);
-  }
+  });
 }
 
-/** Translate text with progressive token streaming via onChunk callback. */
+/** Stream translations where supported; unsupported platforms reject explicitly. */
 export async function translateStreaming(
   text: string,
   options: TranslateStreamOptions,
 ): Promise<TranslateResult> {
-  let listener: ((chunk: NitroTextStreamChunk) => void) | null = null;
+  return runSerializedStream("translate", async () => {
+    let listener: ((chunk: NitroTextStreamChunk) => void) | null = null;
 
-  try {
-    if (options.onChunk) {
-      listener = (chunk: NitroTextStreamChunk) => {
-        const converted: TextStreamChunk = {
-          delta: chunk.delta,
-          accumulated: chunk.accumulated,
-          isFinal: chunk.isFinal,
+    try {
+      if (options.onChunk) {
+        listener = (chunk: NitroTextStreamChunk) => {
+          const converted: TextStreamChunk = {
+            delta: chunk.delta,
+            accumulated: chunk.accumulated,
+            isFinal: chunk.isFinal,
+          };
+          options.onChunk!(converted);
         };
-        options.onChunk!(converted);
+        AI.instance.addTranslateStreamListener(listener);
+      }
+
+      const result = await AI.instance.translateStreaming(text, {
+        sourceLanguage: options.sourceLanguage ?? "en",
+        targetLanguage: options.targetLanguage,
+      });
+
+      return {
+        translatedText: result.translatedText,
+        sourceLanguage: result.sourceLanguage,
+        targetLanguage: result.targetLanguage,
+        confidence: result.confidence,
       };
-      AI.instance.addTranslateStreamListener(listener);
+    } finally {
+      if (listener) AI.instance.removeTranslateStreamListener(listener);
     }
-
-    const result = await AI.instance.translateStreaming(text, {
-      sourceLanguage: options.sourceLanguage ?? 'en',
-      targetLanguage: options.targetLanguage,
-    });
-
-    return {
-      translatedText: result.translatedText,
-      sourceLanguage: result.sourceLanguage,
-      targetLanguage: result.targetLanguage,
-      confidence: result.confidence,
-    };
-  } finally {
-    if (listener) AI.instance.removeTranslateStreamListener(listener);
-  }
+  });
 }
 
-/** Rewrite text with progressive token streaming via onChunk callback. */
+/** Stream rewrites where supported; unsupported platforms reject explicitly. */
 export async function rewriteStreaming(
   text: string,
   options: RewriteStreamOptions,
 ): Promise<RewriteResult> {
-  let listener: ((chunk: NitroTextStreamChunk) => void) | null = null;
+  return runSerializedStream("rewrite", async () => {
+    let listener: ((chunk: NitroTextStreamChunk) => void) | null = null;
 
-  try {
-    if (options.onChunk) {
-      listener = (chunk: NitroTextStreamChunk) => {
-        const converted: TextStreamChunk = {
-          delta: chunk.delta,
-          accumulated: chunk.accumulated,
-          isFinal: chunk.isFinal,
+    try {
+      if (options.onChunk) {
+        listener = (chunk: NitroTextStreamChunk) => {
+          const converted: TextStreamChunk = {
+            delta: chunk.delta,
+            accumulated: chunk.accumulated,
+            isFinal: chunk.isFinal,
+          };
+          options.onChunk!(converted);
         };
-        options.onChunk!(converted);
+        AI.instance.addRewriteStreamListener(listener);
+      }
+
+      const result = await AI.instance.rewriteStreaming(text, {
+        outputType: options.outputType as never,
+      });
+
+      return {
+        rewrittenText: result.rewrittenText,
+        style: (result.style as RewriteOptions["outputType"]) || undefined,
+        confidence: result.confidence,
       };
-      AI.instance.addRewriteStreamListener(listener);
+    } finally {
+      if (listener) AI.instance.removeRewriteStreamListener(listener);
     }
-
-    const result = await AI.instance.rewriteStreaming(text, {
-      outputType: options.outputType as never,
-    });
-
-    return {
-      rewrittenText: result.rewrittenText,
-      style: result.style as RewriteOptions['outputType'],
-      confidence: result.confidence,
-    };
-  } finally {
-    if (listener) AI.instance.removeRewriteStreamListener(listener);
-  }
+  });
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -504,7 +553,8 @@ export async function rewriteStreaming(
 
 /**
  * Describe the contents of an image using on-device AI.
- * Supported on iOS (Foundation Models Vision) and Android.
+ * Supported only when the native wrapper reports image capability.
+ * The current Android wrapper returns an explicit unsupported error.
  * @param imageUri - URI or file path to the image
  * @param options - Optional prompt and other options
  */
@@ -512,9 +562,14 @@ export async function describeImage(
   imageUri: string,
   options?: DescribeImageOptions,
 ): Promise<DescribeImageResult> {
-  const result = await AI.instance.describeImage(imageUri, options ? {
-    prompt: options.prompt ?? null,
-  } : null);
+  const result = await AI.instance.describeImage(
+    imageUri,
+    options
+      ? {
+          prompt: options.prompt ?? null,
+        }
+      : null,
+  );
 
   return {
     description: result.description,
@@ -527,21 +582,24 @@ export async function describeImage(
 // ──────────────────────────────────────────────────────────────────────────
 
 /**
- * Get available downloadable models (iOS only; Android returns empty).
+ * Get available downloadable models.
+ * iOS only; Android rejects with an explicit unsupported error.
  */
 export async function getAvailableModels(): Promise<DownloadableModelInfo[]> {
   return AI.instance.getAvailableModels();
 }
 
 /**
- * Get IDs of downloaded models (iOS only; Android returns empty).
+ * Get IDs of downloaded models.
+ * iOS only; Android rejects with an explicit unsupported error.
  */
 export async function getDownloadedModels(): Promise<string[]> {
   return AI.instance.getDownloadedModels();
 }
 
 /**
- * Get the currently loaded model ID (iOS only; Android returns null).
+ * Get the currently loaded model ID.
+ * iOS only; Android rejects with an explicit unsupported error.
  */
 export async function getLoadedModel(): Promise<string | null> {
   const model = await AI.instance.getLoadedModel();
@@ -549,7 +607,8 @@ export async function getLoadedModel(): Promise<string | null> {
 }
 
 /**
- * Get the current inference engine type.
+ * Get the active general-purpose inference engine.
+ * Task-specific OS services may still be available when this returns `none`.
  */
 export async function getCurrentEngine(): Promise<InferenceEngine> {
   return AI.instance.getCurrentEngine();
@@ -562,9 +621,7 @@ export async function downloadModel(
   modelId: string,
   onProgress?: (progress: ModelDownloadProgress) => void,
 ): Promise<boolean> {
-  let listener:
-    | ((progress: NitroModelDownloadProgress) => void)
-    | null = null;
+  let listener: ((progress: NitroModelDownloadProgress) => void) | null = null;
 
   if (onProgress) {
     listener = (progress: NitroModelDownloadProgress) => {
@@ -616,9 +673,7 @@ export async function getPromptApiStatus(): Promise<string> {
 export async function downloadPromptApiModel(
   onProgress?: (progress: ModelDownloadProgress) => void,
 ): Promise<boolean> {
-  let listener:
-    | ((progress: NitroModelDownloadProgress) => void)
-    | null = null;
+  let listener: ((progress: NitroModelDownloadProgress) => void) | null = null;
 
   if (onProgress) {
     listener = (progress: NitroModelDownloadProgress) => {

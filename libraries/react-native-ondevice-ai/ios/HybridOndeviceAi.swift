@@ -107,11 +107,11 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
     func chat(message: String, options: Variant_NullType_NitroChatOptions?) throws -> Promise<NitroChatResult> {
         let opts: NitroChatOptions? = if case .second(let v)? = options { v } else { nil }
         return Promise.async {
-            let (systemPrompt, memory) = OndeviceAiHelper.chatOptions(from: opts)
+            let (conversationId, systemPrompt, memory) = OndeviceAiHelper.chatOptions(from: opts)
             let result = try await ChatChain(memory: memory, systemPrompt: systemPrompt).run(message)
             return NitroChatResult(
                 message: result.message,
-                conversationId: result.conversationId ?? "",
+                conversationId: conversationId ?? result.conversationId ?? "",
                 canContinue: result.canContinue
             )
         }
@@ -142,9 +142,22 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
         }
     }
 
-    func proofread(text: String) throws -> Promise<NitroProofreadResult> {
+    func proofread(text: String, options: NitroProofreadOptions) throws -> Promise<NitroProofreadResult> {
         return Promise.async {
-            let result = try await ProofreadChain().run(text)
+            let execution = try await self.client.executeFeature(
+                ExecuteFeatureInput(
+                    feature: .proofread,
+                    input: text,
+                    parameters: FeatureParametersInput(
+                        proofread: ProofreadParametersInput(
+                            inputType: OndeviceAiHelper.proofreadInputType(from: options)
+                        )
+                    )
+                )
+            )
+            guard case .proofread(let result)? = execution.result else {
+                throw LocanaraError.executionFailed("Unexpected result for PROOFREAD")
+            }
             let corrections = result.corrections.map { c in
                 NitroProofreadCorrection(
                     original: c.original,
@@ -255,7 +268,7 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
     func chatStream(message: String, options: Variant_NullType_NitroChatOptions?) throws -> Promise<NitroChatResult> {
         let opts: NitroChatOptions? = if case .second(let v)? = options { v } else { nil }
         return Promise.async {
-            let (systemPrompt, memory) = OndeviceAiHelper.chatOptions(from: opts)
+            let (conversationId, systemPrompt, memory) = OndeviceAiHelper.chatOptions(from: opts)
             let chain = ChatChain(memory: memory, systemPrompt: systemPrompt)
             var accumulated = ""
 
@@ -285,7 +298,7 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
 
             return NitroChatResult(
                 message: accumulated,
-                conversationId: "",
+                conversationId: conversationId ?? "",
                 canContinue: true
             )
         }

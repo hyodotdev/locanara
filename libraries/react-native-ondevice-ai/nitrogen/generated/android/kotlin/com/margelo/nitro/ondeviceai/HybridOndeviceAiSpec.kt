@@ -81,7 +81,7 @@ abstract class HybridOndeviceAiSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
-  abstract fun proofread(text: String): Promise<NitroProofreadResult>
+  abstract fun proofread(text: String, options: NitroProofreadOptions): Promise<NitroProofreadResult>
   
   @DoNotStrip
   @Keep

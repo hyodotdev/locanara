@@ -1,7 +1,12 @@
 # LocalLLMClient API Reference
 
-> **Source**: https://github.com/tattn/LocalLLMClient
+> **Source**: [LocalLLMClient repository](https://github.com/tattn/LocalLLMClient)
 > **Supports**: llama.cpp, MLX, FoundationModels backends
+>
+> **Unverified historical sketch.** Inspect the resolved package revision and
+> current upstream source before using any signature or build setting below.
+> Locanara production integrations must keep verbose prompt/output logging off.
+> This file is intentionally excluded from generated agent context.
 
 ## Overview
 
@@ -207,6 +212,7 @@ let limitedGpuOptions = LlamaClient.Options(
 - Qwen (1.5B, 7B)
 
 Quantization formats:
+
 - Q4_K_M (recommended balance)
 - Q5_K_M (better quality)
 - Q8_0 (highest quality, largest)

@@ -1,15 +1,19 @@
 # Knowledge Digest
 
 > Last compiled: 2026-02-16
+>
+> **Historical snapshot:** upstream status may have changed. Verify official
+> sources before implementation. Current repository code and manifests take
+> precedence over this digest.
 
 ## Summary
 
-| Technology | Latest Version | Impact | Key Change |
-|------------|---------------|--------|------------|
-| llama.cpp | b8062 (Feb 15, 2026) | 🟡 Action Needed | API renames (`llama_vocab`), `logits_all` removed, sampling refactor |
-| Apple Intelligence | iOS 26+ (Foundation Models) | 🟢 Implemented | Tool protocol bridge, GenerationOptions, session.prewarm(), instructions |
-| Gemini Nano | ML Kit GenAI Beta (Android 14+) | 🟢 Implemented | ImagePart multimodal, BUSY/BACKGROUND error handling, AI Edge SDK clean |
-| Chrome Built-in AI | Chrome 138+ | ⚪ Blocked | No web SDK implementation exists yet; namespace migration documented |
+| Technology         | Latest Version                  | Impact           | Key Change                                                                       |
+| ------------------ | ------------------------------- | ---------------- | -------------------------------------------------------------------------------- |
+| llama.cpp          | b8062 (Feb 15, 2026)            | 🟡 Action Needed | API renames (`llama_vocab`), `logits_all` removed, sampling refactor             |
+| Apple Intelligence | iOS 26+ (Foundation Models)     | 🟢 Implemented   | Tool protocol bridge, GenerationOptions, session.prewarm(), instructions         |
+| Gemini Nano        | ML Kit GenAI Beta (Android 14+) | 🟢 Implemented   | ImagePart multimodal, BUSY/BACKGROUND error handling, AI Edge SDK clean          |
+| Chrome Built-in AI | Historical Chrome 138+ snapshot | 🟢 Implemented   | `packages/web` provides the browser SDK; verify live API availability at runtime |
 
 ## Action Items
 
@@ -25,7 +29,6 @@
 - **GenerationOptions**: `GenerationConfig` now maps to Apple's `GenerationOptions` — temperature → `GenerationOptions(temperature:)`, zero temp → `GenerationOptions(sampling: .greedy)`.
 - **session.prewarm()**: `FoundationLanguageModel.prewarm()` public method added for first-request latency reduction.
 - **Session instructions**: `FoundationLanguageModel(instructions:)` passes system instructions to `LanguageModelSession`.
-- **PartiallyGenerated streaming**: Blocked by current SDK — requires Xcode 26.3+ / iOS 26 SDK. Code placeholder ready.
 
 ### ✅ Completed (Gemini Nano)
 
@@ -35,9 +38,17 @@
 
 ### 🟡 Remaining
 
-- **Chrome Built-in AI**: No `@locanara/web` SDK implementation exists yet. Namespace migration (`window.ai.*` → globals), structured output (`responseConstraint`), and multimodal input cannot be implemented until the SDK is built.
-- **nano-v2 vs nano-v3 detection**: Add model version detection to `getDeviceCapability()`.
-- **Speech Recognition API**: ML Kit now offers Speech Recognition (not yet in Locanara).
+- **Chrome Built-in AI**: The Web SDK now exists in `packages/web`. Audit its current API against official browser documentation before changing namespace, structured-output, or multimodal behavior.
+- **Apple tool session wiring**: `FoundationModelToolBridge` exists, but verify
+  end-to-end tool injection before claiming `FoundationLanguageModel` performs
+  native autonomous tool calls.
+- **Apple PartiallyGenerated streaming**: Not exposed by the current
+  implementation; re-verify the active Swift/Xcode toolchain before enabling the
+  source placeholder.
+- **nano-v2 vs nano-v3 detection**: Verify that reliable runtime detection exists
+  before adding model-version claims to `getDeviceCapability()`.
+- **Speech Recognition API**: Decide whether ML Kit Speech Recognition belongs in
+  Locanara's product scope; it is not currently exposed.
 - **Apple @Generable enums**: Support for enums with associated values (already partially available via existing @Generable structs).
 
 ### 🟢 Notable Updates

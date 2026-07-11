@@ -37,6 +37,8 @@
     "gql": "bun run --cwd packages/gql",
     "gql:generate": "bun run --cwd packages/gql generate",
     "knowledge": "bun run --cwd scripts/agent compile",
+    "knowledge:check": "bun run --cwd scripts/agent check",
+    "knowledge:lint": "bun run --cwd scripts/agent lint",
     "knowledge:install": "cd scripts/agent && bun install",
     "prepare": "husky && bun run knowledge:install"
   },

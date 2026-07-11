@@ -27,10 +27,8 @@ public struct ExtractChain: Chain {
             "entityTypes": entityTypes.joined(separator: ", ")
         ])
 
-        print("[ExtractChain] input: \(input.text.prefix(200))")
         let response = try await model.generate(prompt: prompt, config: .structured)
         let text = response.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        print("[ExtractChain] output: \(text)")
 
         let entities = text.components(separatedBy: "\n")
             .filter { !$0.isEmpty }

@@ -30,10 +30,8 @@ class ClassifyChain(
             mapOf("text" to input.text, "categories" to categories.joinToString(", "))
         )
 
-        println("[ClassifyChain] input: ${input.text.take(200)}")
         val response = model.generate(prompt, GenerationConfig.STRUCTURED)
         val text = response.text.trim()
-        println("[ClassifyChain] output: $text")
 
         var classifications = text.lines()
             .filter { it.isNotBlank() }

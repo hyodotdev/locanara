@@ -1,21 +1,46 @@
 package expo.modules.ondeviceai
 
-import com.locanara.*
+import com.locanara.ChatResult
+import com.locanara.ClassifyResult
+import com.locanara.DeviceCapability
+import com.locanara.DownloadableModelInfo
+import com.locanara.ExtractResult
+import com.locanara.FeatureType
+import com.locanara.ProofreadResult
+import com.locanara.RewriteResult
+import com.locanara.SummarizeResult
+import com.locanara.TranslateResult
 
 /** Serializes Locanara SDK result types into JS-compatible maps */
 object ExpoOndeviceAiSerialization {
+    private val wrapperFeatures =
+        setOf(
+            FeatureType.SUMMARIZE,
+            FeatureType.CLASSIFY,
+            FeatureType.EXTRACT,
+            FeatureType.CHAT,
+            FeatureType.TRANSLATE,
+            FeatureType.REWRITE,
+            FeatureType.PROOFREAD,
+        )
+
     // region Device Capability
 
     fun deviceCapability(capability: DeviceCapability): Map<String, Any> {
-        val availableSet = capability.availableFeatures.toSet()
+        val availableSet = capability.availableFeatures.filter { it in wrapperFeatures }.toSet()
+        val promptSupported =
+            capability.modelInfo
+                ?.geminiNanoAndroid
+                ?.capabilities
+                ?.any { it in setOf("chat", "classify", "extract", "translate") } == true
         val features = mutableMapOf<String, Boolean>()
         for (feature in FeatureType.entries) {
             features[featureKey(feature)] = availableSet.contains(feature)
         }
 
         return mapOf(
-            "isSupported" to capability.supportsOnDeviceAI,
-            "isModelReady" to (capability.modelInfo?.isLoaded == true),
+            "isSupported" to (availableSet.isNotEmpty() || promptSupported),
+            "isModelReady" to availableSet.isNotEmpty(),
             "platform" to "ANDROID",
             "features" to features,
             "availableMemoryMB" to (capability.availableMemoryMB ?: 0),

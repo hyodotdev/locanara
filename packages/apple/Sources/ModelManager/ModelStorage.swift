@@ -1,6 +1,6 @@
+import CryptoKit
 import Foundation
 import os.log
-import CryptoKit
 
 private let logger = Logger(subsystem: "com.locanara", category: "ModelStorage")
 
@@ -14,6 +14,15 @@ private let logger = Logger(subsystem: "com.locanara", category: "ModelStorage")
 @available(iOS 15.0, macOS 14.0, *)
 public final class ModelStorage: @unchecked Sendable {
 
+    /// File metadata captured at the same time as checksum verification.
+    /// Persisting this snapshot lets synchronous readiness checks reject files
+    /// that changed after verification without hashing multi-gigabyte assets on
+    /// every status query. `ModelManager.loadModel` still rehashes before use.
+    struct ModelFileMetadata: Equatable, Sendable {
+        let fileSize: Int64
+        let modificationTime: TimeInterval
+    }
+
     // MARK: - Singleton
 
     /// Shared singleton instance
@@ -25,18 +34,27 @@ public final class ModelStorage: @unchecked Sendable {
     public let baseDirectory: URL
 
     /// File manager instance
-    private let fileManager = FileManager.default
+    private let fileManager: FileManager
 
     /// Dispatch queue for file operations
     private let fileQueue = DispatchQueue(label: "com.locanara.storage", qos: .utility)
 
     // MARK: - Initialization
 
-    private init() {
-        // Use Documents directory for model storage
-        // Documents directory has better mmap support on iOS devices
+    private convenience init() {
+        let fileManager = FileManager.default
+        // Documents has better mmap support on iOS devices.
         let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        self.baseDirectory = documents.appendingPathComponent("Locanara/models", isDirectory: true)
+        self.init(
+            baseDirectory: documents.appendingPathComponent("Locanara/models", isDirectory: true),
+            fileManager: fileManager
+        )
+    }
+
+    /// Internal initializer for deterministic storage-integrity tests.
+    init(baseDirectory: URL, fileManager: FileManager = .default) {
+        self.baseDirectory = baseDirectory
+        self.fileManager = fileManager
 
         // Create base directory if needed
         try? fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
@@ -51,7 +69,7 @@ public final class ModelStorage: @unchecked Sendable {
     /// - Parameter modelId: Model identifier
     /// - Returns: URL to model directory
     public func getModelDirectory(_ modelId: String) -> URL {
-        return baseDirectory.appendingPathComponent(modelId, isDirectory: true)
+        return baseDirectory.appendingPathComponent(Self.storageComponent(for: modelId), isDirectory: true)
     }
 
     /// Get path to model file
@@ -85,10 +103,62 @@ public final class ModelStorage: @unchecked Sendable {
     /// Check if model is downloaded
     ///
     /// - Parameter modelId: Model identifier
-    /// - Returns: true if model file exists
+    /// - Returns: true only when a complete package commit is present
     public func isModelDownloaded(_ modelId: String) -> Bool {
+        guard let commit = loadPackageCommit(modelId),
+              commit.modelId == modelId else {
+            return false
+        }
+        return packageCommitFilesAreVerified(commit)
+    }
+
+    /// Validate one package asset against its manifest. Asset verification is
+    /// intentionally not exposed as package readiness.
+    private func isVerifiedAsset(_ modelId: String) -> Bool {
         let modelPath = getModelPath(modelId)
-        return fileManager.fileExists(atPath: modelPath.path)
+        guard fileManager.fileExists(atPath: modelPath.path),
+              let manifest = loadManifest(for: modelId),
+              manifest.modelId == modelId,
+              manifest.checksumVerified,
+              Self.isValidSHA256Checksum(manifest.checksum),
+              let verifiedModificationTime = manifest.fileModificationTime,
+              let metadata = getModelFileMetadata(modelId),
+              metadata.fileSize == manifest.fileSize,
+              metadata.modificationTime == verifiedModificationTime else {
+            return false
+        }
+
+        return true
+    }
+
+    private func packageCommitFilesAreVerified(_ commit: ModelPackageCommit) -> Bool {
+        commit.assets.allSatisfy { asset in
+            guard isVerifiedAsset(asset.modelId),
+                  let manifest = loadManifest(for: asset.modelId) else {
+                return false
+            }
+            return manifest.version == commit.version &&
+                manifest.checksum.caseInsensitiveCompare(asset.checksum) == .orderedSame
+        }
+    }
+
+    /// Check that every asset in a model package was verified against the
+    /// currently registered version and checksum.
+    func isModelPackageDownloaded(_ modelInfo: DownloadableModelInfo) -> Bool {
+        guard let assets = modelInfo.packageAssets,
+              packageCommitMatches(modelInfo) else {
+            return false
+        }
+
+        return assets.allSatisfy { asset in
+            guard isVerifiedAsset(asset.modelId),
+                  let manifest = loadManifest(for: asset.modelId) else {
+                return false
+            }
+
+            return manifest.version == modelInfo.version &&
+                manifest.checksum.caseInsensitiveCompare(asset.checksum) == .orderedSame
+        }
     }
 
     /// Get downloaded model size
@@ -96,12 +166,23 @@ public final class ModelStorage: @unchecked Sendable {
     /// - Parameter modelId: Model identifier
     /// - Returns: File size in bytes, or nil if not downloaded
     public func getModelSize(_ modelId: String) -> Int64? {
+        getModelFileMetadata(modelId)?.fileSize
+    }
+
+    /// Return the metadata used to bind a verified manifest to exact on-disk
+    /// file state. The checksum verifier compares snapshots before and after
+    /// hashing so a concurrent replacement cannot be certified accidentally.
+    func getModelFileMetadata(_ modelId: String) -> ModelFileMetadata? {
         let modelPath = getModelPath(modelId)
         guard let attributes = try? fileManager.attributesOfItem(atPath: modelPath.path),
-              let size = attributes[.size] as? Int64 else {
+              let size = attributes[.size] as? Int64,
+              let modificationDate = attributes[.modificationDate] as? Date else {
             return nil
         }
-        return size
+        return ModelFileMetadata(
+            fileSize: size,
+            modificationTime: modificationDate.timeIntervalSince1970
+        )
     }
 
     /// Delete model from storage
@@ -136,7 +217,9 @@ public final class ModelStorage: @unchecked Sendable {
         }
 
         return contents.compactMap { url -> String? in
-            let modelId = url.lastPathComponent
+            guard let modelId = Self.modelId(fromStorageComponent: url.lastPathComponent) else {
+                return nil
+            }
             guard isModelDownloaded(modelId) else { return nil }
             return modelId
         }
@@ -152,6 +235,10 @@ public final class ModelStorage: @unchecked Sendable {
         public let fileSize: Int64
         public let checksum: String
         public let checksumVerified: Bool
+        /// Modification timestamp captured during checksum verification.
+        /// `nil` invalidates manifests written by older, trust-on-existence
+        /// implementations.
+        public let fileModificationTime: TimeInterval?
 
         public init(
             modelId: String,
@@ -159,7 +246,8 @@ public final class ModelStorage: @unchecked Sendable {
             downloadedAt: Date,
             fileSize: Int64,
             checksum: String,
-            checksumVerified: Bool
+            checksumVerified: Bool,
+            fileModificationTime: TimeInterval? = nil
         ) {
             self.modelId = modelId
             self.version = version
@@ -167,6 +255,63 @@ public final class ModelStorage: @unchecked Sendable {
             self.fileSize = fileSize
             self.checksum = checksum
             self.checksumVerified = checksumVerified
+            self.fileModificationTime = fileModificationTime
+        }
+    }
+
+    /// Final package-level promotion record. Per-asset manifests prove that
+    /// files were hashed, while this marker proves the complete asset set won
+    /// the manager's final cancellation/token gate.
+    struct ModelPackageCommit: Codable, Sendable {
+        struct Asset: Codable, Sendable, Equatable {
+            let modelId: String
+            let checksum: String
+        }
+
+        let modelId: String
+        let version: String
+        let assets: [Asset]
+    }
+
+    private func getPackageCommitPath(_ modelId: String) -> URL {
+        getModelDirectory(modelId).appendingPathComponent("package-commit.json")
+    }
+
+    func savePackageCommit(_ modelInfo: DownloadableModelInfo) throws {
+        guard let assets = modelInfo.packageAssets else {
+            throw LocanaraError.modelDownloadFailed("Model package metadata is incomplete")
+        }
+        try createModelDirectory(modelInfo.modelId)
+        let commit = ModelPackageCommit(
+            modelId: modelInfo.modelId,
+            version: modelInfo.version,
+            assets: assets.map {
+                ModelPackageCommit.Asset(modelId: $0.modelId, checksum: $0.checksum.lowercased())
+            }
+        )
+        let data = try JSONEncoder().encode(commit)
+        try data.write(to: getPackageCommitPath(modelInfo.modelId), options: .atomic)
+    }
+
+    private func loadPackageCommit(_ modelId: String) -> ModelPackageCommit? {
+        guard let data = try? Data(contentsOf: getPackageCommitPath(modelId)) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(ModelPackageCommit.self, from: data)
+    }
+
+    private func packageCommitMatches(_ modelInfo: DownloadableModelInfo) -> Bool {
+        guard let assets = modelInfo.packageAssets,
+              let commit = loadPackageCommit(modelInfo.modelId),
+              commit.modelId == modelInfo.modelId,
+              commit.version == modelInfo.version,
+              commit.assets.count == assets.count else {
+            return false
+        }
+
+        return zip(commit.assets, assets).allSatisfy { committed, expected in
+            committed.modelId == expected.modelId &&
+                committed.checksum.caseInsensitiveCompare(expected.checksum) == .orderedSame
         }
     }
 
@@ -177,13 +322,14 @@ public final class ModelStorage: @unchecked Sendable {
     ///   - modelId: Model identifier
     /// - Throws: Error if save fails
     public func saveManifest(_ manifest: ModelManifest, for modelId: String) throws {
+        try createModelDirectory(modelId)
         let manifestPath = getManifestPath(modelId)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .prettyPrinted
 
         let data = try encoder.encode(manifest)
-        try data.write(to: manifestPath)
+        try data.write(to: manifestPath, options: .atomic)
         logger.debug("Saved manifest for: \(modelId)")
     }
 
@@ -212,25 +358,44 @@ public final class ModelStorage: @unchecked Sendable {
     ///   - expectedChecksum: Expected SHA256 checksum (format: "sha256:...")
     /// - Returns: true if checksum matches
     public func verifyChecksum(_ modelId: String, expectedChecksum: String) async -> Bool {
+        await verifyChecksumAndMetadata(modelId, expectedChecksum: expectedChecksum) != nil
+    }
+
+    /// Verify a file and return the unchanged metadata snapshot associated with
+    /// the verified bytes. This is internal so lifecycle code can persist the
+    /// exact snapshot in the manifest.
+    func verifyChecksumAndMetadata(
+        _ modelId: String,
+        expectedChecksum: String
+    ) async -> ModelFileMetadata? {
         let modelPath = getModelPath(modelId)
 
         guard fileManager.fileExists(atPath: modelPath.path) else {
             logger.warning("Model file not found for checksum verification: \(modelId)")
-            return false
+            return nil
         }
 
-        // Skip verification for auto/placeholder checksums during development
-        if expectedChecksum.contains("placeholder") || expectedChecksum.contains("auto") {
-            logger.debug("Skipping checksum verification (auto/placeholder): \(modelId)")
-            return true
+        guard Self.isValidSHA256Checksum(expectedChecksum) else {
+            logger.error("Invalid SHA-256 checksum metadata for: \(modelId)")
+            return nil
         }
 
-        // Extract hash from "sha256:..." format
-        let expectedHash = expectedChecksum.replacingOccurrences(of: "sha256:", with: "")
+        guard let metadataBeforeHash = getModelFileMetadata(modelId) else {
+            logger.error("Unable to read file metadata before verification: \(modelId)")
+            return nil
+        }
+
+        let expectedHash = String(expectedChecksum.dropFirst("sha256:".count))
 
         do {
             let actualHash = try await calculateSHA256(for: modelPath)
             let isValid = actualHash.lowercased() == expectedHash.lowercased()
+
+            guard let metadataAfterHash = getModelFileMetadata(modelId),
+                  metadataAfterHash == metadataBeforeHash else {
+                logger.error("Model file changed during checksum verification: \(modelId)")
+                return nil
+            }
 
             if isValid {
                 logger.info("Checksum verified for: \(modelId)")
@@ -240,10 +405,10 @@ public final class ModelStorage: @unchecked Sendable {
                 logger.error("Actual: \(actualHash)")
             }
 
-            return isValid
+            return isValid ? metadataAfterHash : nil
         } catch {
             logger.error("Checksum calculation failed: \(error.localizedDescription)")
-            return false
+            return nil
         }
     }
 
@@ -262,14 +427,11 @@ public final class ModelStorage: @unchecked Sendable {
                     var hasher = SHA256()
                     let bufferSize = 1024 * 1024 // 1MB chunks
 
-                    while autoreleasepool(invoking: {
-                        guard let data = try? handle.read(upToCount: bufferSize),
-                              !data.isEmpty else {
-                            return false
-                        }
+                    while true {
+                        let data = try handle.read(upToCount: bufferSize) ?? Data()
+                        guard !data.isEmpty else { break }
                         hasher.update(data: data)
-                        return true
-                    }) {}
+                    }
 
                     let digest = hasher.finalize()
                     let hashString = digest.compactMap { String(format: "%02x", $0) }.joined()
@@ -354,10 +516,26 @@ public final class ModelStorage: @unchecked Sendable {
     ///   - temporaryURL: Temporary file location
     ///   - modelId: Model identifier
     /// - Throws: Error if move fails
-    public func moveToFinalLocation(from temporaryURL: URL, for modelId: String) throws {
+    public func moveToFinalLocation(
+        from temporaryURL: URL,
+        for modelId: String,
+        packageModelId: String? = nil
+    ) throws {
         try createModelDirectory(modelId)
 
         let finalPath = getModelPath(modelId)
+        let manifestPath = getManifestPath(modelId)
+        let packageCommitPath = getPackageCommitPath(packageModelId ?? modelId)
+
+        // Invalidate any earlier trust record before replacing bytes. This
+        // prevents a same-size response from becoming ready under a stale
+        // manifest during the verification window.
+        if fileManager.fileExists(atPath: manifestPath.path) {
+            try fileManager.removeItem(at: manifestPath)
+        }
+        if fileManager.fileExists(atPath: packageCommitPath.path) {
+            try fileManager.removeItem(at: packageCommitPath)
+        }
 
         // Remove existing file if present
         if fileManager.fileExists(atPath: finalPath.path) {
@@ -384,5 +562,50 @@ public final class ModelStorage: @unchecked Sendable {
         }
 
         logger.debug("Cleaned up temporary files")
+    }
+
+    /// Validate the canonical checksum representation used by manifests and
+    /// registry entries.
+    static func isValidSHA256Checksum(_ checksum: String) -> Bool {
+        guard checksum.count == "sha256:".count + 64,
+              checksum.hasPrefix("sha256:") else {
+            return false
+        }
+
+        return checksum.dropFirst("sha256:".count).allSatisfy { character in
+            character.isHexDigit
+        }
+    }
+
+    /// Encode caller-controlled IDs as one path component. Known registry IDs
+    /// remain readable while separators, dots, percent signs, and Unicode are
+    /// escaped, so no public storage method can traverse above `baseDirectory`.
+    private static func storageComponent(for modelId: String) -> String {
+        guard !modelId.isEmpty else { return "%EMPTY" }
+
+        let allowed = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
+        return modelId.utf8.map { byte -> String in
+            let scalar = UnicodeScalar(byte)
+            let character = Character(scalar)
+            if allowed.contains(character) {
+                return String(character)
+            }
+            return String(format: "%%%02X", byte)
+        }.joined()
+    }
+
+    /// Decode only path components produced by `storageComponent(for:)`.
+    /// The canonical round-trip rejects malformed encodings and alternate path
+    /// spellings before the decoded ID is used for another storage lookup.
+    private static func modelId(fromStorageComponent component: String) -> String? {
+        if component == storageComponent(for: "") {
+            return ""
+        }
+
+        guard let modelId = component.removingPercentEncoding,
+              storageComponent(for: modelId) == component else {
+            return nil
+        }
+        return modelId
     }
 }

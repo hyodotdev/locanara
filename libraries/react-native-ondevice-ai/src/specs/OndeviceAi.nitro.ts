@@ -40,6 +40,8 @@ export type NitroRewriteOutputType =
   | 'PROFESSIONAL'
   | 'REPHRASE';
 
+export type NitroProofreadInputType = 'KEYBOARD' | 'VOICE';
+
 export type NitroChatMessageRole = 'user' | 'assistant' | 'system';
 
 export type NitroModelDownloadState =
@@ -137,6 +139,7 @@ export interface NitroChatMessage {
 }
 
 export interface NitroChatOptions {
+  conversationId?: string | null;
   systemPrompt?: string | null;
   history?: NitroChatMessage[] | null;
 }
@@ -186,6 +189,10 @@ export interface NitroRewriteResult {
 // ──────────────────────────────────────────────────────────────────────────
 // Proofread
 // ──────────────────────────────────────────────────────────────────────────
+
+export interface NitroProofreadOptions {
+  inputType: NitroProofreadInputType;
+}
 
 export interface NitroProofreadCorrection {
   original: string;
@@ -283,7 +290,10 @@ export interface OndeviceAi
     text: string,
     options: NitroRewriteOptions,
   ): Promise<NitroRewriteResult>;
-  proofread(text: string): Promise<NitroProofreadResult>;
+  proofread(
+    text: string,
+    options: NitroProofreadOptions,
+  ): Promise<NitroProofreadResult>;
 
   // Chat Streaming (listener pattern)
   chatStream(

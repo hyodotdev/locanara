@@ -346,9 +346,9 @@ open class HybridOndeviceAiSpec_cxx {
   }
   
   @inline(__always)
-  public final func proofread(text: std.string) -> bridge.Result_std__shared_ptr_Promise_NitroProofreadResult___ {
+  public final func proofread(text: std.string, options: NitroProofreadOptions) -> bridge.Result_std__shared_ptr_Promise_NitroProofreadResult___ {
     do {
-      let __result = try self.__implementation.proofread(text: String(text))
+      let __result = try self.__implementation.proofread(text: String(text), options: options)
       let __resultCpp = { () -> bridge.std__shared_ptr_Promise_NitroProofreadResult__ in
         let __promise = bridge.create_std__shared_ptr_Promise_NitroProofreadResult__()
         let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_NitroProofreadResult__(__promise)

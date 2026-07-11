@@ -12,6 +12,57 @@ final class RAGTests: XCTestCase {
 
     // MARK: - Vector Store Tests
 
+    func testCollectionDeletionTreatsSQLMetacharactersAsData() async throws {
+        let dbPath = FileManager.default.temporaryDirectory
+            .appendingPathComponent("test_collection_delete_\(UUID().uuidString).db").path
+        let vectorStore = VectorStore(path: dbPath, dimension: 2)
+        try await vectorStore.open()
+
+        addTeardownBlock {
+            await vectorStore.close()
+            try? FileManager.default.removeItem(atPath: dbPath)
+        }
+
+        let adversarialID = "target' OR 1=1 --"
+        let retainedID = "retained"
+        _ = try await vectorStore.createCollection(id: adversarialID, name: "Target", description: nil)
+        _ = try await vectorStore.createCollection(id: retainedID, name: "Retained", description: nil)
+        _ = try await vectorStore.addDocument(id: "target-doc", collectionId: adversarialID, title: "Target")
+        _ = try await vectorStore.addDocument(id: "retained-doc", collectionId: retainedID, title: "Retained")
+
+        try await vectorStore.deleteCollection(id: adversarialID)
+
+        let deletedCollection = try await vectorStore.getCollection(id: adversarialID)
+        let retainedCollection = try await vectorStore.getCollection(id: retainedID)
+        let retainedDocuments = try await vectorStore.getDocuments(collectionId: retainedID)
+        XCTAssertNil(deletedCollection)
+        XCTAssertNotNil(retainedCollection)
+        XCTAssertEqual(retainedDocuments.map(\.documentId), ["retained-doc"])
+    }
+
+    func testDocumentDeletionTreatsSQLMetacharactersAsData() async throws {
+        let dbPath = FileManager.default.temporaryDirectory
+            .appendingPathComponent("test_document_delete_\(UUID().uuidString).db").path
+        let vectorStore = VectorStore(path: dbPath, dimension: 2)
+        try await vectorStore.open()
+
+        addTeardownBlock {
+            await vectorStore.close()
+            try? FileManager.default.removeItem(atPath: dbPath)
+        }
+
+        let collectionID = "documents"
+        let adversarialID = "target' OR 1=1 --"
+        _ = try await vectorStore.createCollection(id: collectionID, name: "Documents", description: nil)
+        _ = try await vectorStore.addDocument(id: adversarialID, collectionId: collectionID, title: "Target")
+        _ = try await vectorStore.addDocument(id: "retained-doc", collectionId: collectionID, title: "Retained")
+
+        try await vectorStore.deleteDocument(collectionId: collectionID, documentId: adversarialID)
+
+        let retainedDocuments = try await vectorStore.getDocuments(collectionId: collectionID)
+        XCTAssertEqual(retainedDocuments.map(\.documentId), ["retained-doc"])
+    }
+
     func testVectorSerializationRoundTrip() async throws {
         // Create a temporary database
         let tempDir = FileManager.default.temporaryDirectory

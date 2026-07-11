@@ -112,11 +112,10 @@ public final class DeviceCapabilityDetector: Sendable {
         let (_, totalMemory) = getMemoryInfo()
         let hasNeuralEngine = checkNeuralEngineSupport()
 
-        // Minimum requirements:
-        // - 4GB RAM (for Gemma-2-2B-it, the Locanara model)
-        // - A12 Bionic or later (Neural Engine)
-        // Note: iPhone 13 mini has 4GB but reports ~3.6GB due to system usage
-        return totalMemory >= 4000 && hasNeuralEngine
+        // The model registry owns the memory requirement. Keeping capability
+        // detection tied to the catalog prevents advertising an engine when no
+        // registered model can run on the device.
+        return ModelRegistry.shared.canRunExternalModel(memoryMB: totalMemory) && hasNeuralEngine
     }
 
     /// Get recommended inference engine
@@ -207,9 +206,10 @@ public final class DeviceCapabilityDetector: Sendable {
             )
         }
 
+        let minimumMemoryMB = ModelRegistry.shared.defaultModel.minMemoryMB
         return EngineRecommendation(
             recommended: .none,
-            reason: "Device does not meet minimum requirements (4GB RAM, A12+ chip)",
+            reason: "Device does not meet minimum requirements (\(minimumMemoryMB)MB RAM, A12+ chip)",
             alternatives: []
         )
     }
@@ -446,14 +446,9 @@ public final class DeviceCapabilityDetector: Sendable {
 
     private func recommendModel(totalMemoryMB: Int, hasNeuralEngine: Bool) -> String? {
         guard hasNeuralEngine else { return nil }
-
-        // Locanara uses a single model: Gemma-2-2B-it
-        // Requires 4GB+ RAM (iPhone 13 mini and newer)
-        if totalMemoryMB >= 4000 {
-            return "gemma-2-2b-it-q4"
-        }
-
-        return nil
+        return ModelRegistry.shared
+            .getRecommendedModel(forMemoryMB: totalMemoryMB)?
+            .modelId
     }
 }
 

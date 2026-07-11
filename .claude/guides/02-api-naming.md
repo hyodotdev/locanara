@@ -50,6 +50,9 @@ The SDK exposes consistent high-level functions across platforms:
 
 Types generated from GraphQL follow these patterns:
 
-- Input types: `{Name}Input` (e.g., `SummarizeInput`)
-- Response types: `{Name}Response` (e.g., `SummarizeResponse`)
-- Enums: PascalCase singular (e.g., `ModelCapability`)
+- Input types use the schema name and an `Input` suffix where defined (for
+  example, `SummarizeParametersInput`).
+- Feature results use the live schema names (for example, `SummarizeResult`),
+  not an invented universal `Response` suffix.
+- Generated language casing comes from the generator; inspect tracked Swift and
+  Kotlin output before documenting a transformed enum or acronym name.

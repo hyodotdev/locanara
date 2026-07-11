@@ -1,419 +1,95 @@
-# Android Package (Android SDK)
-
-## Overview
+# Android Package
 
 Location: `packages/android/`
 
-The Android SDK provides the Locanara on-device AI framework for Android using ML Kit GenAI and Gemini Nano. It includes composable chains, memory, guardrails, pipeline DSL, and 7 built-in chains.
+## Authority
 
-## Requirements
+Read `packages/android/locanara/build.gradle.kts` and current implementation for
+SDK levels, dependencies, and behavior. ML Kit APIs and device support change;
+do not treat copied versions or device lists as permanent facts.
 
-- Android Studio (latest stable)
-- Android SDK API 26+ (ML Kit GenAI)
-- Android SDK API 34+ (Prompt API / Gemini Nano)
-- Kotlin 2.0+
-- Gradle 8+
-
-## Build Commands
+## Build and Test
 
 ```bash
 cd packages/android
-
-# Build SDK
-./gradlew :locanara:build
-
-# Test
-./gradlew :locanara:test
-
-# Build example app
-./gradlew :example:assembleDebug
-
-# Install example app
-adb install -r example/build/outputs/apk/debug/example-debug.apk
-
-# Generate types from GQL
-./scripts/generate-types.sh
+./gradlew :locanara:test :locanara:build :example:assembleDebug
 ```
 
-## Project Structure
+The library currently uses API 31 as its package minimum and checks newer AI
+features at runtime. JDK 17 is required by the build configuration.
+
+Generate shared types from the GraphQL package, not an Android-local script:
+
+```bash
+cd packages/gql
+bun run generate
+git diff -- \
+  ../apple/Sources/Types.swift \
+  ../android/locanara/src/main/kotlin/com/locanara/Types.kt
+```
+
+Review expected generated changes during development; add `--exit-code` only
+for a clean-baseline drift check.
+
+## Structure
 
 ```text
 packages/android/
-├── locanara/
-│   └── src/main/kotlin/com/locanara/
-│       ├── Locanara.kt           # Main SDK entry point
-│       ├── core/                 # LocanaraModel, PromptTemplate, OutputParser, Schema
-│       ├── composable/           # Chain, Tool, Memory, Guardrail
-│       ├── builtin/              # SummarizeChain, ClassifyChain, etc. (7 chains)
-│       ├── dsl/                  # Pipeline, ModelExtensions
-│       ├── runtime/              # Agent, Session, ChainExecutor
-│       ├── platform/             # PromptApiModel
-│       ├── engine/               # InferenceEngine, ExecuTorchEngine, InferenceConfig,
-│       │                         #   ModelRegistry, MemoryManager, PromptBuilder
-│       ├── rag/                  # VectorStore, DocumentChunker, EmbeddingEngine,
-│       │                         #   RAGManager, RAGQueryEngine
-│       ├── personalization/      # PersonalizationManager, FeedbackCollector,
-│       │                         #   PreferenceAnalyzer, PromptOptimizer
-│       ├── mlkit/
-│       │   ├── MLKitClients.kt   # ML Kit GenAI clients
-│       │   └── MLKitPromptClient.kt  # Prompt API client
-│       └── Types.kt              # Generated types from GQL
-│   └── src/test/kotlin/com/locanara/
-│       └── FrameworkTest.kt      # Framework unit tests (34 tests)
-├── example/                      # Sample app
-│   └── src/main/kotlin/com/locanara/example/
-│       ├── MainActivity.kt
-│       ├── components/pages/     # Feature screens
-│       └── viewmodel/            # ViewModel
-├── build.gradle.kts
-└── scripts/
+├── locanara/src/main/kotlin/com/locanara/
+│   ├── Locanara.kt
+│   ├── Types.kt              # generated; do not edit
+│   ├── core/
+│   ├── composable/
+│   ├── builtin/
+│   ├── dsl/
+│   ├── runtime/
+│   ├── platform/
+│   ├── mlkit/
+│   ├── engine/
+│   ├── rag/
+│   └── personalization/
+├── locanara/src/test/kotlin/com/locanara/
+│   ├── CoreTests.kt
+│   ├── ChainsTests.kt
+│   ├── DSLTests.kt
+│   ├── ComposableTests.kt
+│   ├── ErrorHandlingTests.kt
+│   ├── RAGTests.kt
+│   └── TestHelpers.kt
+└── example/
 ```
 
-## On-Device AI Architecture
+Do not recreate the removed monolithic `FrameworkTest.kt`.
 
-### ML Kit GenAI APIs (Android 8+)
+## On-Device Engines
 
-Uses dedicated ML Kit GenAI APIs for specific tasks:
+- Task-specific ML Kit GenAI clients live in `mlkit/MLKitClients.kt`.
+- Prompt API status/download behavior lives in `mlkit/MLKitPromptClient.kt`.
+- `platform/PromptApiModel.kt` adapts the Prompt API to `LocanaraModel`.
+- `engine/ExecuTorchEngine.kt` is the local downloadable-engine path.
 
-| Feature       | API                                        | Min API Level |
-| ------------- | ------------------------------------------ | ------------- |
-| Summarize     | `com.google.mlkit:genai-summarization`     | 26            |
-| Proofread     | `com.google.mlkit:genai-proofreading`      | 26            |
-| Rewrite       | `com.google.mlkit:genai-rewriting`         | 26            |
-| DescribeImage | `com.google.mlkit:genai-image-description` | 26            |
-
-### ML Kit Prompt API (Android 14+)
-
-Uses the Prompt API for flexible text generation with Gemini Nano:
-
-| Feature   | API                             | Min API Level |
-| --------- | ------------------------------- | ------------- |
-| Chat      | `com.google.mlkit:genai-prompt` | 34            |
-| Classify  | `com.google.mlkit:genai-prompt` | 34            |
-| Extract   | `com.google.mlkit:genai-prompt` | 34            |
-| Translate | `com.google.mlkit:genai-prompt` | 34            |
-
-## CRITICAL: Prompt API Implementation Notes
-
-### DO NOT use Google AI Edge SDK
-
-```kotlin
-// WRONG - This SDK is for SYSTEM APPS ONLY (Recorder, Gboard, etc.)
-// Third-party apps will get "Required LLM feature not found" error
-implementation("com.google.ai.edge.aicore:aicore:0.0.1-exp02")
-```
-
-### USE ML Kit Prompt API instead
-
-```kotlin
-// CORRECT - This works for third-party apps
-implementation("com.google.mlkit:genai-prompt:1.0.0-alpha1")
-```
-
-### Status Check Behavior
-
-The Prompt API `checkStatus()` may return `DOWNLOADABLE` even when Gemini Nano is already installed and working on the device (e.g., Recorder app works):
-
-```kotlin
-val model = Generation.getClient()
-val status = model.checkStatus()  // Returns FeatureStatus.DOWNLOADABLE
-
-// BUT the API works without calling download()!
-val response = model.generateContent(request)  // Works fine!
-```
-
-**Key insight**: Treat `DOWNLOADABLE` as equivalent to `AVAILABLE`. Do NOT require users to download - the features work without explicit download.
-
-### Correct Implementation Pattern
-
-```kotlin
-// MLKitPromptClient.kt
-class MLKitPromptClient(private val context: Context) {
-    private var generativeModel: GenerativeModel? = null
-
-    private fun getModel(): GenerativeModel {
-        return generativeModel ?: Generation.getClient().also { generativeModel = it }
-    }
-
-    suspend fun checkStatus(): PromptApiStatus = withContext(Dispatchers.IO) {
-        val model = getModel()
-        val status = model.checkStatus()  // Synchronous call, NOT .await()
-
-        when (status) {
-            FeatureStatus.AVAILABLE -> PromptApiStatus.Available
-            FeatureStatus.DOWNLOADABLE -> PromptApiStatus.Downloadable  // Treat as usable
-            FeatureStatus.DOWNLOADING -> PromptApiStatus.Downloading
-            FeatureStatus.UNAVAILABLE -> PromptApiStatus.NotAvailable("...")
-            else -> PromptApiStatus.NotAvailable("Unknown status")
-        }
-    }
-
-    suspend fun chat(message: String): ChatResult = withContext(Dispatchers.IO) {
-        val model = getModel()
-        val request = generateContentRequest(TextPart(prompt)) {
-            temperature = 0.7f
-            topK = 40
-            candidateCount = 1
-        }
-        val response = model.generateContent(request)
-        val text = response.candidates.firstOrNull()?.text ?: ""
-        // ...
-    }
-}
-```
-
-### Device Capability Check
-
-When checking if device supports Gemini Nano:
-
-```kotlin
-// Both Available AND Downloadable mean the device supports it
-val supportsGeminiNano = when (promptApiStatus) {
-    is PromptApiStatus.Available -> true
-    is PromptApiStatus.Downloadable -> true  // IMPORTANT: Include this!
-    is PromptApiStatus.Downloading -> true
-    is PromptApiStatus.NotAvailable -> false
-}
-```
+Prompt status includes available, downloadable, downloading, and unavailable.
+Capability reporting and the model used by a wrapper call must agree. Do not
+infer readiness from API level alone and do not force every chain through Prompt
+API when a task-specific client is the advertised path.
 
 ## Dependencies
 
-```kotlin
-// build.gradle.kts
-dependencies {
-    // ML Kit GenAI APIs (works on most Android 8+ devices)
-    implementation("com.google.mlkit:genai-summarization:1.0.0-beta1")
-    implementation("com.google.mlkit:genai-proofreading:1.0.0-beta1")
-    implementation("com.google.mlkit:genai-rewriting:1.0.0-beta1")
-    implementation("com.google.mlkit:genai-image-description:1.0.0-beta1")
-
-    // ML Kit Prompt API (requires Gemini Nano capable device)
-    implementation("com.google.mlkit:genai-prompt:1.0.0-alpha1")
-
-    // Required for await() on ListenableFuture
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.8.1")
-}
-```
-
-## Example App
-
-The Example app demonstrates SDK features and is used for testing.
-
-```bash
-# Build example app
-./gradlew :example:assembleDebug
-
-# Install and launch
-adb install -r example/build/outputs/apk/debug/example-debug.apk
-adb shell monkey -p com.locanara.example -c android.intent.category.LAUNCHER 1
-
-# Check logs
-adb logcat -s "Locanara" "MLKitPromptClient"
-```
-
-## Integration
-
-### Gradle (Kotlin DSL)
-
-```kotlin
-dependencies {
-    implementation("com.locanara:locanara-android:1.0.0")
-}
-```
-
-## Key Files
-
-### Entry Points & Configuration
-
-- `locanara/src/main/kotlin/com/locanara/Locanara.kt` - Main SDK entry point
-- `locanara/src/main/kotlin/com/locanara/Types.kt` - Generated types from GQL (do not edit)
-- `locanara/src/main/kotlin/com/locanara/Errors.kt` - LocanaraException definitions
-
-### Core & Composable
-
-- `locanara/src/main/kotlin/com/locanara/core/Model.kt` - LocanaraModel interface
-- `locanara/src/main/kotlin/com/locanara/composable/Chain.kt` - Chain interface + SequentialChain
-- `locanara/src/main/kotlin/com/locanara/composable/Memory.kt` - BufferMemory, SummaryMemory
-- `locanara/src/main/kotlin/com/locanara/builtin/` - 7 built-in chain implementations
-
-### Platform & Engine
-
-- `locanara/src/main/kotlin/com/locanara/platform/PromptApiModel.kt` - Gemini Nano Prompt API wrapper
-- `locanara/src/main/kotlin/com/locanara/engine/InferenceEngine.kt` - Unified engine protocol
-- `locanara/src/main/kotlin/com/locanara/engine/ExecuTorchEngine.kt` - ExecuTorch engine (GGUF models)
-- `locanara/src/main/kotlin/com/locanara/engine/InferenceConfig.kt` - Engine configuration types
-- `locanara/src/main/kotlin/com/locanara/engine/ModelRegistry.kt` - Available model catalog
-- `locanara/src/main/kotlin/com/locanara/engine/MemoryManager.kt` - Memory optimization
-- `locanara/src/main/kotlin/com/locanara/engine/PromptBuilder.kt` - Prompt formatting
-
-### RAG & Personalization
-
-- `locanara/src/main/kotlin/com/locanara/rag/RAGManager.kt` - RAG orchestration
-- `locanara/src/main/kotlin/com/locanara/rag/VectorStore.kt` - Vector storage and similarity search
-- `locanara/src/main/kotlin/com/locanara/rag/DocumentChunker.kt` - Document chunking strategies
-- `locanara/src/main/kotlin/com/locanara/rag/EmbeddingEngine.kt` - Text embedding generation
-- `locanara/src/main/kotlin/com/locanara/rag/RAGQueryEngine.kt` - Query execution
-- `locanara/src/main/kotlin/com/locanara/personalization/PersonalizationManager.kt` - User preference learning
-- `locanara/src/main/kotlin/com/locanara/personalization/FeedbackCollector.kt` - User feedback collection
-- `locanara/src/main/kotlin/com/locanara/personalization/PreferenceAnalyzer.kt` - Preference analysis
-- `locanara/src/main/kotlin/com/locanara/personalization/PromptOptimizer.kt` - Adaptive prompt optimization
-
-### DSL & Runtime
-
-- `locanara/src/main/kotlin/com/locanara/dsl/Pipeline.kt` - Pipeline DSL
-- `locanara/src/main/kotlin/com/locanara/dsl/ModelExtensions.kt` - Convenience methods
-- `locanara/src/main/kotlin/com/locanara/runtime/Agent.kt` - ReAct-lite autonomous agent
-- `locanara/src/main/kotlin/com/locanara/runtime/Session.kt` - Stateful conversation management
-- `locanara/src/main/kotlin/com/locanara/runtime/ChainExecutor.kt` - Instrumented chain execution
-
-### ML Kit GenAI
-
-- `locanara/src/main/kotlin/com/locanara/mlkit/MLKitClients.kt` - ML Kit GenAI clients
-- `locanara/src/main/kotlin/com/locanara/mlkit/MLKitPromptClient.kt` - Prompt API client
-
-## Framework Architecture
-
-The SDK is a layered framework:
-
-1. **Core** - `LocanaraModel`, `PromptTemplate`, `OutputParser`, `ChainInput/ChainOutput`
-2. **Composable** - `Chain`, `Memory`, `Guardrail`, `Tool`
-3. **Built-in** - `SummarizeChain`, `ClassifyChain`, `ExtractChain`, `ChatChain`, `TranslateChain`, `RewriteChain`, `ProofreadChain`
-4. **DSL** - Pipeline composition, Model extensions
-5. **Runtime** - `Agent`, `Session`, `ChainExecutor`
-6. **Platform** - `PromptApiModel` (Gemini Nano via ML Kit)
-7. **Engine** - `InferenceEngine`, `ExecuTorchEngine`, `ModelRegistry`, `InferenceConfig`
-8. **RAG** - `VectorStore`, `DocumentChunker`, `EmbeddingEngine`, `RAGManager`, `RAGQueryEngine`
-9. **Personalization** - `PersonalizationManager`, `FeedbackCollector`, `PreferenceAnalyzer`, `PromptOptimizer`
-
-### Three Levels of API
-
-```kotlin
-// 1. Simple - one-liner
-val result = model.summarize("text")
-
-// 2. Chain - configurable (model defaults to LocanaraDefaults.model)
-val result = SummarizeChain(bulletCount = 3).run("text")
-
-// 3. Pipeline - composition
-val result = model.pipeline()
-    .proofread()
-    .translate(to = "ko")
-    .run("text")
-```
-
-### Custom Chain Pattern
-
-```kotlin
-class MyChain(private val model: LocanaraModel) : Chain {
-    override val name = "MyChain"
-
-    override suspend fun invoke(input: ChainInput): ChainOutput {
-        val prompt = PromptTemplate.from("...{text}...").format(mapOf("text" to input.text))
-        val response = model.generate(prompt, GenerationConfig.STRUCTURED)
-        val result = MyResult(...)
-        return ChainOutput(value = result, text = response.text)
-    }
-}
-```
-
-## Engine System
-
-The Engine layer enables running external GGUF models via ExecuTorch alongside Gemini Nano.
-
-### Engine Components
-
-- **InferenceEngine** - Unified engine protocol for model inference
-- **ExecuTorchEngine** - ExecuTorch-based engine for GGUF models
-- **InferenceConfig** - Engine configuration (temperature, topK, etc.)
-- **ModelRegistry** - Catalog of available models
-- **MemoryManager** - Memory optimization and KV cache management
-- **PromptBuilder** - Prompt formatting and tokenization
-
-### Engine Usage
-
-```kotlin
-// Initialize ExecuTorch engine with a GGUF model
-val engine = ExecuTorchEngine()
-engine.loadModel("gemma-3-4b-it-q4.gguf")
-
-// Use with chains
-val model = EngineModel(engine)
-val result = SummarizeChain(model).run("text")
-```
-
-## RAG (Retrieval-Augmented Generation)
-
-The RAG layer provides document indexing and semantic search for context-aware generation.
-
-### RAG Components
-
-- **VectorStore** - Vector storage with similarity search
-- **DocumentChunker** - Document chunking strategies (fixed-size, semantic, recursive)
-- **EmbeddingEngine** - Text embedding generation
-- **RAGManager** - RAG orchestration and collection management
-- **RAGQueryEngine** - Query execution with retrieved context
-
-### RAG Usage
-
-```kotlin
-// Initialize RAG
-val ragManager = RAGManager(embeddingEngine)
-
-// Add documents
-ragManager.addDocuments(listOf(
-    Document("doc1", "On-device AI is privacy-preserving."),
-    Document("doc2", "Gemini Nano runs on Pixel devices.")
-))
-
-// Query with context
-val context = ragManager.query("What is on-device AI?", topK = 3)
-val response = model.generate("Answer: ${context.joinToString()}", config)
-```
-
-## Personalization
-
-The Personalization layer learns user preferences and optimizes prompts over time.
-
-### Personalization Components
-
-- **PersonalizationManager** - User preference learning orchestration
-- **FeedbackCollector** - Collects user feedback (thumbs up/down, edits)
-- **PreferenceAnalyzer** - Analyzes patterns in user feedback
-- **PromptOptimizer** - Adapts prompts based on learned preferences
-
-### Personalization Usage
-
-```kotlin
-// Initialize personalization
-val personalization = PersonalizationManager()
-
-// Submit feedback
-personalization.submitFeedback(
-    prompt = "Summarize this article",
-    response = "Brief summary...",
-    feedback = Feedback.POSITIVE
-)
-
-// Get optimized prompt
-val optimizedPrompt = personalization.optimizePrompt("Summarize", context)
-```
-
-## Troubleshooting
-
-### "Required LLM feature not found" error
-
-You're using the wrong SDK. Switch from `com.google.ai.edge.aicore` to `com.google.mlkit:genai-prompt`.
-
-### Prompt API returns DOWNLOADABLE but Recorder works
-
-This is expected behavior. The Prompt API works without explicit download - just use it directly.
-
-### Features show "Gemini Nano Not Available"
-
-Check if you're treating `DOWNLOADABLE` status as "not available". It should be treated as available.
-
-## Notes
-
-- Generated type files are synced from `packages/gql`
-- Always run `bun run generate` from root after schema changes
-- Test on real devices - emulators don't support Gemini Nano
+Only use the on-device dependencies declared in `locanara/build.gradle.kts`.
+Never add cloud Gemini clients, provider API keys, or a server fallback. Update
+dependency versions only after checking official ML Kit documentation and
+building the SDK/example.
+
+## Public Contract
+
+- Kotlin async operations use `suspend`; streams use `Flow`.
+- Upstream failures map to `LocanaraException`.
+- Avoid `!!`; validate public option boundaries.
+- Never log prompts, model output, extracted entities, RAG content, or images.
+- Maven coordinate: `com.locanara:locanara:<android version>`.
+
+## Wrapper Rule
+
+Expo, React Native, and Flutter Android implementations must call real SDK
+behavior. In-memory sets are not valid substitutes for model download/load or
+engine state, and success must not be returned until the SDK confirms it.

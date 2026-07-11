@@ -1,24 +1,33 @@
 # Locanara
 
-> Free and open-source on-device AI SDK for iOS and Android
+> Free, open-source, privacy-first on-device AI framework for Apple, Android, and Web.
 
-Privacy-first, unified on-device AI SDK for mobile developers. Build AI-powered apps without compromising user privacy. Licensed under AGPL-3.0.
+Locanara provides chains, memory, guardrails, native Pipeline builders, local
+RAG, model/engine integrations, and browser-native inference. Prompt inference
+stays on device: there is no cloud fallback and no API key.
 
-## About
+## Packages
 
-Locanara enables mobile developers to integrate AI features (summarization, classification, chat, translation, and more) using on-device processing. No cloud, no data collection, complete privacy. Includes Private RAG (document-based AI answers) and Personalization (AI that learns user preferences).
+- Apple SDK: 1.1.1 via Swift Package Manager or CocoaPods
+- Android SDK: 1.1.2 via `com.locanara:locanara`
+- Web SDK: `locanara` (read the live manifest; the version map has no dedicated Web key)
+- Expo wrapper: 0.1.3 via `expo-ondevice-ai`
+- React Native wrapper: 0.1.0 via `react-native-ondevice-ai`
+- Flutter wrapper: 0.1.0 via `flutter_ondevice_ai`
 
-- iOS: Apple Intelligence (iOS 26+) + llama.cpp with GGUF models (iOS 17+)
-- Android: Gemini Nano & ML Kit GenAI
-- Web: Chrome Built-in AI
+## Version Mirror Status
 
-## Pricing
+Version mirror mismatch detected: `apple` (root: `1.1.1`, site: `1.1.0`). The root map is authoritative; treat the site copy as a synchronization defect.
 
-Free and open-source. No API keys, no usage limits, no per-request fees.
+## Start Here
+
+- Check device/runtime capability before inference.
+- Apple and Android provide Pipeline composition; Web does not.
+- Verify model-management support in the concrete platform implementation.
 
 ## Links
 
-- Docs: https://locanara.hyo.dev/docs
-- Full info: https://locanara.hyo.dev/llms-full.txt
-- Community: https://locanara.hyo.dev/community
+- Documentation: https://locanara.hyo.dev/docs
+- Full AI reference: https://locanara.hyo.dev/llms-full.txt
 - GitHub: https://github.com/hyodotdev/locanara
+- Community: https://locanara.hyo.dev/community
