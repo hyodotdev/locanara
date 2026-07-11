@@ -42,11 +42,14 @@ namespace margelo::nitro::ondeviceai {
     [[nodiscard]]
     NitroChatOptions toCpp() const {
       static const auto clazz = javaClassStatic();
+      static const auto fieldConversationId = clazz->getField<JVariant_NullType_String>("conversationId");
+      jni::local_ref<JVariant_NullType_String> conversationId = this->getFieldValue(fieldConversationId);
       static const auto fieldSystemPrompt = clazz->getField<JVariant_NullType_String>("systemPrompt");
       jni::local_ref<JVariant_NullType_String> systemPrompt = this->getFieldValue(fieldSystemPrompt);
       static const auto fieldHistory = clazz->getField<JVariant_NullType_Array_NitroChatMessage_>("history");
       jni::local_ref<JVariant_NullType_Array_NitroChatMessage_> history = this->getFieldValue(fieldHistory);
       return NitroChatOptions(
+        conversationId != nullptr ? std::make_optional(conversationId->toCpp()) : std::nullopt,
         systemPrompt != nullptr ? std::make_optional(systemPrompt->toCpp()) : std::nullopt,
         history != nullptr ? std::make_optional(history->toCpp()) : std::nullopt
       );
@@ -58,11 +61,12 @@ namespace margelo::nitro::ondeviceai {
      */
     [[maybe_unused]]
     static jni::local_ref<JNitroChatOptions::javaobject> fromCpp(const NitroChatOptions& value) {
-      using JSignature = JNitroChatOptions(jni::alias_ref<JVariant_NullType_String>, jni::alias_ref<JVariant_NullType_Array_NitroChatMessage_>);
+      using JSignature = JNitroChatOptions(jni::alias_ref<JVariant_NullType_String>, jni::alias_ref<JVariant_NullType_String>, jni::alias_ref<JVariant_NullType_Array_NitroChatMessage_>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
+        value.conversationId.has_value() ? JVariant_NullType_String::fromCpp(value.conversationId.value()) : nullptr,
         value.systemPrompt.has_value() ? JVariant_NullType_String::fromCpp(value.systemPrompt.value()) : nullptr,
         value.history.has_value() ? JVariant_NullType_Array_NitroChatMessage_::fromCpp(value.history.value()) : nullptr
       );

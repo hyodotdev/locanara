@@ -53,7 +53,16 @@ enum OndeviceAiHelper {
 
     // MARK: - Chat
 
-    static func chatOptions(from options: NitroChatOptions?) -> (systemPrompt: String, memory: (any Memory)?) {
+    static func chatOptions(
+        from options: NitroChatOptions?
+    ) -> (conversationId: String?, systemPrompt: String, memory: (any Memory)?) {
+        let conversationId: String?
+        if case .second(let value) = options?.conversationId {
+            conversationId = value
+        } else {
+            conversationId = nil
+        }
+
         let systemPrompt: String
         if case .second(let s) = options?.systemPrompt {
             systemPrompt = s
@@ -66,7 +75,7 @@ enum OndeviceAiHelper {
             memory = PrefilledMemory(history: history)
         }
 
-        return (systemPrompt, memory)
+        return (conversationId, systemPrompt, memory)
     }
 
     // MARK: - Translate

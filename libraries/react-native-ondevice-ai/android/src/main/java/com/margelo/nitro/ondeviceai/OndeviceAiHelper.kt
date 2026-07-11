@@ -94,6 +94,7 @@ object OndeviceAiHelper {
             }
 
         return ChatParametersInput(
+            conversationId = opts?.conversationId?.asSecondOrNull(),
             systemPrompt = systemPrompt,
             history = history,
         )

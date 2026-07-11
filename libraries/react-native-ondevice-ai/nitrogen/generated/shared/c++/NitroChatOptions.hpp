@@ -40,12 +40,13 @@ namespace margelo::nitro::ondeviceai {
    */
   struct NitroChatOptions {
   public:
+    std::optional<std::variant<nitro::NullType, std::string>> conversationId     SWIFT_PRIVATE;
     std::optional<std::variant<nitro::NullType, std::string>> systemPrompt     SWIFT_PRIVATE;
     std::optional<std::variant<nitro::NullType, std::vector<NitroChatMessage>>> history     SWIFT_PRIVATE;
 
   public:
     NitroChatOptions() = default;
-    explicit NitroChatOptions(std::optional<std::variant<nitro::NullType, std::string>> systemPrompt, std::optional<std::variant<nitro::NullType, std::vector<NitroChatMessage>>> history): systemPrompt(systemPrompt), history(history) {}
+    explicit NitroChatOptions(std::optional<std::variant<nitro::NullType, std::string>> conversationId, std::optional<std::variant<nitro::NullType, std::string>> systemPrompt, std::optional<std::variant<nitro::NullType, std::vector<NitroChatMessage>>> history): conversationId(conversationId), systemPrompt(systemPrompt), history(history) {}
   };
 
 } // namespace margelo::nitro::ondeviceai
@@ -58,12 +59,14 @@ namespace margelo::nitro {
     static inline margelo::nitro::ondeviceai::NitroChatOptions fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::ondeviceai::NitroChatOptions(
+        JSIConverter<std::optional<std::variant<nitro::NullType, std::string>>>::fromJSI(runtime, obj.getProperty(runtime, "conversationId")),
         JSIConverter<std::optional<std::variant<nitro::NullType, std::string>>>::fromJSI(runtime, obj.getProperty(runtime, "systemPrompt")),
         JSIConverter<std::optional<std::variant<nitro::NullType, std::vector<margelo::nitro::ondeviceai::NitroChatMessage>>>>::fromJSI(runtime, obj.getProperty(runtime, "history"))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::ondeviceai::NitroChatOptions& arg) {
       jsi::Object obj(runtime);
+      obj.setProperty(runtime, "conversationId", JSIConverter<std::optional<std::variant<nitro::NullType, std::string>>>::toJSI(runtime, arg.conversationId));
       obj.setProperty(runtime, "systemPrompt", JSIConverter<std::optional<std::variant<nitro::NullType, std::string>>>::toJSI(runtime, arg.systemPrompt));
       obj.setProperty(runtime, "history", JSIConverter<std::optional<std::variant<nitro::NullType, std::vector<margelo::nitro::ondeviceai::NitroChatMessage>>>>::toJSI(runtime, arg.history));
       return obj;
@@ -76,6 +79,7 @@ namespace margelo::nitro {
       if (!nitro::isPlainObject(runtime, obj)) {
         return false;
       }
+      if (!JSIConverter<std::optional<std::variant<nitro::NullType, std::string>>>::canConvert(runtime, obj.getProperty(runtime, "conversationId"))) return false;
       if (!JSIConverter<std::optional<std::variant<nitro::NullType, std::string>>>::canConvert(runtime, obj.getProperty(runtime, "systemPrompt"))) return false;
       if (!JSIConverter<std::optional<std::variant<nitro::NullType, std::vector<margelo::nitro::ondeviceai::NitroChatMessage>>>>::canConvert(runtime, obj.getProperty(runtime, "history"))) return false;
       return true;

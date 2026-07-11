@@ -5,11 +5,28 @@ import com.locanara.FeatureType
 import com.locanara.GeminiNanoInfoAndroid
 import com.locanara.ModelInfo
 import com.locanara.Platform
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OndeviceAiHelperTest {
+    @Test
+    fun `chat parameters preserve the conversation ID`() {
+        val options =
+            Variant_NullType_NitroChatOptions.Second(
+                NitroChatOptions(
+                    conversationId = Variant_NullType_String.Second("conversation-123"),
+                    systemPrompt = null,
+                    history = null,
+                ),
+            )
+
+        val parameters = OndeviceAiHelper.chatParameters(options)
+
+        assertEquals("conversation-123", parameters.conversationId)
+    }
+
     @Test
     fun `image-only capability is not exposed as wrapper support`() {
         val capability =

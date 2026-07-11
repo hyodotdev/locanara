@@ -290,6 +290,7 @@ export async function chat(
     message,
     options
       ? {
+          conversationId: options.conversationId ?? null,
           systemPrompt: options.systemPrompt ?? null,
           history:
             options.history?.map((m) => ({
@@ -325,6 +326,7 @@ export async function chatStream(
           delta: chunk.delta,
           accumulated: chunk.accumulated,
           isFinal: chunk.isFinal,
+          conversationId: options?.conversationId,
         };
         onChunk(converted);
       };
@@ -336,6 +338,7 @@ export async function chatStream(
         message,
         options
           ? {
+              conversationId: options.conversationId ?? null,
               systemPrompt: options.systemPrompt ?? null,
               history:
                 options.history?.map((m) => ({

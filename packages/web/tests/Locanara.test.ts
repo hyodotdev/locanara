@@ -249,6 +249,31 @@ describe('Locanara', () => {
     })
   })
 
+  describe('chatStreaming', () => {
+    it('preserves delta chunks that start with prior output', async () => {
+      const releaseLock = vi.fn()
+      mockLanguageModelSession.promptStreaming.mockReturnValueOnce({
+        getReader: () => ({
+          read: vi
+            .fn()
+            .mockResolvedValueOnce({ done: false, value: 'a' })
+            .mockResolvedValueOnce({ done: false, value: 'abc' })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock,
+        }),
+      })
+      const locanara = Locanara.getInstance()
+      const chunks: string[] = []
+
+      for await (const chunk of locanara.chatStreaming('Hello')) {
+        chunks.push(chunk)
+      }
+
+      expect(chunks).toEqual(['a', 'abc'])
+      expect(releaseLock).toHaveBeenCalledOnce()
+    })
+  })
+
   describe('rewrite', () => {
     it('should rewrite text', async () => {
       const locanara = Locanara.getInstance()

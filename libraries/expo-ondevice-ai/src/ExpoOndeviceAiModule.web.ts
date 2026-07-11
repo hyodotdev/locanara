@@ -181,18 +181,10 @@ async function consumeTextStream(
 
   for await (const chunk of stream) {
     const text = typeof chunk === 'string' ? chunk : String(chunk);
-    let delta: string;
-
-    // Chrome API revisions have emitted both cumulative and delta chunks.
-    if (text.length >= accumulated.length && text.startsWith(accumulated)) {
-      delta = text.slice(accumulated.length);
-      accumulated = text;
-    } else {
-      delta = text;
-      accumulated += text;
-    }
-
-    emitEvent(eventName, {delta, accumulated, isFinal: false});
+    // Current Chrome Built-in AI streaming APIs emit append-only deltas.
+    // Inferring cumulative snapshots from content is ambiguous and loses text.
+    accumulated += text;
+    emitEvent(eventName, {delta: text, accumulated, isFinal: false});
   }
 
   return accumulated;
@@ -510,24 +502,10 @@ const ExpoOndeviceAiModule = {
 
     if (typeof cachedLanguageModel.promptStreaming === 'function') {
       const stream = cachedLanguageModel.promptStreaming(message);
-      let accumulated = '';
-
-      for await (const chunk of stream) {
-        const text = typeof chunk === 'string' ? chunk : String(chunk);
-        // Chrome may return cumulative or delta text depending on version
-        if (text.length >= accumulated.length && text.startsWith(accumulated)) {
-          const delta = text.slice(accumulated.length);
-          accumulated = text;
-          emitEvent('onChatStreamChunk', {delta, accumulated, isFinal: false});
-        } else {
-          accumulated += text;
-          emitEvent('onChatStreamChunk', {
-            delta: text,
-            accumulated,
-            isFinal: false,
-          });
-        }
-      }
+      const accumulated = await consumeTextStream(
+        'onChatStreamChunk',
+        stream,
+      );
 
       emitEvent('onChatStreamChunk', {delta: '', accumulated, isFinal: true});
       return {message: accumulated, canContinue: true};

@@ -431,14 +431,17 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
         Promise.async {
             val parameters = OndeviceAiHelper.chatParameters(options)
             var accumulated = ""
+            var conversationId = parameters.conversationId
 
             locanara
                 .chatStream(
                     message = message,
                     systemPrompt = parameters.systemPrompt,
                     history = parameters.history,
+                    conversationId = parameters.conversationId,
                 ).collect { chunk ->
                     accumulated = chunk.accumulated
+                    conversationId = chunk.conversationId ?: conversationId
                     val streamChunk =
                         NitroChatStreamChunk(
                             delta = chunk.delta,
@@ -450,7 +453,7 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
 
             NitroChatResult(
                 message = accumulated,
-                conversationId = "",
+                conversationId = conversationId ?: "",
                 canContinue = true,
             )
         }

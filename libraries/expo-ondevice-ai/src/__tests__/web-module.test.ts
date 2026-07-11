@@ -13,7 +13,7 @@ function setWebApi(name: string, value: unknown): void {
 describe('ExpoOndeviceAiModule.web', () => {
   afterEach(() => {
     ExpoOndeviceAiModule.destroy();
-    for (const api of ['Summarizer', 'Translator', 'Rewriter']) {
+    for (const api of ['Summarizer', 'Translator', 'Rewriter', 'LanguageModel']) {
       delete (globalThis as Record<string, unknown>)[api];
     }
   });
@@ -31,7 +31,7 @@ describe('ExpoOndeviceAiModule.web', () => {
 
   it('streams summaries through the Chrome Summarizer API', async () => {
     const summarizeStreaming = jest.fn(() =>
-      chunks(['- First point', '- First point\n- Second point']),
+      chunks(['- First point', '\n- Second point']),
     );
     const create = jest.fn().mockResolvedValue({
       summarize: jest.fn(),
@@ -125,9 +125,27 @@ describe('ExpoOndeviceAiModule.web', () => {
     });
   });
 
+  it('does not mistake a delta that starts with prior output for cumulative text', async () => {
+    const translateStreaming = jest.fn(() => chunks(['a', 'abc']));
+    setWebApi('Translator', {
+      create: jest.fn().mockResolvedValue({
+        translate: jest.fn(),
+        translateStreaming,
+        destroy: jest.fn(),
+      }),
+    });
+
+    const result = await ExpoOndeviceAiModule.translateStreaming('text', {
+      sourceLanguage: 'en',
+      targetLanguage: 'fr',
+    });
+
+    expect(result.translatedText).toBe('aabc');
+  });
+
   it('streams rewrites through the Chrome Rewriter API', async () => {
     const rewriteStreaming = jest.fn(() =>
-      chunks(['A', 'A better sentence.']),
+      chunks(['A', ' better sentence.']),
     );
     const create = jest.fn().mockResolvedValue({
       rewrite: jest.fn(),
@@ -149,6 +167,34 @@ describe('ExpoOndeviceAiModule.web', () => {
       rewrittenText: 'A better sentence.',
       style: 'PROFESSIONAL',
     });
+  });
+
+  it('uses delta semantics for LanguageModel chat streams', async () => {
+    const promptStreaming = jest.fn(() => chunks(['a', 'abc']));
+    setWebApi('LanguageModel', {
+      create: jest.fn().mockResolvedValue({
+        prompt: jest.fn(),
+        promptStreaming,
+        destroy: jest.fn(),
+      }),
+    });
+
+    const received: {delta: string; accumulated: string; isFinal: boolean}[] =
+      [];
+    const subscription = ExpoOndeviceAiModule.addListener(
+      'onChatStreamChunk',
+      (chunk) => received.push(chunk),
+    );
+
+    const result = await ExpoOndeviceAiModule.chatStream('Hello');
+
+    subscription.remove();
+    expect(result.message).toBe('aabc');
+    expect(received).toEqual([
+      {delta: 'a', accumulated: 'a', isFinal: false},
+      {delta: 'abc', accumulated: 'aabc', isFinal: false},
+      {delta: '', accumulated: 'aabc', isFinal: true},
+    ]);
   });
 
   it('rejects unsupported URI-based image input explicitly', async () => {

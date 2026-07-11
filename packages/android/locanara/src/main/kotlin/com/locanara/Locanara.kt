@@ -25,9 +25,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.UUID
+
+internal fun selectConversationId(
+    requested: String?,
+    generated: String?,
+): String? = requested ?: generated
 
 /**
  * Locanara SDK for Android
@@ -342,11 +348,16 @@ class Locanara private constructor(
             // Prompt API (Gemini Nano) features
             FeatureType.CHAT -> {
                 val params = input.parameters?.chat
-                promptClient.chat(
-                    message = input.input,
-                    systemPrompt = params?.systemPrompt,
-                    history = params?.history,
-                )
+                promptClient
+                    .chat(
+                        message = input.input,
+                        systemPrompt = params?.systemPrompt,
+                        history = params?.history,
+                    ).let { result ->
+                        result.copy(
+                            conversationId = selectConversationId(params?.conversationId, result.conversationId),
+                        )
+                    }
             }
 
             FeatureType.CLASSIFY -> {
@@ -486,7 +497,9 @@ class Locanara private constructor(
                     history = history,
                 ).collect { chunk ->
                     emit(
-                        chunk.copy(conversationId = conversationId),
+                        chunk.copy(
+                            conversationId = selectConversationId(conversationId, chunk.conversationId),
+                        ),
                     )
                 }
         }
@@ -507,8 +520,7 @@ class Locanara private constructor(
     // ============================================
 
     private suspend fun refreshDeviceCapabilities(): DeviceCapability {
-        capabilityMutex.lock()
-        return try {
+        return capabilityMutex.withLock {
             val snapshot = mapCapabilityCheckFailure { capabilityProbe.snapshot() }
             val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
             val availableMemoryMB =
@@ -523,14 +535,11 @@ class Locanara private constructor(
                 availableMemoryMB = availableMemoryMB,
                 isLowPowerMode = powerManager?.isPowerSaveMode ?: false,
             )
-        } finally {
-            capabilityMutex.unlock()
         }
     }
 
     private suspend fun updatePromptApiStatus(status: PromptApiStatus) {
-        capabilityMutex.lock()
-        try {
+        capabilityMutex.withLock {
             val snapshot = lastCapabilitySnapshot?.copy(promptStatus = status)
             if (snapshot == null) {
                 promptApiStatus = status
@@ -544,8 +553,6 @@ class Locanara private constructor(
                 availableMemoryMB = previous?.availableMemoryMB,
                 isLowPowerMode = previous?.isLowPowerMode ?: false,
             )
-        } finally {
-            capabilityMutex.unlock()
         }
     }
 

@@ -112,6 +112,20 @@ describe("react-native-ondevice-ai", () => {
       const result = await chat("Hello");
       expect(result).toHaveProperty("message");
     });
+
+    it("forwards the conversation ID to the native bridge", async () => {
+      const {
+        __mockHybridObject: mock,
+      } = require("react-native-nitro-modules");
+
+      await chat("Continue", { conversationId: "conversation-123" });
+
+      expect(mock.chat).toHaveBeenLastCalledWith("Continue", {
+        conversationId: "conversation-123",
+        systemPrompt: null,
+        history: null,
+      });
+    });
   });
 
   describe("chatStream", () => {
@@ -143,10 +157,37 @@ describe("react-native-ondevice-ai", () => {
       expect(chunks[2]!.accumulated).toBe("Hello world");
     });
 
+    it("includes the requested conversation ID in stream chunks", async () => {
+      const chunks: ChatStreamChunk[] = [];
+
+      await chatStream("Continue", {
+        conversationId: "conversation-789",
+        onChunk: (chunk) => chunks.push(chunk),
+      });
+
+      expect(chunks).not.toHaveLength(0);
+      expect(chunks.every((chunk) => chunk.conversationId === "conversation-789"))
+        .toBe(true);
+    });
+
     it("should work without onChunk callback", async () => {
       const result = await chatStream("Hello", {});
       expect(result).toHaveProperty("message");
       expect(result.message).toBe("Hello world");
+    });
+
+    it("forwards the conversation ID for streaming chat", async () => {
+      const {
+        __mockHybridObject: mock,
+      } = require("react-native-nitro-modules");
+
+      await chatStream("Continue", { conversationId: "conversation-456" });
+
+      expect(mock.chatStream).toHaveBeenLastCalledWith("Continue", {
+        conversationId: "conversation-456",
+        systemPrompt: null,
+        history: null,
+      });
     });
 
     it("should clean up listener after completion", async () => {

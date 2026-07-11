@@ -137,6 +137,7 @@ export interface NitroChatMessage {
 }
 
 export interface NitroChatOptions {
+  conversationId?: string | null;
   systemPrompt?: string | null;
   history?: NitroChatMessage[] | null;
 }
