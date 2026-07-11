@@ -217,7 +217,7 @@ internal class MLKitCapabilityProbe(private val context: Context) {
 
         val promptClient = MLKitPromptClient(context)
         val promptStatus = try {
-            promptClient.checkStatus()
+            probePromptStatus { promptClient.checkStatus() }
         } finally {
             promptClient.close()
         }
@@ -232,6 +232,14 @@ internal suspend fun probeFeatureStatus(block: suspend () -> FeatureStatus): Fea
     throw error
 } catch (_: Exception) {
     FeatureStatus.UNAVAILABLE
+}
+
+internal suspend fun probePromptStatus(block: suspend () -> PromptApiStatus): PromptApiStatus = try {
+    block()
+} catch (error: CancellationException) {
+    throw error
+} catch (_: Exception) {
+    PromptApiStatus.NotAvailable("Failed to check Prompt API status")
 }
 
 private fun PromptApiStatus.toFeatureStatus(): FeatureStatus = when (this) {

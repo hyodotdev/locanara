@@ -59,6 +59,10 @@ namespace margelo::nitro::ondeviceai { struct NitroTranslateOptions; }
 namespace margelo::nitro::ondeviceai { struct NitroRewriteOptions; }
 // Forward declaration of `NitroRewriteOutputType` to properly resolve imports.
 namespace margelo::nitro::ondeviceai { enum class NitroRewriteOutputType; }
+// Forward declaration of `NitroProofreadOptions` to properly resolve imports.
+namespace margelo::nitro::ondeviceai { struct NitroProofreadOptions; }
+// Forward declaration of `NitroProofreadInputType` to properly resolve imports.
+namespace margelo::nitro::ondeviceai { enum class NitroProofreadInputType; }
 // Forward declaration of `NitroChatStreamChunk` to properly resolve imports.
 namespace margelo::nitro::ondeviceai { struct NitroChatStreamChunk; }
 // Forward declaration of `NitroTextStreamChunk` to properly resolve imports.
@@ -138,6 +142,10 @@ namespace margelo::nitro::ondeviceai { enum class NitroModelDownloadState; }
 #include "JNitroRewriteOptions.hpp"
 #include "NitroRewriteOutputType.hpp"
 #include "JNitroRewriteOutputType.hpp"
+#include "NitroProofreadOptions.hpp"
+#include "JNitroProofreadOptions.hpp"
+#include "NitroProofreadInputType.hpp"
+#include "JNitroProofreadInputType.hpp"
 #include "NitroChatStreamChunk.hpp"
 #include <functional>
 #include "JFunc_void_NitroChatStreamChunk.hpp"
@@ -315,9 +323,9 @@ namespace margelo::nitro::ondeviceai {
       return __promise;
     }();
   }
-  std::shared_ptr<Promise<NitroProofreadResult>> JHybridOndeviceAiSpec::proofread(const std::string& text) {
-    static const auto method = javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* text */)>("proofread");
-    auto __result = method(_javaPart, jni::make_jstring(text));
+  std::shared_ptr<Promise<NitroProofreadResult>> JHybridOndeviceAiSpec::proofread(const std::string& text, const NitroProofreadOptions& options) {
+    static const auto method = javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* text */, jni::alias_ref<JNitroProofreadOptions> /* options */)>("proofread");
+    auto __result = method(_javaPart, jni::make_jstring(text), JNitroProofreadOptions::fromCpp(options));
     return [&]() {
       auto __promise = Promise<NitroProofreadResult>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {

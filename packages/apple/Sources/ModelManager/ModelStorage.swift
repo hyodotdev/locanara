@@ -217,7 +217,9 @@ public final class ModelStorage: @unchecked Sendable {
         }
 
         return contents.compactMap { url -> String? in
-            let modelId = url.lastPathComponent
+            guard let modelId = Self.modelId(fromStorageComponent: url.lastPathComponent) else {
+                return nil
+            }
             guard isModelDownloaded(modelId) else { return nil }
             return modelId
         }
@@ -590,5 +592,20 @@ public final class ModelStorage: @unchecked Sendable {
             }
             return String(format: "%%%02X", byte)
         }.joined()
+    }
+
+    /// Decode only path components produced by `storageComponent(for:)`.
+    /// The canonical round-trip rejects malformed encodings and alternate path
+    /// spellings before the decoded ID is used for another storage lookup.
+    private static func modelId(fromStorageComponent component: String) -> String? {
+        if component == storageComponent(for: "") {
+            return ""
+        }
+
+        guard let modelId = component.removingPercentEncoding,
+              storageComponent(for: modelId) == component else {
+            return nil
+        }
+        return modelId
     }
 }

@@ -336,6 +336,23 @@ describe("react-native-ondevice-ai", () => {
       expect(result).toHaveProperty("rewrittenText");
     });
 
+    it("normalizes an empty native style to undefined", async () => {
+      const {
+        __mockHybridObject: mock,
+      } = require("react-native-nitro-modules");
+      mock.rewriteStreaming.mockResolvedValueOnce({
+        rewrittenText: "Rewritten",
+        style: "",
+        confidence: 0.9,
+      });
+
+      const result = await rewriteStreaming("Text.", {
+        outputType: "PROFESSIONAL",
+      });
+
+      expect(result.style).toBeUndefined();
+    });
+
     it("should invoke onChunk with final chunk", async () => {
       const chunks: TextStreamChunk[] = [];
       await rewriteStreaming("Text.", {
@@ -380,6 +397,30 @@ describe("react-native-ondevice-ai", () => {
       expect(result).toHaveProperty("correctedText");
       expect(result).toHaveProperty("corrections");
       expect(result).toHaveProperty("hasCorrections");
+    });
+
+    it("defaults the native input type to keyboard", async () => {
+      const {
+        __mockHybridObject: mock,
+      } = require("react-native-nitro-modules");
+
+      await proofread("This is a test.");
+
+      expect(mock.proofread).toHaveBeenLastCalledWith("This is a test.", {
+        inputType: "KEYBOARD",
+      });
+    });
+
+    it("forwards voice input to the native bridge", async () => {
+      const {
+        __mockHybridObject: mock,
+      } = require("react-native-nitro-modules");
+
+      await proofread("This was dictated.", { inputType: "VOICE" });
+
+      expect(mock.proofread).toHaveBeenLastCalledWith("This was dictated.", {
+        inputType: "VOICE",
+      });
     });
   });
 

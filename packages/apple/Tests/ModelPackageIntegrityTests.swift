@@ -129,6 +129,28 @@ final class ModelPackageIntegrityTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: testRoot.path))
     }
 
+    func testListDownloadedModelsDecodesCanonicalStorageComponent() throws {
+        let models = [
+            makeTextModel(modelId: "vendor/model.v1%\u{D55C}\u{AE00}"),
+            makeTextModel(modelId: "%GG"),
+        ]
+
+        for model in models {
+            try writeVerifiedPackage(model)
+        }
+
+        // This spelling cannot be produced by storageComponent(for:). It must
+        // not alias the valid `%GG` model after a failed percent decode.
+        try FileManager.default.createDirectory(
+            at: storage.baseDirectory.appendingPathComponent("%GG", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+
+        let downloadedModels = storage.listDownloadedModels()
+        XCTAssertEqual(downloadedModels.count, models.count)
+        XCTAssertEqual(Set(downloadedModels), Set(models.map(\.modelId)))
+    }
+
     func testRegistryUsesImmutableCompleteModelPackage() throws {
         let model = ModelRegistry.shared.defaultModel
         let assets = try XCTUnwrap(model.packageAssets)
@@ -643,6 +665,22 @@ final class ModelPackageIntegrityTests: XCTestCase {
             mmprojURL: URL(string: "https://locanara.test/mmproj.gguf"),
             mmprojSizeMB: 1,
             mmprojChecksum: projectorChecksum
+        )
+    }
+
+    private func makeTextModel(modelId: String) -> DownloadableModelInfo {
+        DownloadableModelInfo(
+            modelId: modelId,
+            name: "Test Model",
+            version: "1",
+            sizeMB: 1,
+            quantization: .int4,
+            contextLength: 1024,
+            downloadURL: URL(string: "https://locanara.test/model.gguf")!,
+            checksum: mainChecksum,
+            minMemoryMB: 1,
+            supportedFeatures: [.chat],
+            promptFormat: .gemma
         )
     }
 

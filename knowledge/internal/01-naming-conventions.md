@@ -58,6 +58,6 @@ error type without discarding useful context or leaking provider internals.
 
 ## Generated Names
 
-GraphQL-generated `Types.swift` and `Types.kt`, plus Nitro generated bridges,
+GraphQL-generated `Types.swift` and `Types.kt`, plus Nitro-generated bridges,
 are outputs. Change the schema/spec and regenerate rather than correcting names
 inside generated files.

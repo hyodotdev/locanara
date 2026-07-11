@@ -403,9 +403,11 @@ export async function rewrite(
  */
 export async function proofread(
   text: string,
-  _options?: ProofreadOptions,
+  options?: ProofreadOptions,
 ): Promise<ProofreadResult> {
-  const result = await AI.instance.proofread(text);
+  const result = await AI.instance.proofread(text, {
+    inputType: options?.inputType ?? "KEYBOARD",
+  });
   return {
     correctedText: result.correctedText,
     corrections: result.corrections.map((c) => ({
@@ -536,7 +538,7 @@ export async function rewriteStreaming(
 
       return {
         rewrittenText: result.rewrittenText,
-        style: result.style as RewriteOptions["outputType"],
+        style: (result.style as RewriteOptions["outputType"]) || undefined,
         confidence: result.confidence,
       };
     } finally {
@@ -580,21 +582,24 @@ export async function describeImage(
 // ──────────────────────────────────────────────────────────────────────────
 
 /**
- * Get available downloadable models (iOS only; Android returns empty).
+ * Get available downloadable models.
+ * iOS only; Android rejects with an explicit unsupported error.
  */
 export async function getAvailableModels(): Promise<DownloadableModelInfo[]> {
   return AI.instance.getAvailableModels();
 }
 
 /**
- * Get IDs of downloaded models (iOS only; Android returns empty).
+ * Get IDs of downloaded models.
+ * iOS only; Android rejects with an explicit unsupported error.
  */
 export async function getDownloadedModels(): Promise<string[]> {
   return AI.instance.getDownloadedModels();
 }
 
 /**
- * Get the currently loaded model ID (iOS only; Android returns null).
+ * Get the currently loaded model ID.
+ * iOS only; Android rejects with an explicit unsupported error.
  */
 export async function getLoadedModel(): Promise<string | null> {
   const model = await AI.instance.getLoadedModel();

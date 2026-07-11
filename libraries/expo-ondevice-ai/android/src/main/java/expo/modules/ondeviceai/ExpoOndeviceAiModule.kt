@@ -219,15 +219,27 @@ class ExpoOndeviceAiModule : Module() {
             // MARK: - Model Management
 
             AsyncFunction("getAvailableModels") { promise: Promise ->
-                promise.resolve(emptyList<Map<String, Any>>())
+                promise.reject(
+                    "ERR_UNSUPPORTED",
+                    "External model catalog is not supported on Android; use getPromptApiStatus()",
+                    null,
+                )
             }
 
             AsyncFunction("getDownloadedModels") { promise: Promise ->
-                promise.resolve(emptyList<String>())
+                promise.reject(
+                    "ERR_UNSUPPORTED",
+                    "External model management is not supported on Android; use getPromptApiStatus()",
+                    null,
+                )
             }
 
             AsyncFunction("getLoadedModel") { promise: Promise ->
-                promise.resolve(null)
+                promise.reject(
+                    "ERR_UNSUPPORTED",
+                    "External model management is not supported on Android; use getCurrentEngine()",
+                    null,
+                )
             }
 
             AsyncFunction("getCurrentEngine") { promise: Promise ->
@@ -422,6 +434,7 @@ class ExpoOndeviceAiModule : Module() {
                     try {
                         val parameters = ExpoOndeviceAiHelper.chatParameters(options)
                         var accumulated = ""
+                        var conversationId = parameters.conversationId
 
                         locanara
                             .chatStream(
@@ -431,6 +444,7 @@ class ExpoOndeviceAiModule : Module() {
                                 conversationId = parameters.conversationId,
                             ).collect { chunk ->
                                 accumulated = chunk.accumulated
+                                conversationId = chunk.conversationId ?: conversationId
                                 sendEvent(
                                     "onChatStreamChunk",
                                     mapOf(
@@ -445,7 +459,7 @@ class ExpoOndeviceAiModule : Module() {
                         promise.resolve(
                             mapOf(
                                 "message" to accumulated,
-                                "conversationId" to parameters.conversationId,
+                                "conversationId" to conversationId,
                                 "canContinue" to true,
                             ),
                         )

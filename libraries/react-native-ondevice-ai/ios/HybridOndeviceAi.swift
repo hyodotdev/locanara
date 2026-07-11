@@ -142,9 +142,22 @@ class HybridOndeviceAi: HybridOndeviceAiSpec {
         }
     }
 
-    func proofread(text: String) throws -> Promise<NitroProofreadResult> {
+    func proofread(text: String, options: NitroProofreadOptions) throws -> Promise<NitroProofreadResult> {
         return Promise.async {
-            let result = try await ProofreadChain().run(text)
+            let execution = try await self.client.executeFeature(
+                ExecuteFeatureInput(
+                    feature: .proofread,
+                    input: text,
+                    parameters: FeatureParametersInput(
+                        proofread: ProofreadParametersInput(
+                            inputType: OndeviceAiHelper.proofreadInputType(from: options)
+                        )
+                    )
+                )
+            )
+            guard case .proofread(let result)? = execution.result else {
+                throw LocanaraError.executionFailed("Unexpected result for PROOFREAD")
+            }
             let corrections = result.corrections.map { c in
                 NitroProofreadCorrection(
                     original: c.original,

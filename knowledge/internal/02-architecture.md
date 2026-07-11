@@ -2,7 +2,7 @@
 
 ## Product Boundary
 
-All prompt inference is on device. There is no cloud inference, server
+All prompt inference is on-device. There is no cloud inference, server
 fallback, provider API key, or user-content telemetry. Network access may be
 used for explicit model/package asset downloads and non-inference site
 features, never as an inference fallback.

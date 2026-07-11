@@ -5,12 +5,27 @@ import com.locanara.FeatureType
 import com.locanara.GeminiNanoInfoAndroid
 import com.locanara.ModelInfo
 import com.locanara.Platform
+import com.locanara.ProofreadInputType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OndeviceAiHelperTest {
+    @Test
+    fun `proofread maps keyboard input`() {
+        val options = NitroProofreadOptions(inputType = NitroProofreadInputType.KEYBOARD)
+
+        assertEquals(ProofreadInputType.KEYBOARD, OndeviceAiHelper.proofreadInputType(options))
+    }
+
+    @Test
+    fun `proofread maps voice input`() {
+        val options = NitroProofreadOptions(inputType = NitroProofreadInputType.VOICE)
+
+        assertEquals(ProofreadInputType.VOICE, OndeviceAiHelper.proofreadInputType(options))
+    }
+
     @Test
     fun `chat parameters preserve the conversation ID`() {
         val options =

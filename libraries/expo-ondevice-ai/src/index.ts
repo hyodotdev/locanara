@@ -353,7 +353,8 @@ export async function describeImage(
 // MARK: - Model Management
 
 /**
- * Get available models for download (iOS only — returns empty on Android)
+ * Get available models for download.
+ * iOS only; Android rejects with an explicit unsupported error.
  */
 export async function getAvailableModels(): Promise<DownloadableModelInfo[]> {
   const models = await ExpoOndeviceAiModule.getAvailableModels();
@@ -362,7 +363,8 @@ export async function getAvailableModels(): Promise<DownloadableModelInfo[]> {
 }
 
 /**
- * Get IDs of downloaded models (iOS only — returns empty on Android)
+ * Get IDs of downloaded models.
+ * iOS only; Android rejects with an explicit unsupported error.
  */
 export async function getDownloadedModels(): Promise<string[]> {
   const ids = await ExpoOndeviceAiModule.getDownloadedModels();
@@ -371,7 +373,8 @@ export async function getDownloadedModels(): Promise<string[]> {
 }
 
 /**
- * Get currently loaded model ID, or null if none loaded
+ * Get currently loaded model ID, or null if none is loaded.
+ * iOS only; Android rejects with an explicit unsupported error.
  */
 export async function getLoadedModel(): Promise<string | null> {
   const id = await ExpoOndeviceAiModule.getLoadedModel();

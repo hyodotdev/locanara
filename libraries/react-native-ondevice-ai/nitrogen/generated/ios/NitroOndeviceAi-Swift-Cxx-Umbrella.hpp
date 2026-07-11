@@ -48,6 +48,10 @@ namespace margelo::nitro::ondeviceai { enum class NitroModelDownloadState; }
 namespace margelo::nitro::ondeviceai { struct NitroModelInfo; }
 // Forward declaration of `NitroProofreadCorrection` to properly resolve imports.
 namespace margelo::nitro::ondeviceai { struct NitroProofreadCorrection; }
+// Forward declaration of `NitroProofreadInputType` to properly resolve imports.
+namespace margelo::nitro::ondeviceai { enum class NitroProofreadInputType; }
+// Forward declaration of `NitroProofreadOptions` to properly resolve imports.
+namespace margelo::nitro::ondeviceai { struct NitroProofreadOptions; }
 // Forward declaration of `NitroProofreadResult` to properly resolve imports.
 namespace margelo::nitro::ondeviceai { struct NitroProofreadResult; }
 // Forward declaration of `NitroRewriteOptions` to properly resolve imports.
@@ -94,6 +98,8 @@ namespace margelo::nitro::ondeviceai { enum class OndeviceAiPlatform; }
 #include "NitroModelDownloadState.hpp"
 #include "NitroModelInfo.hpp"
 #include "NitroProofreadCorrection.hpp"
+#include "NitroProofreadInputType.hpp"
+#include "NitroProofreadOptions.hpp"
 #include "NitroProofreadResult.hpp"
 #include "NitroRewriteOptions.hpp"
 #include "NitroRewriteOutputType.hpp"

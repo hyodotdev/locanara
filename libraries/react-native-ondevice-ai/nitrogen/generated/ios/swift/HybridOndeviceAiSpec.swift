@@ -22,7 +22,7 @@ public protocol HybridOndeviceAiSpec_protocol: HybridObject {
   func chat(message: String, options: Variant_NullType_NitroChatOptions?) throws -> Promise<NitroChatResult>
   func translate(text: String, options: NitroTranslateOptions) throws -> Promise<NitroTranslateResult>
   func rewrite(text: String, options: NitroRewriteOptions) throws -> Promise<NitroRewriteResult>
-  func proofread(text: String) throws -> Promise<NitroProofreadResult>
+  func proofread(text: String, options: NitroProofreadOptions) throws -> Promise<NitroProofreadResult>
   func chatStream(message: String, options: Variant_NullType_NitroChatOptions?) throws -> Promise<NitroChatResult>
   func addChatStreamListener(listener: @escaping (_ chunk: NitroChatStreamChunk) -> Void) throws -> Void
   func removeChatStreamListener(listener: @escaping (_ chunk: NitroChatStreamChunk) -> Void) throws -> Void

@@ -10,6 +10,7 @@ import {
   parseRunMode,
   parseVersions,
   stripLocalMemoryContext,
+  toPosixPath,
   type Versions,
 } from "./compile-context";
 
@@ -65,6 +66,15 @@ describe("AI context compiler", () => {
     const second = await buildAgentContext(versions);
 
     expect(second).toBe(first);
+  });
+
+  it("normalizes embedded source paths across host platforms", () => {
+    expect(toPosixPath("knowledge\\internal\\02-architecture.md")).toBe(
+      "knowledge/internal/02-architecture.md",
+    );
+    expect(toPosixPath("knowledge/internal/02-architecture.md")).toBe(
+      "knowledge/internal/02-architecture.md",
+    );
   });
 
   it("validates every required version key", () => {

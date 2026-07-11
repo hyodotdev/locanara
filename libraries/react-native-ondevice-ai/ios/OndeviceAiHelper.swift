@@ -96,6 +96,15 @@ enum OndeviceAiHelper {
         case .rephrase: return .rephrase
         }
     }
+
+    // MARK: - Proofread
+
+    static func proofreadInputType(from options: NitroProofreadOptions) -> ProofreadInputType {
+        switch options.inputType {
+        case .voice: return .voice
+        case .keyboard: return .keyboard
+        }
+    }
 }
 
 // MARK: - Prefilled Memory

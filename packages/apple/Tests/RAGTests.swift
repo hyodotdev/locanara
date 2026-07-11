@@ -18,8 +18,8 @@ final class RAGTests: XCTestCase {
         let vectorStore = VectorStore(path: dbPath, dimension: 2)
         try await vectorStore.open()
 
-        defer {
-            Task { await vectorStore.close() }
+        addTeardownBlock {
+            await vectorStore.close()
             try? FileManager.default.removeItem(atPath: dbPath)
         }
 
@@ -32,8 +32,10 @@ final class RAGTests: XCTestCase {
 
         try await vectorStore.deleteCollection(id: adversarialID)
 
+        let deletedCollection = try await vectorStore.getCollection(id: adversarialID)
         let retainedCollection = try await vectorStore.getCollection(id: retainedID)
         let retainedDocuments = try await vectorStore.getDocuments(collectionId: retainedID)
+        XCTAssertNil(deletedCollection)
         XCTAssertNotNil(retainedCollection)
         XCTAssertEqual(retainedDocuments.map(\.documentId), ["retained-doc"])
     }
@@ -44,8 +46,8 @@ final class RAGTests: XCTestCase {
         let vectorStore = VectorStore(path: dbPath, dimension: 2)
         try await vectorStore.open()
 
-        defer {
-            Task { await vectorStore.close() }
+        addTeardownBlock {
+            await vectorStore.close()
             try? FileManager.default.removeItem(atPath: dbPath)
         }
 

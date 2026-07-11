@@ -41,6 +41,8 @@ namespace margelo::nitro::ondeviceai { struct NitroRewriteResult; }
 namespace margelo::nitro::ondeviceai { struct NitroRewriteOptions; }
 // Forward declaration of `NitroProofreadResult` to properly resolve imports.
 namespace margelo::nitro::ondeviceai { struct NitroProofreadResult; }
+// Forward declaration of `NitroProofreadOptions` to properly resolve imports.
+namespace margelo::nitro::ondeviceai { struct NitroProofreadOptions; }
 // Forward declaration of `NitroChatStreamChunk` to properly resolve imports.
 namespace margelo::nitro::ondeviceai { struct NitroChatStreamChunk; }
 // Forward declaration of `NitroTextStreamChunk` to properly resolve imports.
@@ -75,6 +77,7 @@ namespace margelo::nitro::ondeviceai { struct NitroModelDownloadProgress; }
 #include "NitroRewriteResult.hpp"
 #include "NitroRewriteOptions.hpp"
 #include "NitroProofreadResult.hpp"
+#include "NitroProofreadOptions.hpp"
 #include "NitroChatStreamChunk.hpp"
 #include <functional>
 #include "NitroTextStreamChunk.hpp"
@@ -124,7 +127,7 @@ namespace margelo::nitro::ondeviceai {
       virtual std::shared_ptr<Promise<NitroChatResult>> chat(const std::string& message, const std::optional<std::variant<nitro::NullType, NitroChatOptions>>& options) = 0;
       virtual std::shared_ptr<Promise<NitroTranslateResult>> translate(const std::string& text, const NitroTranslateOptions& options) = 0;
       virtual std::shared_ptr<Promise<NitroRewriteResult>> rewrite(const std::string& text, const NitroRewriteOptions& options) = 0;
-      virtual std::shared_ptr<Promise<NitroProofreadResult>> proofread(const std::string& text) = 0;
+      virtual std::shared_ptr<Promise<NitroProofreadResult>> proofread(const std::string& text, const NitroProofreadOptions& options) = 0;
       virtual std::shared_ptr<Promise<NitroChatResult>> chatStream(const std::string& message, const std::optional<std::variant<nitro::NullType, NitroChatOptions>>& options) = 0;
       virtual void addChatStreamListener(const std::function<void(const NitroChatStreamChunk& /* chunk */)>& listener) = 0;
       virtual void removeChatStreamListener(const std::function<void(const NitroChatStreamChunk& /* chunk */)>& listener) = 0;

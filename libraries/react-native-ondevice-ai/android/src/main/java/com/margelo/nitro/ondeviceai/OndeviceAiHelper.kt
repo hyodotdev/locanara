@@ -4,6 +4,7 @@ import com.locanara.ChatMessageInput
 import com.locanara.ChatParametersInput
 import com.locanara.DeviceCapability
 import com.locanara.FeatureType
+import com.locanara.ProofreadInputType
 import com.locanara.RewriteOutputType
 import com.locanara.SummarizeInputType
 import com.locanara.SummarizeOutputType
@@ -118,6 +119,16 @@ object OndeviceAiHelper {
             NitroRewriteOutputType.FRIENDLY -> RewriteOutputType.FRIENDLY
             NitroRewriteOutputType.PROFESSIONAL -> RewriteOutputType.PROFESSIONAL
             NitroRewriteOutputType.REPHRASE -> RewriteOutputType.REPHRASE
+        }
+
+    // endregion
+
+    // region Proofread
+
+    fun proofreadInputType(options: NitroProofreadOptions): ProofreadInputType =
+        when (options.inputType) {
+            NitroProofreadInputType.VOICE -> ProofreadInputType.VOICE
+            NitroProofreadInputType.KEYBOARD -> ProofreadInputType.KEYBOARD
         }
 
     // endregion

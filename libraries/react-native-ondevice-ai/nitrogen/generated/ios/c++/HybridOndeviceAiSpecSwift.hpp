@@ -58,6 +58,10 @@ namespace margelo::nitro::ondeviceai { enum class NitroRewriteOutputType; }
 namespace margelo::nitro::ondeviceai { struct NitroProofreadResult; }
 // Forward declaration of `NitroProofreadCorrection` to properly resolve imports.
 namespace margelo::nitro::ondeviceai { struct NitroProofreadCorrection; }
+// Forward declaration of `NitroProofreadOptions` to properly resolve imports.
+namespace margelo::nitro::ondeviceai { struct NitroProofreadOptions; }
+// Forward declaration of `NitroProofreadInputType` to properly resolve imports.
+namespace margelo::nitro::ondeviceai { enum class NitroProofreadInputType; }
 // Forward declaration of `NitroChatStreamChunk` to properly resolve imports.
 namespace margelo::nitro::ondeviceai { struct NitroChatStreamChunk; }
 // Forward declaration of `NitroTextStreamChunk` to properly resolve imports.
@@ -104,6 +108,8 @@ namespace margelo::nitro::ondeviceai { enum class NitroModelDownloadState; }
 #include "NitroRewriteOutputType.hpp"
 #include "NitroProofreadResult.hpp"
 #include "NitroProofreadCorrection.hpp"
+#include "NitroProofreadOptions.hpp"
+#include "NitroProofreadInputType.hpp"
 #include "NitroChatStreamChunk.hpp"
 #include <functional>
 #include "NitroTextStreamChunk.hpp"
@@ -222,8 +228,8 @@ namespace margelo::nitro::ondeviceai {
       auto __value = std::move(__result.value());
       return __value;
     }
-    inline std::shared_ptr<Promise<NitroProofreadResult>> proofread(const std::string& text) override {
-      auto __result = _swiftPart.proofread(text);
+    inline std::shared_ptr<Promise<NitroProofreadResult>> proofread(const std::string& text, const NitroProofreadOptions& options) override {
+      auto __result = _swiftPart.proofread(text, std::forward<decltype(options)>(options));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

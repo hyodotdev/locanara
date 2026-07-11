@@ -52,6 +52,7 @@ class Locanara private constructor(
 
     @Volatile
     private var deviceCapability: DeviceCapability? = null
+    @Volatile
     private var geminiNanoInfo: GeminiNanoInfoAndroid? = null
     private var lastCapabilitySnapshot: AndroidCapabilityStatusSnapshot? = null
     private val contexts = mutableMapOf<String, ExecutionContext>()

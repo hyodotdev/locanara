@@ -177,13 +177,21 @@ async function listMarkdownFiles(directory: string): Promise<string[]> {
   return files.sort();
 }
 
+export function toPosixPath(filePath: string): string {
+  return filePath.replaceAll(path.win32.sep, path.posix.sep);
+}
+
+function relativePosix(from: string, to: string): string {
+  return toPosixPath(path.relative(from, to));
+}
+
 async function readInternalKnowledge(): Promise<
   Array<{ source: string; content: string }>
 > {
   const directory = path.join(CONFIG.knowledgeRoot, "internal");
   const files = await listMarkdownFiles(directory);
   const actualNames = files.map((filePath) =>
-    path.relative(directory, filePath),
+    relativePosix(directory, filePath),
   );
   const allowed = new Set<string>(INTERNAL_KNOWLEDGE_ALLOWLIST);
   const unexpected = actualNames.filter((name) => !allowed.has(name));
@@ -204,7 +212,7 @@ async function readInternalKnowledge(): Promise<
   return INTERNAL_KNOWLEDGE_ALLOWLIST.map((name) => {
     const filePath = path.join(directory, name);
     return {
-      source: path.relative(CONFIG.projectRoot, filePath),
+      source: relativePosix(CONFIG.projectRoot, filePath),
       content: readText(filePath),
     };
   });
@@ -213,7 +221,7 @@ async function readInternalKnowledge(): Promise<
 async function listExternalReferences(): Promise<string[]> {
   const directory = path.join(CONFIG.knowledgeRoot, "external");
   const files = await listMarkdownFiles(directory);
-  return files.map((filePath) => path.relative(CONFIG.projectRoot, filePath));
+  return files.map((filePath) => relativePosix(CONFIG.projectRoot, filePath));
 }
 
 function renderVersionStatus(drift: VersionDrift[]): string {
@@ -513,7 +521,7 @@ function writeOutputs(outputs: Map<string, string>): void {
       fs.renameSync(tempPath, filePath);
       console.log(
         chalk.green(
-          `  wrote ${path.relative(CONFIG.projectRoot, filePath)} (${Buffer.byteLength(content, "utf-8")} bytes)`,
+          `  wrote ${relativePosix(CONFIG.projectRoot, filePath)} (${Buffer.byteLength(content, "utf-8")} bytes)`,
         ),
       );
     }
@@ -534,7 +542,7 @@ function checkOutputs(outputs: Map<string, string>): void {
       !fs.existsSync(filePath) ||
       fs.readFileSync(filePath, "utf-8") !== content
     ) {
-      stale.push(path.relative(CONFIG.projectRoot, filePath));
+      stale.push(relativePosix(CONFIG.projectRoot, filePath));
     }
   }
 

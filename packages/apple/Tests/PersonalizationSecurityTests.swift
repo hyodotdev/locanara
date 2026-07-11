@@ -9,8 +9,8 @@ final class PersonalizationSecurityTests: XCTestCase {
         let collector = FeedbackCollector(databasePath: dbPath)
         try await collector.initialize()
 
-        defer {
-            Task { await collector.shutdown() }
+        addTeardownBlock {
+            await collector.shutdown()
             try? FileManager.default.removeItem(atPath: dbPath)
         }
 

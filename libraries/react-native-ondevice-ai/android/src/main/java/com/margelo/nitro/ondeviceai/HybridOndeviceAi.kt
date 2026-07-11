@@ -180,7 +180,10 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
         return requireFeatureResult(execution, FeatureType.REWRITE)
     }
 
-    private suspend fun proofreadWithLocanara(text: String): ProofreadResult {
+    private suspend fun proofreadWithLocanara(
+        text: String,
+        options: NitroProofreadOptions,
+    ): ProofreadResult {
         val execution =
             locanara.executeFeature(
                 ExecuteFeatureInput(
@@ -188,7 +191,10 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
                     input = text,
                     parameters =
                         FeatureParametersInput(
-                            proofread = ProofreadParametersInput(),
+                            proofread =
+                                ProofreadParametersInput(
+                                    inputType = OndeviceAiHelper.proofreadInputType(options),
+                                ),
                         ),
                 ),
             )
@@ -325,9 +331,12 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
             )
         }
 
-    override fun proofread(text: String): Promise<NitroProofreadResult> =
+    override fun proofread(
+        text: String,
+        options: NitroProofreadOptions,
+    ): Promise<NitroProofreadResult> =
         Promise.async {
-            val result = proofreadWithLocanara(text)
+            val result = proofreadWithLocanara(text, options)
             val corrections =
                 result.corrections.map { c ->
                     NitroProofreadCorrection(
@@ -470,11 +479,29 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
     // Model Management (Android: Prompt API only, no external models)
     // ──────────────────────────────────────────────────────────────────
 
-    override fun getAvailableModels(): Promise<Array<NitroModelInfo>> = Promise.async { emptyArray() }
+    override fun getAvailableModels(): Promise<Array<NitroModelInfo>> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "External model catalog is not supported on Android; use getPromptApiStatus()",
+            )
+        }
 
-    override fun getDownloadedModels(): Promise<Array<String>> = Promise.async { emptyArray() }
+    override fun getDownloadedModels(): Promise<Array<String>> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "External model management is not supported on Android; use getPromptApiStatus()",
+            )
+        }
 
-    override fun getLoadedModel(): Promise<String> = Promise.async { "" }
+    override fun getLoadedModel(): Promise<String> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "External model management is not supported on Android; use getCurrentEngine()",
+            )
+        }
 
     override fun getCurrentEngine(): Promise<NitroInferenceEngine> =
         Promise.async {

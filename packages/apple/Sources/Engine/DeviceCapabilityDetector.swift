@@ -206,9 +206,10 @@ public final class DeviceCapabilityDetector: Sendable {
             )
         }
 
+        let minimumMemoryMB = ModelRegistry.shared.defaultModel.minMemoryMB
         return EngineRecommendation(
             recommended: .none,
-            reason: "Device does not meet minimum requirements (4GB RAM, A12+ chip)",
+            reason: "Device does not meet minimum requirements (\(minimumMemoryMB)MB RAM, A12+ chip)",
             alternatives: []
         )
     }
@@ -445,14 +446,9 @@ public final class DeviceCapabilityDetector: Sendable {
 
     private func recommendModel(totalMemoryMB: Int, hasNeuralEngine: Bool) -> String? {
         guard hasNeuralEngine else { return nil }
-
-        // Locanara uses a single model: Gemma-2-2B-it
-        // Requires 4GB+ RAM (iPhone 13 mini and newer)
-        if totalMemoryMB >= 4000 {
-            return "gemma-2-2b-it-q4"
-        }
-
-        return nil
+        return ModelRegistry.shared
+            .getRecommendedModel(forMemoryMB: totalMemoryMB)?
+            .modelId
     }
 }
 

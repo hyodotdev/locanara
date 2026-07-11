@@ -692,7 +692,7 @@ error type without discarding useful context or leaking provider internals.
 
 ## Generated Names
 
-GraphQL-generated `Types.swift` and `Types.kt`, plus Nitro generated bridges,
+GraphQL-generated `Types.swift` and `Types.kt`, plus Nitro-generated bridges,
 are outputs. Change the schema/spec and regenerate rather than correcting names
 inside generated files.
 
@@ -704,7 +704,7 @@ inside generated files.
 
 ## Product Boundary
 
-All prompt inference is on device. There is no cloud inference, server
+All prompt inference is on-device. There is no cloud inference, server
 fallback, provider API key, or user-content telemetry. Network access may be
 used for explicit model/package asset downloads and non-inference site
 features, never as an inference fallback.

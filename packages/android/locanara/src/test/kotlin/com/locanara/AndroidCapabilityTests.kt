@@ -10,8 +10,10 @@ import com.locanara.mlkit.mlKitTaskFeatures
 import com.locanara.mlkit.mapCapabilityCheckFailure
 import com.locanara.mlkit.meetsAndroidMinimumRequirements
 import com.locanara.mlkit.probeFeatureStatus
+import com.locanara.mlkit.probePromptStatus
 import com.locanara.mlkit.promptApiFeatures
 import com.locanara.mlkit.validateGeminiNanoVariant
+import java.lang.reflect.Modifier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -26,6 +28,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AndroidCapabilityTests {
+    @Test
+    fun `Gemini Nano info has cross-thread visibility`() {
+        val field = Locanara::class.java.getDeclaredField("geminiNanoInfo")
+
+        assertTrue(Modifier.isVolatile(field.modifiers))
+    }
+
     @Test
     fun `only available features are reported ready`() {
         val snapshot = AndroidCapabilityStatusSnapshot(
@@ -161,6 +170,26 @@ class AndroidCapabilityTests {
         try {
             runBlocking {
                 probeFeatureStatus { throw CancellationException("cancelled") }
+            }
+            throw AssertionError("Expected cancellation to propagate")
+        } catch (error: CancellationException) {
+            assertEquals("cancelled", error.message)
+        }
+    }
+
+    @Test
+    fun `prompt probing degrades failures but preserves cancellation`() {
+        val status = runBlocking {
+            probePromptStatus { throw IllegalStateException("probe failed") }
+        }
+        assertEquals(
+            PromptApiStatus.NotAvailable("Failed to check Prompt API status"),
+            status
+        )
+
+        try {
+            runBlocking {
+                probePromptStatus { throw CancellationException("cancelled") }
             }
             throw AssertionError("Expected cancellation to propagate")
         } catch (error: CancellationException) {
