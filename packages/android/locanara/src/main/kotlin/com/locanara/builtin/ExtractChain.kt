@@ -29,10 +29,8 @@ class ExtractChain(
             mapOf("text" to input.text, "entityTypes" to entityTypes.joinToString(", "))
         )
 
-        println("[ExtractChain] input: ${input.text.take(200)}")
         val response = model.generate(prompt, GenerationConfig.STRUCTURED)
         val text = response.text.trim()
-        println("[ExtractChain] output: $text")
 
         val entities = text.lines()
             .filter { it.isNotBlank() }

@@ -1,28 +1,14 @@
 # /skills-index
 
-Shows all available skills and their usage for the Locanara project.
+Show the current Locanara workflow catalog.
 
-## Instructions
+## Workflow
 
-When this command is executed:
+1. Read `SKILLS_INDEX.md` as the catalog source.
+2. Present its command, scope, required outcome, source-of-truth map, and
+   guardrails without inventing status fields or missing commands.
+3. If the user has a concrete task, recommend the smallest matching workflow
+   and its relevant package guide.
 
-1. Read the `SKILLS_INDEX.md` file and display to user
-2. Show the status of each skill (Active/Planned)
-3. Provide main commands and usage examples
-
-## Implementation
-
-```text
-# Read SKILLS_INDEX.md file
-cat SKILLS_INDEX.md
-```
-
-## Output Format
-
-Display skills list in the following format:
-
-- Skill name
-- Location path
-- Main features
-- Status (Active/Planned)
-- Main commands list
+This command is read-only. `AGENTS.md` remains the higher-priority repository
+policy when the catalog and another source disagree.

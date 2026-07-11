@@ -48,8 +48,6 @@ public struct ProofreadChain: Chain {
     // MARK: - Invoke
 
     public func invoke(_ input: ChainInput) async throws -> ChainOutput {
-        print("[ProofreadChain] input: \(input.text.prefix(200))")
-
         let startTime = Date()
 
         // Try structured generation first (Apple Intelligence)
@@ -66,8 +64,6 @@ public struct ProofreadChain: Chain {
             if let output: ProofreadOutput = try await model.generateStructured(prompt: prompt, type: ProofreadOutput.self) {
                 let correctedText = output.correctedText.trimmingCharacters(in: .whitespacesAndNewlines)
                 let elapsed = Int(Date().timeIntervalSince(startTime) * 1000)
-                print("[ProofreadChain] output (structured): \(correctedText)")
-
                 var searchStart = input.text.startIndex
                 let corrections = output.corrections.map { c in
                     var correction = ProofreadCorrection(
@@ -109,8 +105,6 @@ public struct ProofreadChain: Chain {
 
         let response = try await model.generate(prompt: prompt, config: .structured)
         let corrected = BuiltInPrompts.stripPreamble(response.text.trimmingCharacters(in: .whitespacesAndNewlines))
-        print("[ProofreadChain] output (text): \(corrected)")
-
         let result = ProofreadResult(
             correctedText: corrected,
             corrections: [],

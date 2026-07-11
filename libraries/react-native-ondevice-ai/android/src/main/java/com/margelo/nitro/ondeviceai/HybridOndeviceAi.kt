@@ -1,33 +1,34 @@
 package com.margelo.nitro.ondeviceai
 
-import android.app.ActivityManager
-import android.content.Context
 import com.facebook.react.bridge.ReactApplicationContext
-import com.locanara.DeviceCapability
+import com.locanara.ChatResult
+import com.locanara.ClassifyParametersInput
+import com.locanara.ClassifyResult
+import com.locanara.ErrorCode
+import com.locanara.ExecuteFeatureInput
+import com.locanara.ExecutionResult
+import com.locanara.ExtractParametersInput
+import com.locanara.ExtractResult
+import com.locanara.FeatureParametersInput
 import com.locanara.FeatureType
 import com.locanara.Locanara
+import com.locanara.LocanaraException
 import com.locanara.Platform
-import com.locanara.builtin.ChatChain
-import com.locanara.builtin.ClassifyChain
-import com.locanara.builtin.ExtractChain
-import com.locanara.builtin.ProofreadChain
-import com.locanara.builtin.RewriteChain
-import com.locanara.builtin.SummarizeChain
-import com.locanara.builtin.TranslateChain
-import com.locanara.core.LocanaraDefaults
-import com.locanara.engine.ModelRegistry
+import com.locanara.ProofreadParametersInput
+import com.locanara.ProofreadResult
+import com.locanara.RewriteParametersInput
+import com.locanara.RewriteResult
+import com.locanara.SummarizeParametersInput
+import com.locanara.SummarizeResult
+import com.locanara.TranslateParametersInput
+import com.locanara.TranslateResult
 import com.locanara.mlkit.PromptApiStatus
-import com.locanara.platform.PromptApiModel
 import com.margelo.nitro.NitroModules
 import com.margelo.nitro.core.Promise
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 
 class HybridOndeviceAi : HybridOndeviceAiSpec() {
-
     private val context: ReactApplicationContext by lazy {
         NitroModules.applicationContext as ReactApplicationContext
     }
@@ -36,9 +37,6 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
         Locanara.getInstance(context.applicationContext)
     }
 
-    private val job = SupervisorJob()
-    private val scope = CoroutineScope(job + Dispatchers.Main)
-
     // Listener storage (thread-safe)
     private val chatStreamListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroChatStreamChunk) -> Unit>()
     private val summarizeStreamListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroTextStreamChunk) -> Unit>()
@@ -46,37 +44,175 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
     private val rewriteStreamListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroTextStreamChunk) -> Unit>()
     private val modelDownloadProgressListeners = java.util.concurrent.CopyOnWriteArrayList<(NitroModelDownloadProgress) -> Unit>()
 
-    // Simulated model state (matches native example behavior)
-    private val downloadedModelIds = mutableSetOf<String>()
-    private var loadedModelId: String? = null
+    private inline fun <reified T> requireFeatureResult(
+        execution: ExecutionResult,
+        feature: FeatureType,
+    ): T =
+        execution.result as? T
+            ?: throw LocanaraException.ExecutionFailed("Unexpected result for ${feature.name}")
 
-    private fun getDeviceMemoryMB(): Int {
-        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val memInfo = ActivityManager.MemoryInfo()
-        am.getMemoryInfo(memInfo)
-        return (memInfo.totalMem / (1024 * 1024)).toInt()
+    private suspend fun summarizeWithLocanara(
+        text: String,
+        options: Variant_NullType_NitroSummarizeOptions?,
+    ): SummarizeResult {
+        val execution =
+            locanara.executeFeature(
+                ExecuteFeatureInput(
+                    feature = FeatureType.SUMMARIZE,
+                    input = text,
+                    parameters =
+                        FeatureParametersInput(
+                            summarize =
+                                SummarizeParametersInput(
+                                    inputType = OndeviceAiHelper.summarizeInputType(options),
+                                    outputType = OndeviceAiHelper.summarizeOutputType(options),
+                                ),
+                        ),
+                ),
+            )
+        return requireFeatureResult(execution, FeatureType.SUMMARIZE)
+    }
+
+    private suspend fun classifyWithLocanara(
+        text: String,
+        options: Variant_NullType_NitroClassifyOptions?,
+    ): ClassifyResult {
+        val (categories, maxResults) = OndeviceAiHelper.classifyOptions(options)
+        val execution =
+            locanara.executeFeature(
+                ExecuteFeatureInput(
+                    feature = FeatureType.CLASSIFY,
+                    input = text,
+                    parameters =
+                        FeatureParametersInput(
+                            classify =
+                                ClassifyParametersInput(
+                                    categories = categories,
+                                    maxResults = maxResults,
+                                ),
+                        ),
+                ),
+            )
+        return requireFeatureResult(execution, FeatureType.CLASSIFY)
+    }
+
+    private suspend fun extractWithLocanara(
+        text: String,
+        options: Variant_NullType_NitroExtractOptions?,
+    ): ExtractResult {
+        val execution =
+            locanara.executeFeature(
+                ExecuteFeatureInput(
+                    feature = FeatureType.EXTRACT,
+                    input = text,
+                    parameters =
+                        FeatureParametersInput(
+                            extract =
+                                ExtractParametersInput(
+                                    entityTypes = OndeviceAiHelper.entityTypes(options),
+                                    extractKeyValues = false,
+                                ),
+                        ),
+                ),
+            )
+        return requireFeatureResult(execution, FeatureType.EXTRACT)
+    }
+
+    private suspend fun chatWithLocanara(
+        message: String,
+        options: Variant_NullType_NitroChatOptions?,
+    ): ChatResult {
+        val execution =
+            locanara.executeFeature(
+                ExecuteFeatureInput(
+                    feature = FeatureType.CHAT,
+                    input = message,
+                    parameters =
+                        FeatureParametersInput(
+                            chat = OndeviceAiHelper.chatParameters(options),
+                        ),
+                ),
+            )
+        return requireFeatureResult(execution, FeatureType.CHAT)
+    }
+
+    private suspend fun translateWithLocanara(
+        text: String,
+        options: NitroTranslateOptions,
+    ): TranslateResult {
+        val (source, target) = OndeviceAiHelper.translateOptions(options)
+        val execution =
+            locanara.executeFeature(
+                ExecuteFeatureInput(
+                    feature = FeatureType.TRANSLATE,
+                    input = text,
+                    parameters =
+                        FeatureParametersInput(
+                            translate =
+                                TranslateParametersInput(
+                                    sourceLanguage = source,
+                                    targetLanguage = target,
+                                ),
+                        ),
+                ),
+            )
+        return requireFeatureResult(execution, FeatureType.TRANSLATE)
+    }
+
+    private suspend fun rewriteWithLocanara(
+        text: String,
+        options: NitroRewriteOptions,
+    ): RewriteResult {
+        val execution =
+            locanara.executeFeature(
+                ExecuteFeatureInput(
+                    feature = FeatureType.REWRITE,
+                    input = text,
+                    parameters =
+                        FeatureParametersInput(
+                            rewrite =
+                                RewriteParametersInput(
+                                    outputType = OndeviceAiHelper.rewriteStyle(options),
+                                ),
+                        ),
+                ),
+            )
+        return requireFeatureResult(execution, FeatureType.REWRITE)
+    }
+
+    private suspend fun proofreadWithLocanara(text: String): ProofreadResult {
+        val execution =
+            locanara.executeFeature(
+                ExecuteFeatureInput(
+                    feature = FeatureType.PROOFREAD,
+                    input = text,
+                    parameters =
+                        FeatureParametersInput(
+                            proofread = ProofreadParametersInput(),
+                        ),
+                ),
+            )
+        return requireFeatureResult(execution, FeatureType.PROOFREAD)
     }
 
     // ──────────────────────────────────────────────────────────────────
     // Initialization
     // ──────────────────────────────────────────────────────────────────
 
-    override fun initialize(): Promise<Boolean> {
-        return Promise.async {
+    override fun initialize(): Promise<Boolean> =
+        Promise.async {
             locanara.initializeSDK(Platform.ANDROID)
-            LocanaraDefaults.model = PromptApiModel(context.applicationContext)
             true
         }
-    }
 
-    override fun getDeviceCapability(): Promise<NitroDeviceCapability> {
-        return Promise.async {
+    override fun getDeviceCapability(): Promise<NitroDeviceCapability> =
+        Promise.async {
             val capability = locanara.getDeviceCapability()
             val availableSet = capability.availableFeatures.toSet()
 
             NitroDeviceCapability(
-                isSupported = capability.supportsOnDeviceAI,
-                isModelReady = capability.modelInfo?.isLoaded == true,
+                isSupported = OndeviceAiHelper.isWrapperSupported(capability),
+                isModelReady = OndeviceAiHelper.isWrapperReady(capability),
                 supportsAppleIntelligence = false,
                 platform = OndeviceAiPlatform.GOOGLE,
                 featureSummarize = availableSet.contains(FeatureType.SUMMARIZE),
@@ -90,17 +226,17 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
                 isLowPowerMode = capability.isLowPowerMode,
             )
         }
-    }
 
     // ──────────────────────────────────────────────────────────────────
     // AI Features
     // ──────────────────────────────────────────────────────────────────
 
-    override fun summarize(text: String, options: Variant_NullType_NitroSummarizeOptions?): Promise<NitroSummarizeResult> {
-        return Promise.async {
-            val bulletCount = OndeviceAiHelper.bulletCount(options)
-            val inputType = OndeviceAiHelper.inputType(options)
-            val result = SummarizeChain(bulletCount = bulletCount, inputType = inputType).run(text)
+    override fun summarize(
+        text: String,
+        options: Variant_NullType_NitroSummarizeOptions?,
+    ): Promise<NitroSummarizeResult> =
+        Promise.async {
+            val result = summarizeWithLocanara(text, options)
             NitroSummarizeResult(
                 summary = result.summary,
                 originalLength = result.originalLength.toDouble(),
@@ -108,60 +244,66 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
                 confidence = result.confidence ?: 0.0,
             )
         }
-    }
 
-    override fun classify(text: String, options: Variant_NullType_NitroClassifyOptions?): Promise<NitroClassifyResult> {
-        return Promise.async {
-            val (categories, maxResults) = OndeviceAiHelper.classifyOptions(options)
-            val result = ClassifyChain(categories = categories, maxResults = maxResults).run(text)
-            val classifications = result.classifications.map { c ->
-                NitroClassification(
-                    label = c.label,
-                    score = c.score,
-                    metadata = c.metadata ?: "",
-                )
-            }
+    override fun classify(
+        text: String,
+        options: Variant_NullType_NitroClassifyOptions?,
+    ): Promise<NitroClassifyResult> =
+        Promise.async {
+            val result = classifyWithLocanara(text, options)
+            val classifications =
+                result.classifications.map { c ->
+                    NitroClassification(
+                        label = c.label,
+                        score = c.score,
+                        metadata = c.metadata ?: "",
+                    )
+                }
             NitroClassifyResult(
                 classifications = classifications.toTypedArray(),
                 topLabel = result.topClassification.label,
                 topScore = result.topClassification.score,
             )
         }
-    }
 
-    override fun extract(text: String, options: Variant_NullType_NitroExtractOptions?): Promise<NitroExtractResult> {
-        return Promise.async {
-            val entityTypes = OndeviceAiHelper.entityTypes(options)
-            val result = ExtractChain(entityTypes = entityTypes).run(text)
-            val entities = result.entities.map { e ->
-                NitroExtractEntity(
-                    type = e.type,
-                    value = e.value,
-                    confidence = e.confidence,
-                    startPos = (e.startPos ?: 0).toDouble(),
-                    endPos = (e.endPos ?: 0).toDouble(),
-                )
-            }
+    override fun extract(
+        text: String,
+        options: Variant_NullType_NitroExtractOptions?,
+    ): Promise<NitroExtractResult> =
+        Promise.async {
+            val result = extractWithLocanara(text, options)
+            val entities =
+                result.entities.map { e ->
+                    NitroExtractEntity(
+                        type = e.type,
+                        value = e.value,
+                        confidence = e.confidence,
+                        startPos = (e.startPos ?: 0).toDouble(),
+                        endPos = (e.endPos ?: 0).toDouble(),
+                    )
+                }
             NitroExtractResult(entities = entities.toTypedArray())
         }
-    }
 
-    override fun chat(message: String, options: Variant_NullType_NitroChatOptions?): Promise<NitroChatResult> {
-        return Promise.async {
-            val (systemPrompt, memory) = OndeviceAiHelper.chatOptions(options)
-            val result = ChatChain(memory = memory, systemPrompt = systemPrompt).run(message)
+    override fun chat(
+        message: String,
+        options: Variant_NullType_NitroChatOptions?,
+    ): Promise<NitroChatResult> =
+        Promise.async {
+            val result = chatWithLocanara(message, options)
             NitroChatResult(
                 message = result.message,
                 conversationId = result.conversationId ?: "",
                 canContinue = result.canContinue,
             )
         }
-    }
 
-    override fun translate(text: String, options: NitroTranslateOptions): Promise<NitroTranslateResult> {
-        return Promise.async {
-            val (source, target) = OndeviceAiHelper.translateOptions(options)
-            val result = TranslateChain(sourceLanguage = source, targetLanguage = target).run(text)
+    override fun translate(
+        text: String,
+        options: NitroTranslateOptions,
+    ): Promise<NitroTranslateResult> =
+        Promise.async {
+            val result = translateWithLocanara(text, options)
             NitroTranslateResult(
                 translatedText = result.translatedText,
                 sourceLanguage = result.sourceLanguage,
@@ -169,62 +311,57 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
                 confidence = result.confidence ?: 0.0,
             )
         }
-    }
 
-    override fun rewrite(text: String, options: NitroRewriteOptions): Promise<NitroRewriteResult> {
-        return Promise.async {
-            val style = OndeviceAiHelper.rewriteStyle(options)
-            val result = RewriteChain(style = style).run(text)
+    override fun rewrite(
+        text: String,
+        options: NitroRewriteOptions,
+    ): Promise<NitroRewriteResult> =
+        Promise.async {
+            val result = rewriteWithLocanara(text, options)
             NitroRewriteResult(
                 rewrittenText = result.rewrittenText,
                 style = result.style?.name ?: "",
                 confidence = result.confidence ?: 0.0,
             )
         }
-    }
 
-    override fun proofread(text: String): Promise<NitroProofreadResult> {
-        return Promise.async {
-            val result = ProofreadChain().run(text)
-            val corrections = result.corrections.map { c ->
-                NitroProofreadCorrection(
-                    original = c.original,
-                    corrected = c.corrected,
-                    type = c.type ?: "",
-                    confidence = c.confidence ?: 0.0,
-                    startPos = (c.startPos ?: 0).toDouble(),
-                    endPos = (c.endPos ?: 0).toDouble(),
-                )
-            }
+    override fun proofread(text: String): Promise<NitroProofreadResult> =
+        Promise.async {
+            val result = proofreadWithLocanara(text)
+            val corrections =
+                result.corrections.map { c ->
+                    NitroProofreadCorrection(
+                        original = c.original,
+                        corrected = c.corrected,
+                        type = c.type ?: "",
+                        confidence = c.confidence ?: 0.0,
+                        startPos = (c.startPos ?: 0).toDouble(),
+                        endPos = (c.endPos ?: 0).toDouble(),
+                    )
+                }
             NitroProofreadResult(
                 correctedText = result.correctedText,
                 corrections = corrections.toTypedArray(),
                 hasCorrections = result.hasCorrections,
             )
         }
-    }
 
     // ──────────────────────────────────────────────────────────────────
     // Streaming Variants (Summarize / Translate / Rewrite)
-    // Chains don't expose token-level streaming, so we emit a single
-    // final chunk after the regular run completes.
+    // Android does not expose these as streaming operations yet. Keep the
+    // public surface explicit instead of simulating a stream with one chunk.
     // ──────────────────────────────────────────────────────────────────
 
-    override fun summarizeStreaming(text: String, options: Variant_NullType_NitroSummarizeOptions?): Promise<NitroSummarizeResult> {
-        return Promise.async {
-            val bulletCount = OndeviceAiHelper.bulletCount(options)
-            val inputType = OndeviceAiHelper.inputType(options)
-            val result = SummarizeChain(bulletCount = bulletCount, inputType = inputType).run(text)
-            val chunk = NitroTextStreamChunk(delta = result.summary, accumulated = result.summary, isFinal = true)
-            summarizeStreamListeners.forEach { it(chunk) }
-            NitroSummarizeResult(
-                summary = result.summary,
-                originalLength = result.originalLength.toDouble(),
-                summaryLength = result.summaryLength.toDouble(),
-                confidence = result.confidence ?: 0.0,
+    override fun summarizeStreaming(
+        text: String,
+        options: Variant_NullType_NitroSummarizeOptions?,
+    ): Promise<NitroSummarizeResult> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "summarizeStreaming is not supported on Android",
             )
         }
-    }
 
     override fun addSummarizeStreamListener(listener: (NitroTextStreamChunk) -> Unit) {
         summarizeStreamListeners.add(listener)
@@ -234,20 +371,16 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
         summarizeStreamListeners.remove(listener)
     }
 
-    override fun translateStreaming(text: String, options: NitroTranslateOptions): Promise<NitroTranslateResult> {
-        return Promise.async {
-            val (source, target) = OndeviceAiHelper.translateOptions(options)
-            val result = TranslateChain(sourceLanguage = source, targetLanguage = target).run(text)
-            val chunk = NitroTextStreamChunk(delta = result.translatedText, accumulated = result.translatedText, isFinal = true)
-            translateStreamListeners.forEach { it(chunk) }
-            NitroTranslateResult(
-                translatedText = result.translatedText,
-                sourceLanguage = result.sourceLanguage,
-                targetLanguage = result.targetLanguage,
-                confidence = result.confidence ?: 0.0,
+    override fun translateStreaming(
+        text: String,
+        options: NitroTranslateOptions,
+    ): Promise<NitroTranslateResult> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "translateStreaming is not supported on Android",
             )
         }
-    }
 
     override fun addTranslateStreamListener(listener: (NitroTextStreamChunk) -> Unit) {
         translateStreamListeners.add(listener)
@@ -257,19 +390,16 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
         translateStreamListeners.remove(listener)
     }
 
-    override fun rewriteStreaming(text: String, options: NitroRewriteOptions): Promise<NitroRewriteResult> {
-        return Promise.async {
-            val style = OndeviceAiHelper.rewriteStyle(options)
-            val result = RewriteChain(style = style).run(text)
-            val chunk = NitroTextStreamChunk(delta = result.rewrittenText, accumulated = result.rewrittenText, isFinal = true)
-            rewriteStreamListeners.forEach { it(chunk) }
-            NitroRewriteResult(
-                rewrittenText = result.rewrittenText,
-                style = result.style?.name ?: "",
-                confidence = result.confidence ?: 0.0,
+    override fun rewriteStreaming(
+        text: String,
+        options: NitroRewriteOptions,
+    ): Promise<NitroRewriteResult> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "rewriteStreaming is not supported on Android",
             )
         }
-    }
 
     override fun addRewriteStreamListener(listener: (NitroTextStreamChunk) -> Unit) {
         rewriteStreamListeners.add(listener)
@@ -279,39 +409,44 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
         rewriteStreamListeners.remove(listener)
     }
 
-    override fun describeImage(imageUri: String, options: Variant_NullType_NitroDescribeImageOptions?): Promise<NitroDescribeImageResult> {
-        return Promise.async {
-            throw Exception("describeImage is not supported on Android. This feature requires the Web SDK (Chrome Built-in AI).")
+    override fun describeImage(
+        imageUri: String,
+        options: Variant_NullType_NitroDescribeImageOptions?,
+    ): Promise<NitroDescribeImageResult> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "describeImage is not supported by the Android wrapper because native image URIs are not bridged",
+            )
         }
-    }
 
     // ──────────────────────────────────────────────────────────────────
     // Chat Streaming
     // ──────────────────────────────────────────────────────────────────
 
-    override fun chatStream(message: String, options: Variant_NullType_NitroChatOptions?): Promise<NitroChatResult> {
-        return Promise.async {
-            val (systemPrompt, memory) = OndeviceAiHelper.chatOptions(options)
-            val chain = ChatChain(memory = memory, systemPrompt = systemPrompt)
+    override fun chatStream(
+        message: String,
+        options: Variant_NullType_NitroChatOptions?,
+    ): Promise<NitroChatResult> =
+        Promise.async {
+            val parameters = OndeviceAiHelper.chatParameters(options)
             var accumulated = ""
 
-            chain.streamRun(message).collect { chunk ->
-                accumulated += chunk
-                val streamChunk = NitroChatStreamChunk(
-                    delta = chunk,
-                    accumulated = accumulated,
-                    isFinal = false,
-                )
-                chatStreamListeners.forEach { it(streamChunk) }
-            }
-
-            // Send final chunk
-            val finalChunk = NitroChatStreamChunk(
-                delta = "",
-                accumulated = accumulated,
-                isFinal = true,
-            )
-            chatStreamListeners.forEach { it(finalChunk) }
+            locanara
+                .chatStream(
+                    message = message,
+                    systemPrompt = parameters.systemPrompt,
+                    history = parameters.history,
+                ).collect { chunk ->
+                    accumulated = chunk.accumulated
+                    val streamChunk =
+                        NitroChatStreamChunk(
+                            delta = chunk.delta,
+                            accumulated = chunk.accumulated,
+                            isFinal = chunk.isFinal,
+                        )
+                    chatStreamListeners.forEach { it(streamChunk) }
+                }
 
             NitroChatResult(
                 message = accumulated,
@@ -319,7 +454,6 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
                 canContinue = true,
             )
         }
-    }
 
     override fun addChatStreamListener(listener: (NitroChatStreamChunk) -> Unit) {
         chatStreamListeners.add(listener)
@@ -333,53 +467,27 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
     // Model Management (Android: Prompt API only, no external models)
     // ──────────────────────────────────────────────────────────────────
 
-    override fun getAvailableModels(): Promise<Array<NitroModelInfo>> {
-        return Promise.async {
-            val memoryMB = getDeviceMemoryMB()
-            ModelRegistry.getCompatibleModels(memoryMB).map { m ->
-                NitroModelInfo(
-                    modelId = m.modelId,
-                    name = m.name,
-                    version = m.version,
-                    sizeMB = m.sizeMB.toDouble(),
-                    quantization = m.quantization.name,
-                    contextLength = m.contextLength.toDouble(),
-                    minMemoryMB = m.minMemoryMB.toDouble(),
-                    isMultimodal = false,
-                )
-            }.toTypedArray()
-        }
-    }
+    override fun getAvailableModels(): Promise<Array<NitroModelInfo>> = Promise.async { emptyArray() }
 
-    override fun getDownloadedModels(): Promise<Array<String>> {
-        return Promise.async { downloadedModelIds.toTypedArray() }
-    }
+    override fun getDownloadedModels(): Promise<Array<String>> = Promise.async { emptyArray() }
 
-    override fun getLoadedModel(): Promise<String> {
-        return Promise.async { loadedModelId ?: "" }
-    }
+    override fun getLoadedModel(): Promise<String> = Promise.async { "" }
 
-    override fun getCurrentEngine(): Promise<NitroInferenceEngine> {
-        return Promise.async {
-            val status = locanara.getPromptApiStatus()
-            when (status) {
-                is PromptApiStatus.Available,
-                is PromptApiStatus.Downloadable,
-                is PromptApiStatus.Downloading -> NitroInferenceEngine.PROMPT_API
+    override fun getCurrentEngine(): Promise<NitroInferenceEngine> =
+        Promise.async {
+            when (locanara.recheckPromptApiStatus()) {
+                is PromptApiStatus.Available -> NitroInferenceEngine.PROMPT_API
                 else -> NitroInferenceEngine.NONE
             }
         }
-    }
 
-    override fun downloadModel(modelId: String): Promise<Boolean> {
-        return Promise.async {
-            val model = ModelRegistry.getModel(modelId)
-                ?: throw Exception("Model not found: $modelId")
-            android.util.Log.d("OndeviceAi", "downloadModel: $modelId (${model.name}, ${model.sizeMB}MB) — simulated")
-            downloadedModelIds.add(modelId)
-            true
+    override fun downloadModel(modelId: String): Promise<Boolean> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "External model download is not supported on Android; use downloadPromptApiModel()",
+            )
         }
-    }
 
     override fun addModelDownloadProgressListener(listener: (NitroModelDownloadProgress) -> Unit) {
         modelDownloadProgressListeners.add(listener)
@@ -389,68 +497,97 @@ class HybridOndeviceAi : HybridOndeviceAiSpec() {
         modelDownloadProgressListeners.remove(listener)
     }
 
-    override fun loadModel(modelId: String): Promise<Unit> {
-        return Promise.async {
-            if (!downloadedModelIds.contains(modelId)) {
-                throw Exception("Model not downloaded: $modelId")
-            }
-            android.util.Log.d("OndeviceAi", "loadModel: $modelId — simulated")
-            loadedModelId = modelId
+    override fun loadModel(modelId: String): Promise<Unit> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "External model loading is not supported on Android: $modelId",
+            )
         }
-    }
 
-    override fun deleteModel(modelId: String): Promise<Unit> {
-        return Promise.async {
-            android.util.Log.d("OndeviceAi", "deleteModel: $modelId — simulated")
-            downloadedModelIds.remove(modelId)
-            if (loadedModelId == modelId) loadedModelId = null
+    override fun deleteModel(modelId: String): Promise<Unit> =
+        Promise.async {
+            throw LocanaraException.Custom(
+                ErrorCode.FEATURE_NOT_SUPPORTED,
+                "External model deletion is not supported on Android: $modelId",
+            )
         }
-    }
 
     // ──────────────────────────────────────────────────────────────────
     // Android-specific: Prompt API
     // ──────────────────────────────────────────────────────────────────
 
-    override fun getPromptApiStatus(): Promise<String> {
-        return Promise.async {
-            when (locanara.getPromptApiStatus()) {
+    override fun getPromptApiStatus(): Promise<String> =
+        Promise.async {
+            when (locanara.recheckPromptApiStatus()) {
                 is PromptApiStatus.Available -> "available"
                 is PromptApiStatus.Downloadable -> "downloadable"
                 is PromptApiStatus.Downloading -> "downloading"
                 is PromptApiStatus.NotAvailable -> "not_available"
             }
         }
-    }
 
-    override fun downloadPromptApiModel(): Promise<Boolean> {
-        return Promise.async {
-            locanara.downloadPromptApiModel { progress ->
-                val pct = if (progress.bytesToDownload > 0) {
-                    progress.bytesDownloaded.toDouble() / progress.bytesToDownload.toDouble()
-                } else {
-                    0.0
-                }
-                val p = NitroModelDownloadProgress(
-                    modelId = "gemini-nano",
-                    bytesDownloaded = progress.bytesDownloaded.toDouble(),
-                    totalBytes = progress.bytesToDownload.toDouble(),
-                    progress = pct,
-                    state = NitroModelDownloadState.DOWNLOADING,
-                )
-                modelDownloadProgressListeners.forEach { it(p) }
+    override fun downloadPromptApiModel(): Promise<Boolean> =
+        Promise.async {
+            var totalBytes = 0.0
+            var bytesDownloaded = 0.0
+            var terminalEventSent = false
+
+            fun emitProgress(
+                state: NitroModelDownloadState,
+                progress: Double,
+            ) {
+                val event =
+                    NitroModelDownloadProgress(
+                        modelId = "gemini-nano",
+                        bytesDownloaded = bytesDownloaded,
+                        totalBytes = totalBytes,
+                        progress = progress,
+                        state = state,
+                    )
+                modelDownloadProgressListeners.forEach { it(event) }
             }
 
-            // Send completed event
-            val completedProgress = NitroModelDownloadProgress(
-                modelId = "gemini-nano",
-                bytesDownloaded = 0.0,
-                totalBytes = 0.0,
-                progress = 1.0,
-                state = NitroModelDownloadState.COMPLETED,
-            )
-            modelDownloadProgressListeners.forEach { it(completedProgress) }
+            try {
+                locanara.downloadPromptApiModel { progress ->
+                    if (progress.bytesToDownload > 0) {
+                        totalBytes = progress.bytesToDownload.toDouble()
+                    }
+                    if (progress.bytesDownloaded > 0) {
+                        bytesDownloaded = progress.bytesDownloaded.toDouble()
+                    }
+
+                    val state =
+                        when {
+                            progress.error != null -> NitroModelDownloadState.FAILED
+                            progress.isCompleted -> NitroModelDownloadState.VERIFYING
+                            else -> NitroModelDownloadState.DOWNLOADING
+                        }
+                    if (state == NitroModelDownloadState.VERIFYING && totalBytes > 0) {
+                        bytesDownloaded = totalBytes
+                    }
+                    val pct =
+                        when {
+                            state == NitroModelDownloadState.VERIFYING -> 1.0
+                            totalBytes > 0 -> (bytesDownloaded / totalBytes).coerceIn(0.0, 1.0)
+                            else -> 0.0
+                        }
+                    terminalEventSent = state == NitroModelDownloadState.FAILED
+                    emitProgress(state, pct)
+                }
+
+                if (!terminalEventSent) {
+                    if (totalBytes > 0) bytesDownloaded = totalBytes
+                    emitProgress(NitroModelDownloadState.COMPLETED, 1.0)
+                }
+            } catch (error: CancellationException) {
+                if (!terminalEventSent) emitProgress(NitroModelDownloadState.CANCELLED, 0.0)
+                throw error
+            } catch (error: Exception) {
+                if (!terminalEventSent) emitProgress(NitroModelDownloadState.FAILED, 0.0)
+                throw error
+            }
 
             true
         }
-    }
 }

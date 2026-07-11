@@ -25,7 +25,7 @@ No additional setup required. The Locanara SDK is included via Maven Central.
 - React Native 0.70+
 - react-native-nitro-modules ^0.31.1
 - iOS 15+ / macOS 14+ (Apple Intelligence)
-- Android API 23+ (Gemini Nano)
+- Android API 31+; Gemini Nano features remain runtime capability-gated
 
 ## Usage
 

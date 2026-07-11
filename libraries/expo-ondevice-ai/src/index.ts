@@ -34,6 +34,33 @@ import {ExpoOndeviceAiLog as Log} from './log';
 export * from './types';
 export {ExpoOndeviceAiLog} from './log';
 
+type StreamKind = 'chat' | 'summarize' | 'translate' | 'rewrite';
+
+const streamTails: Record<StreamKind, Promise<void>> = {
+  chat: Promise.resolve(),
+  summarize: Promise.resolve(),
+  translate: Promise.resolve(),
+  rewrite: Promise.resolve(),
+};
+
+async function runSerializedStream<T>(
+  kind: StreamKind,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const previous = streamTails[kind];
+  let release = () => {};
+  streamTails[kind] = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    release();
+  }
+}
+
 /**
  * Initialize the Locanara SDK
  * Must be called before using any AI features
@@ -108,38 +135,40 @@ export async function chatStream(
   message: string,
   options?: ChatStreamOptions,
 ): Promise<ChatResult> {
-  let subscription: EventSubscription | undefined;
+  return runSerializedStream('chat', async () => {
+    let subscription: EventSubscription | undefined;
 
-  try {
-    if (options?.onChunk) {
-      // ExpoOndeviceAiModule is an EventEmitter since expo-modules-core SDK 52+
-      subscription = (
-        ExpoOndeviceAiModule as unknown as {
-          addListener: (
-            name: string,
-            listener: (chunk: ChatStreamChunk) => void,
-          ) => EventSubscription;
-        }
-      ).addListener('onChatStreamChunk', (chunk: ChatStreamChunk) => {
-        options.onChunk!(chunk);
-      });
+    try {
+      if (options?.onChunk) {
+        // ExpoOndeviceAiModule is an EventEmitter since expo-modules-core SDK 52+
+        subscription = (
+          ExpoOndeviceAiModule as unknown as {
+            addListener: (
+              name: string,
+              listener: (chunk: ChatStreamChunk) => void,
+            ) => EventSubscription;
+          }
+        ).addListener('onChatStreamChunk', (chunk: ChatStreamChunk) => {
+          options.onChunk!(chunk);
+        });
+      }
+
+      // Strip onChunk before sending to native — functions are not serializable
+      const {onChunk: _, ...nativeOptions} = options ?? {};
+      const result: ChatResult = await ExpoOndeviceAiModule.chatStream(
+        message,
+        Object.keys(nativeOptions).length > 0 ? nativeOptions : undefined,
+      );
+
+      // Flush the event queue so queued native events (sendEvent) are
+      // delivered before we remove the subscription in the finally block.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+      return result;
+    } finally {
+      subscription?.remove();
     }
-
-    // Strip onChunk before sending to native — functions are not serializable
-    const {onChunk: _, ...nativeOptions} = options ?? {};
-    const result: ChatResult = await ExpoOndeviceAiModule.chatStream(
-      message,
-      Object.keys(nativeOptions).length > 0 ? nativeOptions : undefined,
-    );
-
-    // Flush the event queue so queued native events (sendEvent) are
-    // delivered before we remove the subscription in the finally block.
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-
-    return result;
-  } finally {
-    subscription?.remove();
-  }
+  });
 }
 
 /**
@@ -181,7 +210,8 @@ export async function proofread(
 // MARK: - Streaming Variants
 
 /**
- * Summarize text with streaming — tokens delivered progressively via onChunk.
+ * Summarize text with streaming where the platform exposes a real stream.
+ * Unsupported platforms reject instead of emitting a synthetic final chunk.
  * @param text - The text to summarize
  * @param options - Options including onChunk callback
  * @returns Promise resolving to final SummarizeResult
@@ -190,37 +220,41 @@ export async function summarizeStreaming(
   text: string,
   options?: SummarizeStreamOptions,
 ): Promise<SummarizeResult> {
-  let subscription: EventSubscription | undefined;
+  return runSerializedStream('summarize', async () => {
+    let subscription: EventSubscription | undefined;
 
-  try {
-    if (options?.onChunk) {
-      subscription = (
-        ExpoOndeviceAiModule as unknown as {
-          addListener: (
-            name: string,
-            listener: (chunk: TextStreamChunk) => void,
-          ) => EventSubscription;
-        }
-      ).addListener('onSummarizeStreamChunk', (chunk: TextStreamChunk) => {
-        options.onChunk!(chunk);
-      });
+    try {
+      if (options?.onChunk) {
+        subscription = (
+          ExpoOndeviceAiModule as unknown as {
+            addListener: (
+              name: string,
+              listener: (chunk: TextStreamChunk) => void,
+            ) => EventSubscription;
+          }
+        ).addListener('onSummarizeStreamChunk', (chunk: TextStreamChunk) => {
+          options.onChunk!(chunk);
+        });
+      }
+
+      const {onChunk: _, ...nativeOptions} = options ?? {};
+      const result: SummarizeResult =
+        await ExpoOndeviceAiModule.summarizeStreaming(
+          text,
+          Object.keys(nativeOptions).length > 0 ? nativeOptions : undefined,
+        );
+
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      return result;
+    } finally {
+      subscription?.remove();
     }
-
-    const {onChunk: _, ...nativeOptions} = options ?? {};
-    const result: SummarizeResult = await ExpoOndeviceAiModule.summarizeStreaming(
-      text,
-      Object.keys(nativeOptions).length > 0 ? nativeOptions : undefined,
-    );
-
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    return result;
-  } finally {
-    subscription?.remove();
-  }
+  });
 }
 
 /**
- * Translate text with streaming — tokens delivered progressively via onChunk.
+ * Translate text with streaming where the platform exposes a real stream.
+ * Unsupported platforms reject instead of emitting a synthetic final chunk.
  * @param text - The text to translate
  * @param options - Options including targetLanguage and onChunk callback
  * @returns Promise resolving to final TranslateResult
@@ -229,37 +263,38 @@ export async function translateStreaming(
   text: string,
   options: TranslateStreamOptions,
 ): Promise<TranslateResult> {
-  let subscription: EventSubscription | undefined;
+  return runSerializedStream('translate', async () => {
+    let subscription: EventSubscription | undefined;
 
-  try {
-    if (options.onChunk) {
-      subscription = (
-        ExpoOndeviceAiModule as unknown as {
-          addListener: (
-            name: string,
-            listener: (chunk: TextStreamChunk) => void,
-          ) => EventSubscription;
-        }
-      ).addListener('onTranslateStreamChunk', (chunk: TextStreamChunk) => {
-        options.onChunk!(chunk);
-      });
+    try {
+      if (options.onChunk) {
+        subscription = (
+          ExpoOndeviceAiModule as unknown as {
+            addListener: (
+              name: string,
+              listener: (chunk: TextStreamChunk) => void,
+            ) => EventSubscription;
+          }
+        ).addListener('onTranslateStreamChunk', (chunk: TextStreamChunk) => {
+          options.onChunk!(chunk);
+        });
+      }
+
+      const {onChunk: _, ...nativeOptions} = options;
+      const result: TranslateResult =
+        await ExpoOndeviceAiModule.translateStreaming(text, nativeOptions);
+
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      return result;
+    } finally {
+      subscription?.remove();
     }
-
-    const {onChunk: _, ...nativeOptions} = options;
-    const result: TranslateResult = await ExpoOndeviceAiModule.translateStreaming(
-      text,
-      nativeOptions,
-    );
-
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    return result;
-  } finally {
-    subscription?.remove();
-  }
+  });
 }
 
 /**
- * Rewrite text with streaming — tokens delivered progressively via onChunk.
+ * Rewrite text with streaming where the platform exposes a real stream.
+ * Unsupported platforms reject instead of emitting a synthetic final chunk.
  * @param text - The text to rewrite
  * @param options - Options including outputType and onChunk callback
  * @returns Promise resolving to final RewriteResult
@@ -268,40 +303,43 @@ export async function rewriteStreaming(
   text: string,
   options: RewriteStreamOptions,
 ): Promise<RewriteResult> {
-  let subscription: EventSubscription | undefined;
+  return runSerializedStream('rewrite', async () => {
+    let subscription: EventSubscription | undefined;
 
-  try {
-    if (options.onChunk) {
-      subscription = (
-        ExpoOndeviceAiModule as unknown as {
-          addListener: (
-            name: string,
-            listener: (chunk: TextStreamChunk) => void,
-          ) => EventSubscription;
-        }
-      ).addListener('onRewriteStreamChunk', (chunk: TextStreamChunk) => {
-        options.onChunk!(chunk);
-      });
+    try {
+      if (options.onChunk) {
+        subscription = (
+          ExpoOndeviceAiModule as unknown as {
+            addListener: (
+              name: string,
+              listener: (chunk: TextStreamChunk) => void,
+            ) => EventSubscription;
+          }
+        ).addListener('onRewriteStreamChunk', (chunk: TextStreamChunk) => {
+          options.onChunk!(chunk);
+        });
+      }
+
+      const {onChunk: _, ...nativeOptions} = options;
+      const result: RewriteResult = await ExpoOndeviceAiModule.rewriteStreaming(
+        text,
+        nativeOptions,
+      );
+
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      return result;
+    } finally {
+      subscription?.remove();
     }
-
-    const {onChunk: _, ...nativeOptions} = options;
-    const result: RewriteResult = await ExpoOndeviceAiModule.rewriteStreaming(
-      text,
-      nativeOptions,
-    );
-
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    return result;
-  } finally {
-    subscription?.remove();
-  }
+  });
 }
 
 // MARK: - Image Description
 
 /**
  * Describe the contents of an image using on-device AI.
- * Supported on iOS (Foundation Models Vision API) and Android.
+ * Supported only when the native wrapper reports image capability.
+ * The current Android and Web wrappers return an explicit unsupported error.
  * @param imageUri - URI or file path to the image
  * @param options - Optional prompt and other options
  */
@@ -342,7 +380,8 @@ export async function getLoadedModel(): Promise<string | null> {
 }
 
 /**
- * Get current inference engine type
+ * Get the active general-purpose inference engine.
+ * Task-specific OS services may still be available when this returns `none`.
  */
 export async function getCurrentEngine(): Promise<InferenceEngine> {
   const engine = await ExpoOndeviceAiModule.getCurrentEngine();

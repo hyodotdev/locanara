@@ -2,15 +2,18 @@ import {
   initialize,
   getDeviceCapability,
   summarize,
+  summarizeStreaming,
   classify,
   extract,
   chat,
   chatStream,
   translate,
+  translateStreaming,
   rewrite,
+  rewriteStreaming,
   proofread,
 } from '../index';
-import type {ChatStreamChunk} from '../types';
+import type {ChatStreamChunk, TextStreamChunk} from '../types';
 
 describe('expo-ondevice-ai', () => {
   describe('initialize', () => {
@@ -150,6 +153,55 @@ describe('expo-ondevice-ai', () => {
       await expect(chatStream('Hello', {onChunk})).rejects.toThrow(
         'Stream failed',
       );
+    });
+
+    it('serializes concurrent streams before registering the next listener', async () => {
+      const {requireNativeModule} = require('expo-modules-core');
+      const mockModule = requireNativeModule('ExpoOndeviceAi');
+      const initialCalls = mockModule.chatStream.mock.calls.length;
+      let resolveFirst = (_value: unknown) => {};
+
+      mockModule.chatStream
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveFirst = resolve;
+            }),
+        )
+        .mockResolvedValueOnce({message: 'second', canContinue: true});
+
+      const first = chatStream('first', {onChunk: jest.fn()});
+      await Promise.resolve();
+      const second = chatStream('second', {onChunk: jest.fn()});
+      await Promise.resolve();
+
+      expect(mockModule.chatStream).toHaveBeenCalledTimes(initialCalls + 1);
+      resolveFirst({message: 'first', canContinue: true});
+      await first;
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      expect(mockModule.chatStream).toHaveBeenCalledTimes(initialCalls + 2);
+      await second;
+    });
+  });
+
+  describe('streaming variants', () => {
+    it('forwards a summarize chunk and result', async () => {
+      const chunks: TextStreamChunk[] = [];
+      const result = await summarizeStreaming('Text', {
+        onChunk: (chunk) => chunks.push(chunk),
+      });
+      expect(result.summary).toBe('Mock summary');
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0].isFinal).toBe(true);
+    });
+
+    it('forwards translate and rewrite results', async () => {
+      await expect(
+        translateStreaming('Hello', {targetLanguage: 'ko'}),
+      ).resolves.toHaveProperty('translatedText');
+      await expect(
+        rewriteStreaming('Hello', {outputType: 'PROFESSIONAL'}),
+      ).resolves.toHaveProperty('rewrittenText');
     });
   });
 

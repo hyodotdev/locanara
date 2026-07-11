@@ -137,7 +137,7 @@ class PersonalizationManager(
             cachedPreferences.remove(it.profileId)
         }
 
-        Log.i(TAG, "Recorded feedback for $executionId: ${if (liked) "liked" else "disliked"}")
+        Log.i(TAG, "Recorded personalization feedback")
     }
 
     /**
@@ -229,7 +229,7 @@ class PersonalizationManager(
                 )
                 result?.message ?: "Unable to generate response"
             } catch (e: Exception) {
-                Log.e(TAG, "Personalized execution failed", e)
+                Log.e(TAG, "Personalized execution failed")
                 "Error: ${e.message}"
             }
 
@@ -254,7 +254,7 @@ class PersonalizationManager(
                 )
                 result?.message ?: "Unable to generate response"
             } catch (e: Exception) {
-                Log.e(TAG, "Execution failed", e)
+                Log.e(TAG, "Execution failed")
                 "Error: ${e.message}"
             }
         }

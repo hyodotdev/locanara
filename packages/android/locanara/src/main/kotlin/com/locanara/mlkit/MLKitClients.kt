@@ -600,13 +600,14 @@ private fun Int.toFeatureStatus(): FeatureStatus = when (this) {
  * for BUSY (quota exceeded) and BACKGROUND_USE_BLOCKED error conditions.
  */
 internal fun mapGenAiException(e: Exception): LocanaraException {
-    val message = e.message?.lowercase() ?: ""
-    return when {
-        message.contains("busy") || message.contains("quota") ->
+    return when ((e as? GenAiException)?.errorCode) {
+        GenAiException.ErrorCode.BUSY,
+        GenAiException.ErrorCode.PER_APP_BATTERY_USE_QUOTA_EXCEEDED ->
             LocanaraException.ModelBusy
-        message.contains("background") || message.contains("foreground") ->
+
+        GenAiException.ErrorCode.BACKGROUND_USE_BLOCKED ->
             LocanaraException.BackgroundUseBlocked
-        else ->
-            LocanaraException.ExecutionFailed(e.message ?: "ML Kit GenAI error", e)
+
+        else -> LocanaraException.ExecutionFailed(e.message ?: "ML Kit GenAI error", e)
     }
 }

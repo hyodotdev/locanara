@@ -73,10 +73,10 @@ class ExecuTorchEngine private constructor(
                 try {
                     llmModule.stop()
                     Log.d(TAG, "Reset LlmModule state before generation")
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // Log error but continue - stop() failure usually means the module is already
                     // in a clean state, but generation may fail if state is truly corrupted
-                    Log.e(TAG, "Failed to reset LlmModule state: ${e.message}. Generation may fail.", e)
+                    Log.e(TAG, "Failed to reset LlmModule state; generation may fail")
                 }
 
                 val result = StringBuilder()
@@ -93,7 +93,7 @@ class ExecuTorchEngine private constructor(
                         }
 
                         override fun onStats(stats: String) {
-                            Log.d(TAG, "Stats: $stats")
+                            Log.d(TAG, "Generation statistics received")
                             if (continuation.isActive) {
                                 continuation.resume(Unit)
                             }
@@ -102,8 +102,8 @@ class ExecuTorchEngine private constructor(
 
                     try {
                         llmModule.generate(prompt, config.maxTokens, callback)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Native generate() threw: ${e.message}", e)
+                    } catch (_: Exception) {
+                        Log.e(TAG, "Native generation failed")
                         if (continuation.isActive) {
                             continuation.resume(Unit)
                         }
@@ -122,10 +122,10 @@ class ExecuTorchEngine private constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: LocanaraException) {
-                Log.e(TAG, "Generation failed", e)
+                Log.e(TAG, "Generation failed")
                 throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Generation failed", e)
+                Log.e(TAG, "Generation failed")
                 throw LocanaraException.ExecutionFailed("ExecuTorch generation failed: ${e.message}", e)
             } finally {
                 isGenerating.set(false)
@@ -148,8 +148,8 @@ class ExecuTorchEngine private constructor(
             try {
                 llmModule.stop()
                 Log.d(TAG, "Reset LlmModule state before streaming generation")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to reset LlmModule state: ${e.message}. Streaming may fail.", e)
+            } catch (_: Exception) {
+                Log.e(TAG, "Failed to reset LlmModule state; streaming may fail")
             }
 
             val tokenChannel = Channel<String>(Channel.UNLIMITED)
@@ -160,7 +160,7 @@ class ExecuTorchEngine private constructor(
                 }
 
                 override fun onStats(stats: String) {
-                    Log.d(TAG, "Stats: $stats")
+                    Log.d(TAG, "Generation statistics received")
                     tokenChannel.close()
                 }
             }
@@ -170,7 +170,7 @@ class ExecuTorchEngine private constructor(
                 try {
                     llmModule.generate(prompt, config.maxTokens, callback)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Native generate() threw in streaming: ${e.message}", e)
+                    Log.e(TAG, "Native streaming generation failed")
                     tokenChannel.close(e)
                 }
             }
@@ -192,10 +192,10 @@ class ExecuTorchEngine private constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: LocanaraException) {
-            Log.e(TAG, "Streaming generation failed", e)
+            Log.e(TAG, "Streaming generation failed")
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Streaming generation failed", e)
+            Log.e(TAG, "Streaming generation failed")
             throw LocanaraException.ExecutionFailed("ExecuTorch streaming failed: ${e.message}", e)
         } finally {
             isGenerating.set(false)
@@ -209,8 +209,8 @@ class ExecuTorchEngine private constructor(
         if (isGenerating.get()) {
             try {
                 llmModule.stop()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error stopping generation: ${e.message}", e)
+            } catch (_: Exception) {
+                Log.e(TAG, "Error stopping generation")
             }
             return true
         }
@@ -226,8 +226,8 @@ class ExecuTorchEngine private constructor(
             engineScope.cancel()
             try {
                 llmModule.stop()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error unloading model", e)
+            } catch (_: Exception) {
+                Log.e(TAG, "Error unloading model")
             }
             memoryManager.requestGC()
         }
@@ -258,15 +258,11 @@ class ExecuTorchEngine private constructor(
             tokenizerFile: File,
             temperature: Float = 0.7f
         ): ExecuTorchEngine = withContext(Dispatchers.IO) {
-            Log.w(TAG, "========================================")
-            Log.w(TAG, "ExecuTorchEngine.create() CALLED")
-            Log.w(TAG, "Model file: ${modelFile.name}")
-            Log.w(TAG, "Model path: ${modelFile.absolutePath}")
-            Log.w(TAG, "Model exists: ${modelFile.exists()}")
-            Log.w(TAG, "Model size: ${modelFile.length() / (1024 * 1024)}MB")
-            Log.w(TAG, "Tokenizer: ${tokenizerFile.absolutePath}")
-            Log.w(TAG, "Tokenizer exists: ${tokenizerFile.exists()}")
-            Log.w(TAG, "========================================")
+            Log.d(
+                TAG,
+                "Creating engine: modelExists=${modelFile.exists()}, " +
+                    "modelSizeBytes=${modelFile.length()}, tokenizerExists=${tokenizerFile.exists()}"
+            )
 
             if (!modelFile.exists()) {
                 throw LocanaraException.Custom(
@@ -321,7 +317,7 @@ class ExecuTorchEngine private constructor(
                     memoryManager
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "FATAL ERROR: Failed to load model: ${e.message}", e)
+                Log.e(TAG, "Failed to load model")
                 throw LocanaraException.Custom(
                     ErrorCode.MODEL_LOAD_FAILED,
                     "Failed to load model: ${e.message}"

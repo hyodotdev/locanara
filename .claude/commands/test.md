@@ -1,309 +1,125 @@
 # /test
 
-Writes and runs tests for all platforms (iOS, Android).
+Write or run tests for the affected Locanara surfaces.
 
-## Usage
+## Operating Rules
 
-```text
-/test <request in natural language>
-```
+- A request to inspect or report is read-only. Add or fix tests only when the
+  user asks for a change.
+- Read implementation before tests and preserve existing working-tree changes.
+- Prefer deterministic unit tests. Mark real-device-only behavior explicitly.
+- Run each independent platform separately so one failure does not hide later
+  results.
 
-## Examples
+## Test Locations
 
-```text
-/test write tests for all platforms
-/test test both apple and android
-/test add Summarize feature tests
-/test run existing tests and report results
-/test check test coverage
-/test write iOS tests only
-/test add Android integration tests
-```
+| Surface | Tests |
+| --- | --- |
+| Apple SDK | `packages/apple/Tests/` |
+| Android SDK | `packages/android/locanara/src/test/kotlin/com/locanara/` |
+| Web SDK | `packages/web/tests/` |
+| Site | colocated `*.test.ts(x)` and `packages/site/convex/**/*.test.ts` |
+| Expo | `libraries/expo-ondevice-ai/src/__tests__/` |
+| React Native | `libraries/react-native-ondevice-ai/src/__tests__/` |
+| Flutter | `libraries/flutter_ondevice_ai/test/` |
+| Agent compiler | `scripts/agent/**/*.test.ts` |
 
-## Instructions
+Never recreate the deleted Android `FrameworkTest.kt`; use the focused test
+suites such as `ChainsTests.kt`, `DSLTests.kt`, and `RAGTests.kt`.
 
-When this command is executed, perform the following:
-
-### 1. Analyze Request
-
-Classify the user's request into one of:
-
-- **Write Tests**: Generate tests for existing implementation files
-- **Run Tests**: Execute written tests and report results
-- **Check Coverage**: Measure and report test coverage
-- **Validate Tests**: Check existing test code quality
-- **Integration Tests**: Generate end-to-end scenario tests
-
-### 2. Check Implementation Code
-
-Always check implemented code first:
-
-```text
-# iOS implementation
-- packages/apple/Sources/
-
-# Android implementation
-- packages/android/locanara/src/main/kotlin/
-```
-
-### 3. Perform Task
-
-#### 3.1 When Writing Tests
-
-**iOS (Swift + XCTest)**:
-
-1. Find implementation file (e.g., `Sources/BuiltIn/SummarizeChain.swift`)
-2. Create/update test file (`Tests/FrameworkTests.swift`)
-3. Write test cases:
-   - Happy path
-   - Invalid input
-   - Boundary conditions
-   - Error handling
-   - Edge cases
-4. Create mock objects (if needed)
-
-**Android (Kotlin + JUnit + MockK)**:
-
-1. Find implementation file (e.g., `builtin/SummarizeChain.kt`)
-2. Create/update test file (`src/test/kotlin/com/locanara/FrameworkTest.kt`)
-3. Write test cases:
-   - Happy path
-   - Invalid input
-   - Boundary conditions
-   - Error handling
-   - Edge cases
-4. Create mock objects (if needed, using MockK)
-
-#### 3.2 When Running Tests
-
-**iOS**:
+## Verification Matrix
 
 ```bash
+# Apple
+cd packages/apple
+swift build
 swift test
-# Or specific test only
-swift test --filter SummarizeTests
+cd Example
+xcodebuild -scheme LocanaraExample \
+  -destination 'generic/platform=iOS Simulator' \
+  -skipMacroValidation \
+  CODE_SIGNING_ALLOWED=NO build
 ```
 
-**Android**:
+Use `-skipMacroValidation` in headless verification only after reviewing the
+resolved macro package/revision. A moving branch dependency is a supply-chain
+finding, not a reason to trust changed macro code automatically.
 
 ```bash
+# Android
 cd packages/android
-./gradlew :locanara:test
-# Or specific test only
-./gradlew :locanara:test --tests "com.locanara.FrameworkTest"
+./gradlew :locanara:test :locanara:build :example:assembleDebug
 ```
-
-Parse results and report to user
-
-#### 3.3 When Checking Coverage
-
-**iOS**:
 
 ```bash
-swift test --enable-code-coverage
+# Web
+cd packages/web
+bun run lint
+bun run test
+bun run build
 ```
-
-**Android**:
 
 ```bash
-cd packages/android
-./gradlew jacocoTestReport
+# Site
+cd packages/site
+bun run typecheck
+bun run lint
+bun run format:check
+bun run test
+bun run build
 ```
 
-Analyze and report coverage results
-
-#### 3.4 Auto Test Generation Logic
-
-Process both platforms automatically without distinction:
-
-```markdown
-1. Check packages/apple/Sources/
-   → Find file without test
-   → Generate Swift test
-
-2. Check packages/android/.../src/main/kotlin/
-   → Find file without test
-   → Generate Kotlin test
-
-3. Report to user:
-   "iOS: 3 test files created
-    Android: 3 test files created"
+```bash
+# Expo
+cd libraries/expo-ondevice-ai
+bun run lint:tsc
+bun run lint
+bun run test -- --runInBand
+bun run build
 ```
 
-### 4. Test Writing Rules
+Do not use Expo's formatting/fix scripts as read-only verification. Inspect the
+package scripts before running any command named `lint:ci`.
 
-**Always follow Test Engineer's SKILL.md rules:**
-
-**Swift (XCTest)**:
-
-- Naming: `testMethodName_WithCondition_ExpectedResult()`
-- Given-When-Then structure
-- async/await tests
-- Use XCTAssert family
-- Use mock objects
-
-**Kotlin (JUnit + MockK)**:
-
-- Naming: `execute with valid input returns result` (backtick)
-- Given-When-Then structure
-- `runTest` for coroutines
-- `assertThat` or `assertEquals`
-- Mocking with MockK
-
-### 5. Required Test Cases
-
-All public APIs must test:
-
-- [ ] Happy path (normal operation)
-- [ ] Invalid input
-- [ ] Boundary conditions
-- [ ] Error handling
-- [ ] Edge cases
-- [ ] Low Power Mode / Battery Saver
-- [ ] Insufficient memory
-
-### 6. Integration Test Generation
-
-End-to-end scenarios:
-
-```swift
-// iOS
-func testEndToEndWorkflow() async throws {
-    try await LocanaraClient.shared.initialize()
-    let capability = try LocanaraClient.shared.getDeviceCapability()
-    let context = try await LocanaraClient.shared.createContext(...)
-    let result = try await LocanaraClient.shared.executeFeature(...)
-    // Assertions
-}
+```bash
+# React Native
+cd libraries/react-native-ondevice-ai
+bun run nitrogen
+git diff -- nitrogen/generated
+bun run lint:tsc
+bun run test -- --runInBand
+npx bob build
 ```
 
-```kotlin
-// Android
-@Test
-fun `end to end workflow succeeds`() = runTest {
-    val locanara = Locanara.getInstance(context)
-    locanara.initialize()
-    val capability = locanara.getDeviceCapability()
-    val result = locanara.executeFeature(...)
-    // Assertions
-}
+Run nitrogen only when the spec or generated bridge is in scope; review the
+generated diff instead of editing it. On a clean baseline or in CI, use
+`git diff --exit-code -- nitrogen/generated` as the drift check.
+
+```bash
+# Flutter
+cd libraries/flutter_ondevice_ai
+flutter analyze
+flutter test
 ```
 
-### 7. Automatic Workflow
+## Required Coverage
 
-When user requests:
+For public APIs, cover success, invalid input, boundaries, error propagation,
+and cancellation/stream cleanup where relevant. Cross-platform contracts need
+parity tests for every wrapper, not just matching method names.
 
-1. **Analyze**: Understand request (which platform? what task?)
-2. **Explore**:
-   - Find implementation files
-   - Check existing tests
-3. **Execute**:
-   - iOS test creation/execution
-   - Android test creation/execution
-   - (or both)
-4. **Validate**: Check test code quality
-5. **Report**: Summarize work and results
+For agent-context or guidance changes:
 
-## After Completion
-
-Automatically suggest:
-
-- [ ] If test fails: Implementation fix needed (`/apple` or `/android`)
-- [ ] If coverage low: Suggest additional test cases
-- [ ] If docs update needed: Recommend `/docs` command
-
-## Key Principles
-
-1. **Both Platforms**: Test both iOS and Android unless specified
-2. **Auto-detect**: Automatically find files that need tests and create them
-3. **Quality First**: Target 80%+ coverage
-4. **Actual Execution**: Run tests and report results when possible
-5. **Use Mocks**: Handle external dependencies with mocks
-
-## Example Execution Scenarios
-
-### Scenario 1: All Platform Tests
-
-```markdown
-User: /test write tests for all platforms
-
-Agent:
-1. Scan packages/apple/Sources/
-   - Summarize.swift → has tests
-   - Classify.swift → no tests ← needs creation
-   - Extract.swift → no tests ← needs creation
-
-2. Scan packages/android/.../kotlin/
-   - Summarize.kt → has tests
-   - Classify.kt → no tests ← needs creation
-   - Extract.kt → no tests ← needs creation
-
-3. Create iOS tests:
-   - Create ClassifyTests.swift
-   - Create ExtractTests.swift
-
-4. Create Android tests:
-   - Create ClassifyTest.kt
-   - Create ExtractTest.kt
-
-5. Report to user:
-   "iOS: 2 test files created (Classify, Extract)
-    Android: 2 test files created (Classify, Extract)"
+```bash
+cd scripts/agent
+bun run typecheck
+bun test
+bun run lint:markdown
+bun run check
 ```
 
-### Scenario 2: Run Tests
+## Reporting
 
-```markdown
-User: /test run existing tests and report results
-
-Agent:
-1. Run iOS tests:
-   swift test
-
-2. Run Android tests:
-   cd packages/android && ./gradlew test
-
-3. Parse results:
-   - iOS: 25 tests, 24 passed, 1 failed
-   - Android: 20 tests, all passed
-
-4. Report to user:
-   "iOS: 24/25 passed (SummarizeTests.testWithEmptyInput failed)
-    Android: 20/20 passed"
-```
-
-### Scenario 3: Specific Feature Test
-
-```markdown
-User: /test add Summarize feature tests
-
-Agent:
-1. Find Features/Summarize.swift
-2. Check Tests/Features/SummarizeTests.swift
-3. Find missing test cases
-4. Add tests (e.g., boundary condition tests)
-5. Find features/Summarize.kt
-6. Check and update SummarizeTest.kt
-7. Report to user:
-   "iOS: 3 tests added to SummarizeTests
-    Android: 3 tests added to SummarizeTest"
-```
-
-### Scenario 4: Platform-Specific Tests
-
-```markdown
-User: /test write iOS tests only
-
-Agent:
-1. Check packages/apple/Sources/ only
-2. Find files without tests
-3. Generate Swift tests
-4. Report to user:
-   "iOS: 3 test files created"
-```
-
-## Reference Documents
-
-- `CLAUDE.md` - Project conventions
-- `packages/apple/Tests/` - iOS tests
-- `packages/android/.../src/test/` - Android tests
+Report the exact command, pass/fail result, test count when available, warnings,
+and every skipped or device-only row. Do not summarize a lint failure as a
+successful build merely because another command passed.

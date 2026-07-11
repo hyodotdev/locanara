@@ -1,28 +1,27 @@
 package expo.modules.ondeviceai
 
+import com.locanara.ChatMessageInput
+import com.locanara.ChatParametersInput
+import com.locanara.ProofreadInputType
 import com.locanara.RewriteOutputType
-import com.locanara.composable.Memory
-import com.locanara.composable.MemoryEntry
-import com.locanara.core.ChainInput
-import com.locanara.core.ChainOutput
+import com.locanara.SummarizeInputType
+import com.locanara.SummarizeOutputType
 
 /** Decodes JS options maps into chain constructor parameters */
 object ExpoOndeviceAiHelper {
     // region Summarize
 
-    fun bulletCount(options: Map<String, Any>?): Int {
-        val outputType = options?.get("outputType") as? String
-        return when (outputType) {
-            "TWO_BULLETS" -> 2
-            "THREE_BULLETS" -> 3
-            else -> 1
+    fun summarizeOutputType(options: Map<String, Any>?): SummarizeOutputType =
+        when (options?.get("outputType") as? String) {
+            "TWO_BULLETS" -> SummarizeOutputType.TWO_BULLETS
+            "THREE_BULLETS" -> SummarizeOutputType.THREE_BULLETS
+            else -> SummarizeOutputType.ONE_BULLET
         }
-    }
 
-    fun inputType(options: Map<String, Any>?): String =
+    fun summarizeInputType(options: Map<String, Any>?): SummarizeInputType =
         when (options?.get("inputType") as? String) {
-            "CONVERSATION" -> "conversation"
-            else -> "text"
+            "CONVERSATION" -> SummarizeInputType.CONVERSATION
+            else -> SummarizeInputType.ARTICLE
         }
 
     // endregion
@@ -42,10 +41,13 @@ object ExpoOndeviceAiHelper {
 
     // region Extract
 
-    fun entityTypes(options: Map<String, Any>?): List<String> {
+    fun extractOptions(options: Map<String, Any>?): Pair<List<String>, Boolean> {
         @Suppress("UNCHECKED_CAST")
-        return (options?.get("entityTypes") as? List<String>)
-            ?: listOf("person", "location", "date", "organization")
+        val entityTypes =
+            (options?.get("entityTypes") as? List<String>)
+                ?: listOf("person", "location", "date", "organization")
+        val extractKeyValues = options?.get("extractKeyValues") as? Boolean ?: false
+        return Pair(entityTypes, extractKeyValues)
     }
 
     // endregion
@@ -53,20 +55,24 @@ object ExpoOndeviceAiHelper {
     // region Chat
 
     @Suppress("UNCHECKED_CAST")
-    fun chatOptions(options: Map<String, Any>?): Pair<String, Memory?> {
+    fun chatParameters(options: Map<String, Any>?): ChatParametersInput {
         val systemPrompt =
             (options?.get("systemPrompt") as? String)
                 ?: "You are a friendly, helpful assistant."
 
         val historyArray = options?.get("history") as? List<Map<String, String>>
-        val memory: Memory? =
-            if (!historyArray.isNullOrEmpty()) {
-                PrefilledMemory(historyArray)
-            } else {
-                null
+        val history =
+            historyArray?.mapNotNull { message ->
+                val role = message["role"] ?: return@mapNotNull null
+                val content = message["content"] ?: return@mapNotNull null
+                ChatMessageInput(role = role, content = content)
             }
 
-        return Pair(systemPrompt, memory)
+        return ChatParametersInput(
+            conversationId = options?.get("conversationId") as? String,
+            systemPrompt = systemPrompt,
+            history = history,
+        )
     }
 
     // endregion
@@ -91,30 +97,14 @@ object ExpoOndeviceAiHelper {
     }
 
     // endregion
-}
 
-/**
- * Memory adapter that provides pre-filled chat history from JS.
- */
-private class PrefilledMemory(
-    history: List<Map<String, String>>,
-) : Memory {
-    private val entries: List<MemoryEntry> =
-        history.mapNotNull { msg ->
-            val role = msg["role"] ?: return@mapNotNull null
-            val content = msg["content"] ?: return@mapNotNull null
-            MemoryEntry(role = role, content = content)
+    // region Proofread
+
+    fun proofreadInputType(options: Map<String, Any>?): ProofreadInputType =
+        when (options?.get("inputType") as? String) {
+            "VOICE" -> ProofreadInputType.VOICE
+            else -> ProofreadInputType.KEYBOARD
         }
 
-    override suspend fun load(input: ChainInput): List<MemoryEntry> = entries
-
-    override suspend fun save(
-        input: ChainInput,
-        output: ChainOutput,
-    ) { }
-
-    override suspend fun clear() { }
-
-    override val estimatedTokenCount: Int
-        get() = entries.sumOf { it.content.length / 4 }
+    // endregion
 }

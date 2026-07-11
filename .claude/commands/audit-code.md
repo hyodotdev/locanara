@@ -11,6 +11,8 @@ This command audits code files against the project rules:
 3. **Coding Style** - Swift/Kotlin style compliance
 4. **API Design** - Cross-platform consistency
 5. **Error Handling** - LocanaraError usage
+6. **Privacy Boundaries** - No prompt, output, RAG content, or entity logging
+7. **Contract Integrity** - SDK/wrapper behavior, generated types, and versions agree
 
 ## Usage
 
@@ -22,16 +24,16 @@ When asked to audit code, perform these checks:
 ✓ API methods use correct names (summarize, classify, etc.)
 ✓ Swift acronyms follow rules (AI uppercase)
 ✓ Error types use Locanara prefix
-✓ iOS-specific functions end with IOS suffix
-✓ Android-specific functions end with Android suffix
+✓ GraphQL platform-specific operations/types use the repository's IOS/Android suffix rules
+✓ Generated language names match the generator output; implementation names match the live public API
 ```
 
 ### 2. Architecture Audit
 
 ```text
-✓ No external AI dependencies (on-device only)
+✓ No hosted/cloud inference dependencies; local runtime dependencies are allowed
 ✓ No cloud fallback code exists
-✓ Uses Apple Intelligence (iOS) or Gemini Nano (Android)
+✓ Uses an implemented on-device engine (Foundation Models, Gemini Nano/ML Kit, or a verified local engine)
 ✓ Privacy-first approach maintained
 ```
 
@@ -40,14 +42,13 @@ When asked to audit code, perform these checks:
 Check naming conventions for platform-specific features:
 
 ```text
-✓ Android-only features use 'Android' suffix (e.g., describeImageAndroid)
-✓ iOS-only features use 'IOS' suffix in GraphQL (e.g., GENERATE_IMAGE_IOS)
-✓ iOS-only features use 'Ios' camelCase in Swift (e.g., generateImageIos)
+✓ GraphQL Android-only operations/types use the `Android` suffix
+✓ GraphQL iOS-only operations/types use the `IOS` suffix
+✓ Generated Swift enum cases follow the generator's acronym conversion (for example, `generateImageIos`)
 ```
 
-> **Note on IOS vs Ios**: GraphQL enums use SCREAMING_SNAKE_CASE (`GENERATE_IMAGE_IOS`),
-> while Swift follows API Design Guidelines where 3+ letter acronyms use title case (`generateImageIos`).
-> This is intentional - see [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/).
+Do not mechanically rename public implementation methods from a suffix grep.
+Verify the schema, generated output, and current public declarations together.
 
 ### 3. Coding Style Audit
 
@@ -56,6 +57,7 @@ Check naming conventions for platform-specific features:
 ✓ Kotlin uses suspend functions
 ✓ Logging uses os.log (Swift) or Log (Kotlin)
 ✓ Thread safety with proper synchronization
+✓ Production logs contain no user input or model output
 ```
 
 ### 3.1 Swift Specific Checks
@@ -128,21 +130,31 @@ process(parameters.imageBase64!!)
 
 ## Automated Checks
 
-For automated auditing, use these grep patterns:
+For automated auditing, use `rg` and inspect every match; comments and examples
+are not automatically violations:
 
 ```bash
 # Check for cloud fallback (should return empty)
-grep -r "cloud\|api\.anthropic\|api\.openai" packages/apple/Sources/ packages/android/locanara/
+rg -n -i "cloud fallback|api\.anthropic|api\.openai" packages libraries
 
 # Check for incorrect error naming
-grep -r "Error\." --include="*.swift" | grep -v "LocanaraError\."
+rg -n "throw .*Error" packages/apple/Sources --glob '*.swift'
 
 # Check for print statements (should use os.log Logger)
-grep -r "print(" packages/apple/Sources/ --include="*.swift"
+rg -n "\\bprint\\(" packages/apple/Sources --glob '*.swift'
 
 # Check for Kotlin !! non-null assertions (should use smart casts)
-grep -r "!!" --include="*.kt" packages/android/locanara/
+rg -n "!!" packages/android/locanara/src/main --glob '*.kt'
 
 # Check platform-specific feature naming in GraphQL
-grep -E "(DESCRIBE_IMAGE|GENERATE_IMAGE)" packages/gql/src/*.graphql
+rg -n "DESCRIBE_IMAGE|GENERATE_IMAGE" packages/gql/src --glob '*.graphql'
+
+# Check sensitive logging across SDK sources
+rg -n "print\\(|println\\(|Log\\.[dviwe]\\(|logger\\." \
+  packages/apple/Sources packages/android/locanara/src/main
+
+# Check version copies and wrapper fallbacks against the source of truth
+jq . locanara-versions.json
+rg -n "com\.locanara:locanara:|SDK_VERSION|version" \
+  packages libraries --glob '*.{gradle,kts,swift,json,yaml}'
 ```

@@ -1,62 +1,45 @@
 # Versioning
 
-## Version Management
+## Authority
 
-All packages share synchronized versions managed from `locanara-versions.json` as the **single source of truth**.
+`locanara-versions.json` is the version source of truth. Versions are keyed by
+surface and may differ; "all packages share one version" is incorrect.
 
-## Commands
+Synchronized consumers include package manifests, the site's version copy,
+runtime version constants, wrapper fallback dependencies, lockfiles, and
+release workflow metadata. The current sync script may not cover every one of
+these, so always verify rather than assuming synchronization succeeded.
 
-```bash
-# Sync versions across all packages (manual)
-bun run version:sync
+## Rules
 
-# Bump version (interactive)
-bun run version:bump
-```
+- Read current values at execution time with `jq . locanara-versions.json`.
+- Do not copy versions from README snippets, guides, tags for another surface,
+  or adjacent release blocks.
+- Do not modify versions unless the user explicitly asks for version
+  preparation.
+- Never tag, publish, create a GitHub release, or trigger a release workflow.
+- A missing bump/generation script is a defect, not permission to edit versions
+  manually across many files.
 
-## Automatic Sync in CI
+## Consistency Check
 
-All release workflows automatically sync package.json versions:
+Compare at least:
 
-- `release-types.yml` - Syncs after bumping types version
-- `release-android.yml` - Syncs after bumping android version
-- `release-apple.yml` - Syncs after bumping apple version
-- `release-expo.yml` - Syncs after bumping expo version
+- `locanara-versions.json`
+- `packages/site/locanara-versions.json`
+- root and package `package.json` versions
+- Apple runtime version constants and package/podspec metadata
+- Android SDK coordinates and wrapper fallback dependencies
+- Expo, React Native, and Flutter manifests
+- tracked lockfiles where workspace versions are encoded
 
-See [docs/VERSION_SYNC.md](../../docs/VERSION_SYNC.md) for details.
+A mismatch fails verification. Report every differing path/value and fix the
+sync generator/workflow when authorized rather than repeatedly patching copies.
+Use `cd scripts/agent && bun run check:versions` for this fail-closed check.
+The normal AI context `bun run check` reports drift but does not mutate or select
+version values, so it is not a substitute for version-work verification.
 
-## Version Files
+## Maintainer Handoff
 
-- `locanara-versions.json` - **Source of truth** for all versions
-- `package.json` - Root version (auto-synced)
-- `packages/gql/package.json` - Types package version (auto-synced)
-- `packages/android/package.json` - Android package version (auto-synced)
-- `libraries/expo-ondevice-ai/package.json` - Expo module version (auto-synced)
-- `packages/site/locanara-versions.json` - Site version display (copied from root)
-
-## Git Tag Convention
-
-Tags use platform-prefixed names for platform-specific releases:
-
-| Platform | Tag Format       | Example          |
-| -------- | ---------------- | ---------------- |
-| Apple    | `{version}`      | `1.1.0`          |
-| Android  | `android-{ver}`  | `android-1.1.1`  |
-
-**Apple tags use plain version numbers** (no prefix) because SPM requires semver-compatible tags at the root level. The root `Package.swift` points to `packages/apple/Sources` so SPM consumers can use `https://github.com/hyodotdev/locanara` directly.
-
-Android uses `android-` prefix since it is distributed via Maven Central and doesn't need SPM-compatible tags.
-
-## Release Checklist
-
-1. Update version: `bun run version:bump`
-2. Sync versions: `bun run version:sync`
-3. Generate types: `bun run generate`
-4. Build all packages: `bun run build`
-5. Run tests: `bun run test`
-6. Commit and tag
-7. Publish packages
-
-## Current Version
-
-Check `locanara-versions.json` for the current version. Versions may differ per platform (e.g., apple: `1.0.1`, android: `1.0.2`).
+For requested release preparation, provide the proposed version map, files that
+would change, verification results, and known CI gaps. Stop before publication.

@@ -1,239 +1,94 @@
 # Project Overview
 
-## What is Locanara?
+Locanara is an on-device AI framework for Apple, Android, and Web. It combines
+platform-native inference with composable chains, memory, guardrails, runtime
+components, and native Pipeline builders. Prompt inference must stay on device.
 
-Locanara is an on-device AI **framework** for mobile apps, inspired by LangChain. It provides composable chains, memory management, guardrails, and a pipeline DSL for building production AI features using platform-native models and downloadable GGUF models:
+## Platform Reality
 
-- **iOS**: Apple Intelligence (Foundation Models) + llama.cpp (GGUF models via LocalLLMClient)
-- **Android**: Gemini Nano (ML Kit GenAI + Prompt API)
+| Surface | Primary runtime | Important constraint |
+| --- | --- | --- |
+| Apple | Foundation Models or local llama.cpp | Package targets and Foundation Models OS availability differ |
+| Android | ML Kit GenAI/Gemini Nano or ExecuTorch | Capability must use live runtime status; ExecuTorch consumes `.pte` assets |
+| Web | Chrome Built-in AI APIs | Availability is a runtime capability; there is no Pipeline builder |
 
-## Framework Architecture
+Do not encode a permanent browser/device list in implementation guidance. Read
+the current manifests and official primary documentation when upstream status
+matters.
 
-```text
-┌─────────────────────────────────────────────────────┐
-│  Runtime Layer                                      │
-│  Agent · Session · ChainExecutor                    │
-├─────────────────────────────────────────────────────┤
-│  Built-in Chains (reference implementations)        │
-│  Summarize · Classify · Chat · Translate ·          │
-│  Extract · Rewrite · Proofread                      │
-├─────────────────────────────────────────────────────┤
-│  Composable Layer                                   │
-│  Chain · Tool · Memory · Guardrail                  │
-├─────────────────────────────────────────────────────┤
-│  Core Layer                                         │
-│  LocanaraModel · PromptTemplate ·                   │
-│  OutputParser · Schema                              │
-├─────────────────────────────────────────────────────┤
-│  DSL Layer                                          │
-│  Pipeline · PipelineStep · ModelExtensions           │
-├─────────────────────────────────────────────────────┤
-│  Platform Layer                                     │
-│  FoundationLanguageModel (iOS) ·                    │
-│  PromptApiModel (Android)                           │
-├─────────────────────────────────────────────────────┤
-│  Engine Layer                                       │
-│  InferenceRouter · InferenceEngine ·                │
-│  LlamaCppEngine (iOS) · ExecuTorchEngine (Android)  │
-├─────────────────────────────────────────────────────┤
-│  ModelManager Layer                                 │
-│  ModelManager · ModelDownloader ·                   │
-│  ModelRegistry · ModelStorage                       │
-├─────────────────────────────────────────────────────┤
-│  RAG Layer                                          │
-│  VectorStore · DocumentChunker ·                    │
-│  EmbeddingEngine · RAGQueryEngine                   │
-├─────────────────────────────────────────────────────┤
-│  Personalization Layer                              │
-│  PersonalizationManager · FeedbackCollector ·       │
-│  PreferenceAnalyzer · PromptOptimizer               │
-└─────────────────────────────────────────────────────┘
-```
-
-### Core Layer
-
-- `LocanaraModel` - Unified model protocol abstracting platform-specific AI backends
-- `PromptTemplate` - Type-safe prompt composition with `{variable}` placeholders
-- `OutputParser` - Text, JSON, and List output parsing
-- `ChainInput/ChainOutput` - Type-safe data flow between chains
-
-### Composable Layer
-
-- `Chain` - Protocol for composable AI logic units
-- `SequentialChain` - Run chains in sequence
-- `Memory` - `BufferMemory` (last N turns) and `SummaryMemory` (compressed history)
-- `Guardrail` - Input/output validation and filtering
-- `Tool` - External capability integration
-
-### Built-in Chains
-
-7 ready-to-use chains that serve as both utilities and reference implementations:
-
-- `SummarizeChain` → `SummarizeResult`
-- `ClassifyChain` → `ClassifyResult`
-- `ExtractChain` → `ExtractResult`
-- `ChatChain` → `ChatResult` (with Memory support)
-- `TranslateChain` → `TranslateResult`
-- `RewriteChain` → `RewriteResult`
-- `ProofreadChain` → `ProofreadResult`
-
-### DSL Layer
-
-- Pipeline DSL for chain composition with compile-time type safety
-- Model convenience extensions (`model.summarize()`, `model.translate()`, etc.)
-
-### Runtime Layer
-
-- `ChainExecutor` - Instrumented execution with retry and history
-- `Session` - Stateful conversation management
-- `Agent` - ReAct-lite autonomous agent with tools
-
-### Platform Layer
-
-- `FoundationLanguageModel` - Apple Intelligence (Foundation Models) wrapper (iOS)
-- `PromptApiModel` - Gemini Nano (ML Kit Prompt API) wrapper (Android)
-
-### Engine Layer
-
-Manages inference engine selection and routing for external GGUF models:
-
-- `InferenceRouter` - Routes inference to the active engine
-- `InferenceEngine` - Unified engine protocol for all backends
-- **iOS**: `LlamaCppEngine` - llama.cpp engine using LocalLLMClient (C++ interop, iOS 17+)
-- **iOS**: `LlamaCppBridge` - Runtime discovery of bridge providers via `NSClassFromString` (for CocoaPods/Expo isolation)
-- **iOS**: `DeviceCapabilityDetector` - Detects device hardware, Neural Engine, memory
-- **Android**: `ExecuTorchEngine` - ExecuTorch engine for GGUF models (Android API 26+)
-
-### ModelManager Layer
-
-Manages downloadable GGUF model lifecycle on both platforms:
-
-- `ModelManager` - Download, load, unload, delete models
-- `ModelDownloader` - HTTP download with progress and checksum verification
-- `ModelRegistry` - Available model catalog (Gemma 3 4B, etc.)
-- `ModelStorage` - On-disk model file management
-
-### RAG Layer
-
-Retrieval-Augmented Generation for on-device knowledge on both platforms:
-
-- `VectorStore` - In-memory vector storage with cosine similarity search
-- `DocumentChunker` - Text splitting strategies (fixed-size, sentence, paragraph)
-- `EmbeddingEngine` - Text embedding generation
-- `RAGManager` / `RAGCollectionManager` - Collection management
-- `RAGQueryEngine` - Query pipeline combining retrieval and generation
-
-### Personalization Layer
-
-User preference learning and prompt optimization on both platforms:
-
-- `PersonalizationManager` - Orchestrates feedback collection and preference learning
-- `FeedbackCollector` - Collects user feedback on AI outputs
-- `PreferenceAnalyzer` - Analyzes feedback to learn user preferences
-- `PromptOptimizer` - Adapts prompts based on learned preferences
-
-## Project Structure
+## Framework Layers
 
 ```text
-locanara/
-├── packages/
-│   ├── gql/          # GraphQL schema & type generation (source of truth)
-│   ├── apple/        # iOS SDK (Swift)
-│   │   └── Sources/
-│   │       ├── Core/            # LocanaraModel, PromptTemplate, OutputParser, Schema
-│   │       ├── Composable/      # Chain, Tool, Memory, Guardrail
-│   │       ├── BuiltIn/         # SummarizeChain, ClassifyChain, etc.
-│   │       ├── DSL/             # Pipeline, PipelineStep, ModelExtensions
-│   │       ├── Runtime/         # Agent, Session, ChainExecutor
-│   │       ├── Platform/        # RouterModel, FoundationLanguageModel
-│   │       ├── Engine/          # InferenceRouter, InferenceEngine, LlamaCppBridge, etc.
-│   │       ├── ModelManager/    # ModelManager, ModelDownloader, ModelRegistry, ModelStorage
-│   │       ├── RAG/             # VectorStore, DocumentChunker, EmbeddingEngine, RAGQueryEngine
-│   │       ├── Personalization/ # PersonalizationManager, FeedbackCollector, etc.
-│   │       ├── Features/        # Legacy feature executors
-│   │       ├── Locanara.swift              # Main SDK entry point (LocanaraClient)
-│   │       ├── LocanaraClient+Engine.swift # Engine management extensions
-│   │       ├── LocanaraClient+RAG.swift    # RAG extensions
-│   │       ├── LocanaraClient+Personalization.swift # Personalization extensions
-│   │       ├── InferenceProvider.swift     # Custom inference provider protocol
-│   │       ├── Types.swift                 # Generated types from GQL
-│   │       └── Errors.swift                # LocanaraError definitions
-│   │   └── Tests/
-│   │       ├── FrameworkTests.swift         # Framework unit tests
-│   │       ├── LocanaraTests.swift          # Legacy SDK tests
-│   │       ├── RAGTests.swift               # RAG layer tests
-│   │       └── EngineIntegrationTests.swift # Engine integration tests
-│   ├── android/      # Android SDK (Kotlin) - Gemini Nano
-│   │   └── locanara/src/main/kotlin/com/locanara/
-│   │       ├── core/            # LocanaraModel, PromptTemplate, OutputParser, Schema
-│   │       ├── composable/      # Chain, Tool, Memory, Guardrail
-│   │       ├── builtin/         # SummarizeChain, ClassifyChain, etc.
-│   │       ├── dsl/             # Pipeline, ModelExtensions
-│   │       ├── runtime/         # Agent, Session, ChainExecutor
-│   │       ├── platform/        # PromptApiModel
-│   │       ├── engine/          # InferenceEngine, ExecuTorchEngine, ModelRegistry
-│   │       ├── rag/             # VectorStore, DocumentChunker, RAGManager, RAGQueryEngine
-│   │       ├── personalization/ # PersonalizationManager, FeedbackCollector, etc.
-│   │       └── mlkit/           # MLKitClients, MLKitPromptClient
-│   └── site/         # Website (landing + docs + community)
-├── libraries/
-│   └── expo-ondevice-ai/  # Expo module wrapping native SDKs
-│       ├── src/           # TypeScript API (summarize, chat, model management, etc.)
-│       ├── ios/           # Swift native module (uses chains internally)
-│       ├── android/       # Kotlin native module (uses chains internally)
-│       ├── plugin/        # Expo config plugin (LocanaraLlamaBridge, SPM integration)
-│       └── example/       # Expo example app
-├── Package.swift     # Swift Package Manager configuration
-└── package.json      # Bun monorepo configuration
+Runtime          Agent · Session · ChainExecutor
+Built-in         Summarize · Classify · Extract · Chat · Translate · Rewrite · Proofread
+Composable       Chain · Tool · Memory · Guardrail
+Core             LocanaraModel · PromptTemplate · OutputParser · Schema
+DSL              Pipeline · PipelineStep · ModelExtensions (Apple/Android)
+Platform         FoundationLanguageModel · PromptApiModel
+Engine           Apple llama.cpp · Android ExecuTorch
+Local data       RAG · personalization · platform-specific model lifecycle
 ```
 
-## Package Manager
+These layers are conceptual parity, not proof that every implementation has the
+same storage or model-management classes. In particular, Apple owns the full
+`ModelManager`/downloader/storage stack, while Android currently has an
+ExecuTorch engine and registry rather than the same lifecycle layer.
 
-This project uses **Bun** (v1.1.0+) as the package manager and script runner.
+## Core Contracts
 
-```bash
-bun install        # Install dependencies
-bun run build      # Build all packages
-bun run generate   # Generate types from GraphQL schemas
+- `LocanaraModel` abstracts local generation and streaming.
+- `PromptTemplate` validates missing placeholders at runtime; it is not a
+  compile-time prompt type system.
+- `ChainOutput` carries typed values that are checked/cast at runtime.
+- Built-in chains are both public utilities and custom-chain references.
+- Native Pipeline builders track the final result type. They do not prove every
+  adjacent step compatible at compile time.
+- Web composes feature calls directly and exposes supported streaming methods.
+
+## Source-of-Truth Map
+
+| Concern | Source |
+| --- | --- |
+| Shared generated types | `packages/gql/src/*.graphql` |
+| Apple behavior | `packages/apple/Sources/` |
+| Android behavior | `packages/android/locanara/src/main/` |
+| Web behavior | `packages/web/src/` |
+| Nitro bridge | `libraries/react-native-ondevice-ai/src/specs/OndeviceAi.nitro.ts` |
+| Versions | `locanara-versions.json` |
+| Agent policy | `AGENTS.md` |
+
+GraphQL is not the source of truth for runtime behavior. Generated files and
+copied docs are not authority over their schemas, generators, manifests, or
+implementation.
+
+## Three API Levels
+
+1. Convenience: `model.summarize(...)`.
+2. Configurable chain: construct and run a built-in `Chain`.
+3. Custom: implement the `Chain` protocol/interface for app-specific behavior.
+
+Pipeline composition is an additional native API for chaining those steps.
+
+## Repository Map
+
+```text
+packages/gql/       schemas and type generators
+packages/apple/     Swift SDK and example
+packages/android/   Kotlin SDK and example
+packages/web/       browser SDK
+packages/site/      site and documentation
+libraries/          Expo, React Native, and Flutter wrappers
+knowledge/          maintained internal guidance and reference snapshots
+scripts/agent/      deterministic AI-context compiler
 ```
 
-## Key Design Decisions
+## Non-Negotiable Invariants
 
-### Schema-First Development
-
-The `packages/gql` package is the **single source of truth** for types:
-
-1. Define types in GraphQL schema
-2. Run `bun run generate` to generate TypeScript, Swift, and Kotlin types
-3. Types are synced to `packages/apple` and `packages/android`
-
-### Three Levels of API
-
-1. **Simple**: `model.summarize("text")` - one-liner convenience
-2. **Chain**: `SummarizeChain(model: model, bulletCount: 3).run("text")` - configurable
-3. **Custom**: Implement `Chain` protocol for app-specific AI features
-
-### Custom Chain Pattern
-
-Developers build their own AI features by:
-
-1. Defining a result type (Swift `Sendable` / Kotlin `data class`)
-2. Implementing the `Chain` protocol/interface
-3. Adding a typed `run()` convenience method
-
-### Built-in Chains as Reference
-
-The built-in chains (Summarize, Translate, etc.) serve dual purposes:
-
-- Ready-to-use AI features that work out of the box
-- Reference implementations showing how to build custom chains
-
-### RouterModel as Default
-
-`LocanaraDefaults.model` is a `RouterModel` that automatically routes inference to the currently active engine:
-
-- When `engineSelectionMode == .externalModel` → uses InferenceRouter (llama.cpp)
-- When `engineSelectionMode == .deviceAI` → uses FoundationLanguageModel
-- When `engineSelectionMode == .auto` → prioritizes Foundation Models if available, else llama.cpp
-
-This means all built-in chains automatically respect engine selection without any code changes.
+- No hosted inference, provider API keys, or cloud fallback.
+- No prompts, outputs, entities, images, or RAG content in production logs.
+- Capability and model-management APIs must report real SDK state, never
+  fabricated success.
+- Generated outputs are changed through their source generator.
+- Versions are read from `locanara-versions.json` and changed only with explicit
+  authorization.
+- Publishing, deployment, tagging, and release workflows are maintainer-only.

@@ -1,257 +1,74 @@
-# Roadmap & TODO
+# Roadmap Constraints and Technical Backlog
 
-Future features and improvements for Locanara SDK.
+This guide is for agent orientation, not product commitments. Confirm every
+item against current issues, code, and maintainer direction before implementing
+it.
 
-## Status Legend
+## Permanent Non-Goals
 
-| Status | Meaning |
-| ------ | ------- |
-| 📋 | Planning |
-| 🚧 | In Progress |
-| ✅ | Done |
-| ❌ | Cancelled |
+- Cloud AI inference or server fallback
+- Hybrid routing that sends prompts off device
+- Prompt, response, RAG-document, or user-content telemetry
+- Provider API keys or hosted OpenAI, Anthropic, or Gemini integrations
+- Silent degradation from local inference to a remote service
 
----
+These are incompatible with Locanara's on-device-only and privacy-first product
+contract. Do not reintroduce previously proposed cloud-console or server-mode
+designs.
 
-## Telemetry (Locanara Cloud Console)
+## Current Quality Backlog
 
-**Status**: 📋 Planning
+### Capability Accuracy
 
-Offline-first analytics system for SDK usage monitoring.
+- [ ] Base Android feature reporting on live ML Kit `FeatureStatus`, not API
+      level alone.
+- [ ] Align Apple recommended fallback models with `ModelRegistry` IDs and
+      memory requirements.
+- [ ] Do not expose placeholder MLX/CoreML engines as available.
+- [ ] Ensure wrapper capability results describe the engine actually used.
 
-### Design Principles
+### Model Management
 
-1. **Opt-in Only**: Disabled by default. User must explicitly enable.
-2. **Offline-First**: Works without network. Syncs when available.
-3. **Privacy Preserved**: No PII. Only aggregate metrics.
+- [ ] Route Expo and React Native Android model download/load/delete operations
+      through the real SDK instead of in-memory success state.
+- [ ] Require immutable model URLs and real checksums before loading external
+      assets.
+- [ ] Complete or explicitly reject public preload, unload, and cancellation
+      APIs; never return success from a no-op.
 
-### Architecture
+### Privacy
 
-```text
-Event → Local DB → Network Available? → API Sync → Delete Local
-```
+- [ ] Remove prompt, response, entity, and RAG-content logging from production
+      Apple and Android SDK paths.
+- [ ] Add tests or static checks that prevent sensitive logging from returning.
 
-### Telemetry Configuration
-
-```swift
-// iOS - Opt-in required
-Locanara.configure(
-    telemetry: .enabled(
-        endpoint: "https://api.locanara.dev/telemetry",
-        apiKey: "lnr_xxxx"
-    )
-)
-
-// Default: disabled
-Locanara.configure(telemetry: .disabled)
-```
-
-```kotlin
-// Android - Opt-in required
-Locanara.configure(
-    telemetry = TelemetryConfig.Enabled(
-        endpoint = "https://api.locanara.dev/telemetry",
-        apiKey = "lnr_xxxx"
-    )
-)
-```
-
-### Collected Metrics
-
-| Metric | Description |
-| ------ | ----------- |
-| `device_capability` | npu_available, cpu_only, unsupported |
-| `api_call` | summarize, classify, chat, etc. |
-| `latency_ms` | Response time |
-| `success` | Did the call succeed? |
-| `error_code` | Error code if failed |
-
-**NOT Collected**: User input/output, device IDs, location, any PII.
-
-### Local Storage
-
-- SQLite/Room database
-- Max 10,000 events
-- Auto-delete after 30 days
-- Max 1MB storage
-
-### Sync Strategy
-
-| Trigger | Condition |
-| ------- | --------- |
-| App foreground | >100 pending events |
-| Network restored | >50 pending events |
-| Background task | iOS: BGTask, Android: WorkManager |
-
-### Telemetry Tasks
-
-- [ ] Define GraphQL schema for telemetry events
-- [ ] Implement local storage (iOS: CoreData, Android: Room)
-- [ ] Implement sync manager with retry logic
-- [ ] Add configuration API to SDK
-- [ ] Build Cloud Console backend API
-- [ ] Build Cloud Console dashboard UI
-- [ ] Add background sync
-- [ ] Privacy documentation
-
----
-
-## Server API Fallback (Planned)
-
-**Status**: 📋 Planning
-
-Optional server-side model inference.
-
-### Concept
-
-Developers can optionally use server-hosted models instead of on-device inference.
-**Same API, different backend** - no code changes required.
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│                    Developer Choice                      │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-         ┌────────────┴────────────┐
-         │                         │
-   .onDevice (default)        .serverAPI
-         │                         │
-         ▼                         ▼
-┌─────────────────┐     ┌─────────────────────┐
-│  Local Models   │     │  Locanara Cloud API │
-│  (NPU/CPU/GPU)  │     │  (GPT-4o, Claude,   │
-│                 │     │   Gemini, etc.)     │
-└─────────────────┘     └─────────────────────┘
-```
-
-### Use Cases
-
-| Scenario | Recommendation |
-| -------- | -------------- |
-| Privacy-critical apps | `.onDevice` |
-| Maximum quality needed | `.serverAPI` |
-| Offline-first apps | `.onDevice` |
-| Complex reasoning tasks | `.serverAPI` |
-| Battery/performance sensitive | `.serverAPI` |
-
-### Inference Mode Configuration
-
-```swift
-// iOS
-Locanara.configure(
-    inferenceMode: .serverAPI(
-        endpoint: "https://api.locanara.dev/v1",
-        apiKey: "lnr_xxxx",
-        model: .gpt4o  // or .claude, .gemini
-    )
-)
-
-// Hybrid mode: try on-device first, fallback to server
-Locanara.configure(
-    inferenceMode: .hybrid(
-        preferOnDevice: true,
-        serverFallback: .enabled(apiKey: "lnr_xxxx")
-    )
-)
-
-// Default: on-device only
-Locanara.configure(inferenceMode: .onDevice)
-```
-
-```kotlin
-// Android
-Locanara.configure(
-    inferenceMode = InferenceMode.ServerAPI(
-        endpoint = "https://api.locanara.dev/v1",
-        apiKey = "lnr_xxxx",
-        model = ServerModel.GPT4O
-    )
-)
-```
-
-### API Compatibility
-
-```swift
-// Same function signature regardless of mode
-let result = try await locanara.summarize(text: article)
-
-// Developer doesn't need to change code
-// Only configuration determines where inference happens
-```
-
-### Server API Tasks
-
-- [ ] Design unified API gateway
-- [ ] Implement server-side inference routing
-- [ ] Add provider integrations (OpenAI, Anthropic, Google)
-- [ ] Build usage metering system
-- [ ] Add configuration API to SDK
-- [ ] Rate limiting and quota management
-- [ ] Billing integration
-
-### Privacy Considerations
-
-> **Important**: When using `.serverAPI` mode, user data IS sent to external servers.
-> SDK must clearly communicate this to developers.
-> Apps using server mode should update their privacy policies accordingly.
-
----
-
-## Model Marketplace
-
-**Status**: 📋 Planning
-
-Model distribution platform.
-
-### Marketplace Structure
-
-```text
-locanara.dev/models
-├── Official Models
-│   ├── gemma-2b-chat
-│   └── tinyllama-1.1b
-├── Partner Models
-│   └── phi-3-mini, mistral-7b-q4
-└── Custom Models
-```
-
-### Marketplace Tasks
-
-- [ ] Design model packaging format
-- [ ] Build model CDN infrastructure
-- [ ] Implement model download manager in SDK
-- [ ] Build marketplace UI
-- [ ] Partner onboarding process
-
----
-
-## Developer Certification
-
-**Status**: 📋 Planning
-
-Locanara Certified Developer program.
-
-| Level | Content |
-| ----- | ------- |
-| Basic | Online course + quiz |
-| Advanced | Hands-on project + badge |
-| Expert | 1:1 mentoring + certificate |
-
-### Certification Tasks
-
-- [ ] Create course content
-- [ ] Build certification platform
-- [ ] Design badges (LinkedIn compatible)
-- [ ] Partner with hiring platforms
-
----
-
-## Changelog
-
-| Date | Change |
-| ---- | ------ |
-| 2025-01 | Initial roadmap document |
-
----
-
-**Last Updated**: 2025-01-16
+### Contract and Generator Integrity
+
+- [ ] Verify GraphQL generation against tracked Apple and Android type outputs.
+- [ ] Keep Expo, React Native, Flutter, and Web public behavior in parity where
+      the platform supports it.
+- [ ] Add a version-consistency check covering `locanara-versions.json`, site
+      copies, runtime constants, package manifests, and wrapper fallbacks.
+- [ ] Verify Nitro output drift after spec changes.
+
+### Pipeline Documentation
+
+- [ ] Describe only the last-output type guarantee the current builders
+      implement; do not claim adjacent-step compile-time validation.
+- [ ] Show the real Kotlin fluent `pipeline()` API.
+- [ ] State that Web has no Pipeline builder and link to its streaming APIs.
+- [ ] Make both native example screens execute the Pipeline DSL they teach.
+
+### CI Coverage
+
+- [ ] Build the Apple example in iOS CI.
+- [ ] Run Site lint and tests in Site CI.
+- [ ] Verify tracked GraphQL outputs in GQL CI.
+- [ ] Build representative native Flutter example targets.
+- [ ] Detect version and generated-context drift before release workflows.
+
+## Research Backlog
+
+Upstream versions and device matrices change quickly. Use
+`/knowledge-compile`, cite official sources, date the snapshot, and keep
+unverified research below live manifests and implementation in authority.

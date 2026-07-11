@@ -110,7 +110,7 @@ struct PipelineDemo: View {
                         HStack(spacing: 12) {
                             StatBadge(
                                 label: "From",
-                                value: translateResult.sourceLanguage ?? "auto"
+                                value: translateResult.sourceLanguage
                             )
                             StatBadge(
                                 label: "To",

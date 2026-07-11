@@ -1,222 +1,79 @@
 # /android
 
-Performs all tasks related to the Android SDK (Gemini Nano). The SDK is a layered on-device AI framework with composable chains, memory, guardrails, and pipeline DSL.
+Implement, review, or verify the Android SDK under `packages/android/`.
 
 ## Usage
 
 ```text
-/android <request in natural language>
+/android review capability reporting
+/android implement a built-in chain
+/android verify the SDK and example app
 ```
 
-## Examples
+## Request Boundary
 
-```text
-/android check for new features and add them
-/android verify existing code has no issues
-/android check if implementation is correct
-/android implement VoiceRecognition feature
-/android review summarize feature code
-/android add ExecuteFeatureOptionsAndroid type
+- Review, audit, and status requests are read-only.
+- Modify code only when the user asks for a change.
+- Do not infer schema, wrapper, version, publishing, or deployment changes from
+  an Android-only request.
+
+## Source Routing
+
+| Concern | Read first |
+| --- | --- |
+| Shared generated type | `packages/gql/src/*.graphql` |
+| Public SDK behavior | `packages/android/locanara/src/main/kotlin/com/locanara/` |
+| ML Kit status and tasks | `mlkit/MLKitPromptClient.kt` and `mlkit/MLKitClients.kt` |
+| Model adapter/engine | `platform/PromptApiModel.kt` and `engine/` |
+| Dependencies and SDK levels | `packages/android/locanara/build.gradle.kts` |
+| Tests | `packages/android/locanara/src/test/kotlin/com/locanara/` |
+
+GraphQL controls shared generated types, not runtime behavior. Never hand-edit
+`packages/android/locanara/src/main/kotlin/com/locanara/Types.kt`; change the
+schema and run `/gql`.
+
+## Workflow
+
+1. Read `AGENTS.md`, the Android package guide, status, and existing diffs.
+2. Trace the public call through capability reporting, the selected model or
+   task client, and the underlying on-device engine.
+3. For a shared contract change, update GraphQL first and inspect generated
+   Kotlin and Swift output. For Android-only behavior, keep the change local.
+4. Add focused coroutine tests for success, invalid input, boundaries, upstream
+   failures, cancellation, and Flow cleanup when relevant.
+5. Run SDK tests/build and assemble the example app.
+6. Report exact commands, warnings, skipped real-device behavior, and remaining
+   cross-platform work.
+
+## Implementation Rules
+
+- Use Kotlin 2.x conventions, `suspend` functions, structured concurrency, and
+  `Flow` for streaming.
+- Map public failures to `LocanaraException`; validate inputs instead of using
+  `!!` or unchecked casts at public boundaries.
+- Never log prompts, model output, extracted entities, RAG content, or images.
+- Use only on-device dependencies declared by the current Gradle manifest. Do
+  not add the cloud Gemini client, API keys, remote inference, or a server
+  fallback.
+- Capability results must reflect live ML Kit/engine status and the engine the
+  call will actually use; API level alone is not proof of readiness.
+- Wrapper model-management methods must call real SDK behavior. In-memory state
+  and fabricated download/load success are not valid implementations.
+- The Pipeline fluent API tracks the final result type. Do not claim it proves
+  compatibility between every adjacent step.
+
+## Verification
+
+```bash
+cd packages/android
+./gradlew :locanara:test :locanara:build :example:assembleDebug
 ```
 
-## Instructions
+JVM tests and emulator builds do not prove Gemini Nano or downloadable-engine
+availability. Report real-device checks separately.
 
-When this command is executed, perform the following:
+## References
 
-### 1. Analyze Request
-
-Classify the user's request into one of:
-
-- **Add Feature**: Check GraphQL schema and implement features not yet in Android
-- **Add Chain**: Create a new built-in Chain (in builtin/) with typed result and run() method
-- **Validate Code**: Review existing Kotlin code and identify issues
-- **Add Type**: Implement GraphQL type as Kotlin data class
-- **Implement API**: Implement GraphQL API operation as Kotlin suspend function
-- **Refactoring**: Improve code quality
-
-### 2. Check GraphQL Schema
-
-Always check the GraphQL schema first:
-
-```text
-# Check Android-related schemas
-- packages/gql/src/type-android.graphql
-- packages/gql/src/utils-android.graphql
-- packages/gql/src/type.graphql (shared)
-- packages/gql/src/utils.graphql (shared)
-```
-
-### 3. Check Existing Implementation
-
-```text
-# Check Kotlin source code (framework layers)
-- packages/android/locanara/src/main/kotlin/com/locanara/core/       # LocanaraModel, PromptTemplate, OutputParser, Schema
-- packages/android/locanara/src/main/kotlin/com/locanara/composable/ # Chain, Tool, Memory, Guardrail
-- packages/android/locanara/src/main/kotlin/com/locanara/builtin/    # SummarizeChain, ClassifyChain, etc.
-- packages/android/locanara/src/main/kotlin/com/locanara/dsl/        # Pipeline, ModelExtensions
-- packages/android/locanara/src/main/kotlin/com/locanara/runtime/    # Agent, Session, ChainExecutor
-- packages/android/locanara/src/main/kotlin/com/locanara/platform/   # PromptApiModel
-- packages/android/locanara/src/main/kotlin/com/locanara/mlkit/      # ML Kit clients
-```
-
-### 4. Perform Task
-
-#### 4.1 When Adding Feature
-
-1. Check Android-specific or shared feature types in GraphQL schema
-2. Check `packages/android/locanara/src/main/kotlin/com/locanara/builtin/`
-3. Find unimplemented features
-4. Implement Feature in Kotlin:
-   - Define data class types (Types.kt)
-   - Implement Feature executor (features/FeatureName.kt)
-   - Integrate Gemini Nano API
-   - Use Coroutines for async processing
-   - Ensure Null safety
-   - Handle errors
-
-#### 4.2 When Validating Code
-
-1. Check Kotlin coding convention compliance:
-   - Naming conventions (PascalCase, camelCase)
-   - Correct use of Coroutines
-   - Null safety
-   - Error handling with sealed class
-   - KDoc comments
-
-2. Check alignment with GraphQL schema:
-   - Type names are accurate
-   - All fields are implemented
-   - Nullable matches
-
-3. Performance and optimization:
-   - Use GPU acceleration options
-   - Appropriate thread count
-   - Memory management
-
-4. Auto-fix when issues are found
-
-#### 4.3 When Adding Type
-
-Convert GraphQL type to Kotlin:
-
-```kotlin
-// GraphQL: type DeviceInfoAndroid
-data class DeviceInfoAndroid(
-    val manufacturer: String,
-    val model: String,
-    val apiLevel: Int,
-    val androidVersion: String,
-    val supportsGeminiNano: Boolean,
-    val systemLanguages: List<String>,
-    val gpuInfo: String?,
-    val totalRAMMB: Int
-)
-```
-
-#### 4.4 When Implementing API
-
-Implement GraphQL Mutation/Query as Kotlin suspend function:
-
-```kotlin
-// GraphQL: executeFeatureAndroid
-suspend fun executeFeatureAndroid(
-    input: ExecuteFeatureInput,
-    options: ExecuteFeatureOptionsAndroid?
-): ExecutionResult = withContext(Dispatchers.Default) {
-    // Implementation
-}
-```
-
-### 5. Follow Coding Rules
-
-**Always follow Android SDK's SKILL.md rules:**
-
-- Kotlin 2.0+ coding conventions
-- Async processing with Coroutines
-- Error handling with sealed class
-- Type definition with data class
-- Null safety
-- KDoc comments
-- Consider GPU acceleration
-- Multi-thread optimization
-
-### 6. Reference Documents
-
-Always reference when performing tasks:
-
-- `.claude/guides/05-android-package.md` - Android SDK guide
-- `packages/gql/src/` - GraphQL schema
-- `packages/android/` - Existing Kotlin code
-
-### 7. Automatic Workflow
-
-When user requests:
-
-1. **Analyze**: Understand the request
-2. **Explore**: Check GraphQL schema + existing code
-3. **Execute**:
-   - New feature found → Implement
-   - Issue found → Fix
-   - Type/API requested → Generate
-4. **Validate**: Check coding rule compliance
-5. **Report**: Summarize completed work
-
-## After Completion
-
-Automatically suggest:
-
-- [ ] If tests needed: Recommend `/test` command
-- [ ] If docs update needed: Recommend `/docs` command
-- [ ] If same work needed for iOS: Recommend `/apple` command
-
-## Key Principles
-
-1. **GraphQL is Truth**: Always check and follow GraphQL schema first
-2. **Auto-detect**: Find and perform necessary work even without user specifying details
-3. **Quality First**: Correct implementation over fast implementation
-4. **Naming Convention**: Platform suffix is always last (e.g., `OptionsAndroid`)
-5. **Error Handling**: All public APIs must have proper error handling
-
-## Example Execution Scenarios
-
-### Scenario 1: Check and Add New Feature
-
-```markdown
-User: /android check for new features and add them
-
-Agent:
-1. Read GraphQL schema (type.graphql, type-android.graphql)
-2. Check enum FeatureType → SUMMARIZE, CLASSIFY, EXTRACT, CHAT, TRANSLATE, REWRITE
-3. Check packages/android/.../features/
-4. Find unimplemented feature (e.g., Translate.kt missing)
-5. Create and implement Translate.kt
-6. Add TranslateResult to Types.kt
-7. Report to user: "Added Translate feature."
-```
-
-### Scenario 2: Code Validation
-
-```markdown
-User: /android check existing code for issues
-
-Agent:
-1. Read all Kotlin files
-2. Compare with GraphQL schema
-3. Issues found:
-   - ExecuteFeatureAndroidOptions → ExecuteFeatureOptionsAndroid (naming violation)
-   - Some fields missing
-4. Auto-fix
-5. Report to user: "Fixed 2 naming violations, added 3 missing fields"
-```
-
-### Scenario 3: Specific Task
-
-```markdown
-User: /android implement VoiceRecognition feature
-
-Agent:
-1. Search for VoiceRecognition related types in GraphQL schema
-2. If not found, notify user: "VoiceRecognition is not in GraphQL schema. Please define it first with /gql."
-3. If found, generate Kotlin implementation
-4. Report to user: "VoiceRecognition.kt creation complete"
-```
+- `.claude/guides/05-android-package.md`
+- `.claude/commands/gql.md`
+- `.claude/commands/test.md`

@@ -68,11 +68,8 @@ public struct ChatChain: Chain {
             "languageInstruction": languageInstruction
         ])
 
-        print("[ChatChain] detected language: \(detectedLang)")
-        print("[ChatChain] input: \(input.text)")
         let response = try await model.generate(prompt: prompt, config: .conversational)
         let message = response.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        print("[ChatChain] output: \(message)")
 
         let result = ChatResult(
             message: message,
@@ -126,16 +123,11 @@ public struct ChatChain: Chain {
                         "languageInstruction": languageInstruction
                     ])
 
-                    print("[ChatChain] streaming, detected language: \(detectedLang)")
-                    print("[ChatChain] input: \(text)")
-
                     var accumulated = ""
                     for try await chunk in model.stream(prompt: prompt, config: .conversational) {
                         accumulated += chunk
                         continuation.yield(chunk)
                     }
-
-                    print("[ChatChain] output (streamed): \(accumulated)")
 
                     if let memory = memory {
                         let result = ChatResult(message: accumulated, canContinue: true)

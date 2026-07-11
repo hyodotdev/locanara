@@ -1,9 +1,5 @@
 // swiftlint:disable file_length
 import Foundation
-import os.log
-
-/// Logger for LocalModelInferenceProvider
-private let logger = Logger(subsystem: "com.locanara", category: "LocalModelInferenceProvider")
 
 /// Locanara inference provider implementation
 ///
@@ -765,13 +761,6 @@ public final class LocalModelInferenceProvider: InferenceProvider, @unchecked Se
         let detectedLangCode = detectLanguage(input)
         let detectedLanguage = getLanguageName(for: detectedLangCode)
 
-        // DEBUG: Log language detection
-        logger.debug("========== [Chat] DEBUG START ==========")
-        logger.debug("[Chat] Input text: '\(input)'")
-        logger.debug("[Chat] Input length: \(input.count) chars")
-        logger.debug("[Chat] Detected language code: \(detectedLangCode)")
-        logger.debug("[Chat] Detected language name: \(detectedLanguage)")
-
         // Build Gemma 2 format prompt
         var promptParts: [String] = []
 
@@ -815,23 +804,14 @@ public final class LocalModelInferenceProvider: InferenceProvider, @unchecked Se
 
         let prompt = promptParts.joined(separator: "\n")
 
-        // DEBUG: Log prompt
-        logger.debug("[Chat] Full prompt:\n\(prompt)")
-
         let rawResponse = try await router.execute(
             feature: .chat,
             input: prompt,
             config: .chat
         )
 
-        // DEBUG: Log raw and cleaned response
-        logger.debug("[Chat] Raw response: \(rawResponse)")
-
         // Post-process: clean up chat response
         let response = cleanChatResponse(rawResponse)
-
-        logger.debug("[Chat] Cleaned response: \(response)")
-        logger.debug("========== [Chat] DEBUG END ==========")
 
         // Store updated history
         history.append(ChatMessageInput(role: "assistant", content: response))

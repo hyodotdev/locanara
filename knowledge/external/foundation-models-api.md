@@ -2,6 +2,12 @@
 
 > **Source**: Apple Developer Documentation
 > **Requires**: iOS 26+ / macOS 26+ with Apple Intelligence
+>
+> **Unverified historical sketch.** Several signatures below may not match the
+> current SDK or Locanara adapter. Use Apple's current official documentation
+> and `packages/apple/Sources/Platform/FoundationLanguageModel.swift` before
+> writing code. This file is intentionally excluded from generated agent
+> context.
 
 ## Overview
 

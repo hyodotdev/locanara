@@ -440,8 +440,7 @@ class VectorStore(
         topK: Int = 5,
         minSimilarity: Double = 0.0
     ): List<VectorSearchResult> {
-        Log.i(TAG, "=== VectorStore.search ===")
-        Log.i(TAG, "CollectionId: $collectionId, TopK: $topK, MinSimilarity: $minSimilarity")
+        Log.i(TAG, "Searching vectors: topK=$topK, minSimilarity=$minSimilarity")
 
         if (queryVector.size != expectedDimension) {
             Log.e(TAG, "Vector dimension mismatch! Expected: $expectedDimension, Got: ${queryVector.size}")
@@ -450,8 +449,6 @@ class VectorStore(
 
         val db = readableDatabase
         val results = mutableListOf<VectorSearchResult>()
-        val allSimilarities = mutableListOf<Pair<String, Double>>() // For logging ALL scores
-
         val cursor = db.query(
             TABLE_VECTORS,
             arrayOf("id", "collection_id", "document_id", "chunk_index", "content", "vector", "metadata", "created_at"),
@@ -476,7 +473,6 @@ class VectorStore(
                 }
 
                 val similarity = cosineSimilarity(queryVector, vector)
-                allSimilarities.add(content.take(30) to similarity)
 
                 if (similarity < minSimilarity) {
                     filteredOutCount++
@@ -513,12 +509,6 @@ class VectorStore(
         Log.i(TAG, "Total vectors in collection: $totalVectors")
         Log.i(TAG, "Filtered out (below minSimilarity $minSimilarity): $filteredOutCount")
         Log.i(TAG, "Results passing filter: ${results.size}")
-
-        // Log ALL similarity scores (sorted by score)
-        Log.i(TAG, "=== ALL Similarity Scores (sorted) ===")
-        allSimilarities.sortedByDescending { it.second }.forEach { (content, score) ->
-            Log.i(TAG, "  Score: ${String.format("%.6f", score)} | Content: '$content...'")
-        }
 
         val finalResults = results
             .sortedByDescending { it.similarity }

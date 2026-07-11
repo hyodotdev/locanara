@@ -31,10 +31,8 @@ public struct SummarizeChain: Chain {
             "inputTypeHint": inputTypeHint
         ])
 
-        print("[SummarizeChain] input: \(input.text.prefix(200))")
         let response = try await model.generate(prompt: prompt, config: .structured)
         let summary = BuiltInPrompts.stripPreamble(response.text.trimmingCharacters(in: .whitespacesAndNewlines))
-        print("[SummarizeChain] output: \(summary)")
 
         let result = SummarizeResult(
             summary: summary,

@@ -38,6 +38,9 @@ public final class ModelRegistry: Sendable {
     /// The single supported model ID for Locanara
     public static let defaultModelId = "gemma-3-4b-it-q4"
 
+    /// Immutable Hugging Face revision containing both registered artifacts.
+    private static let gemmaRevision = "289f87d2bdcd6c2a6d08d889373d2a34ee799a57"
+
     // MARK: - Registered Models
 
     /// All registered models (single model for Locanara)
@@ -50,8 +53,14 @@ public final class ModelRegistry: Sendable {
 
     // MARK: - Initialization
 
-    private init() {
-        self.models = Self.createModelRegistry()
+    private convenience init() {
+        self.init(models: Self.createModelRegistry())
+    }
+
+    /// Internal initializer for deterministic package-lifecycle tests.
+    init(models: [DownloadableModelInfo]) {
+        precondition(!models.isEmpty, "Model registry must contain at least one model")
+        self.models = models
         Self.logger.debug("Initialized with \(self.models.count) models")
         for model in models {
             Self.logger.debug("  - \(model.modelId): \(model.name)")
@@ -119,14 +128,18 @@ public final class ModelRegistry: Sendable {
                 quantization: .int4,
                 contextLength: 131072,
                 // swiftlint:disable:next line_length
-                downloadURL: URL(string: "https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF/resolve/main/google_gemma-3-4b-it-Q4_K_M.gguf")!,
-                checksum: "sha256:auto",
+                downloadURL: URL(string: "https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF/resolve/\(gemmaRevision)/google_gemma-3-4b-it-Q4_K_M.gguf")!,
+                checksum: "sha256:4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94",
                 minMemoryMB: 6000,
-                supportedFeatures: FeatureType.allCases,
+                supportedFeatures: [
+                    .summarize, .classify, .extract, .chat,
+                    .translate, .rewrite, .proofread, .describeImage,
+                ],
                 promptFormat: .gemma,
                 // swiftlint:disable:next line_length
-                mmprojURL: URL(string: "https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF/resolve/main/mmproj-google_gemma-3-4b-it-f16.gguf"),
-                mmprojSizeMB: 851
+                mmprojURL: URL(string: "https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF/resolve/\(gemmaRevision)/mmproj-google_gemma-3-4b-it-f16.gguf"),
+                mmprojSizeMB: 851,
+                mmprojChecksum: "sha256:8c0fb064b019a6972856aaae2c7e4792858af3ca4561be2dbf649123ba6c40cb"
             )
 
             // Future models can be added here following the same pattern.

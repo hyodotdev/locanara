@@ -62,7 +62,7 @@ public actor PromptOptimizer {
            Date().timeIntervalSince(cached.generatedAt) < cacheValiditySeconds {
             // If feature-specific and cached prompt matches, return it
             if cached.feature == feature {
-                logger.debug("Using cached prompt for profile: \(profileId)")
+                logger.debug("Using cached optimized prompt")
                 return cached
             }
         }
@@ -87,7 +87,7 @@ public actor PromptOptimizer {
         // Cache the result
         promptCache[profileId] = optimizedPrompt
 
-        logger.info("Generated optimized prompt for profile: \(profileId) (confidence: \(preferences.confidence))")
+        logger.info("Generated optimized prompt")
 
         return optimizedPrompt
     }

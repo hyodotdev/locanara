@@ -72,10 +72,7 @@ class RAGManager(
     ): RAGDocument = withContext(Dispatchers.IO) {
         val documentId = UUID.randomUUID().toString()
 
-        Log.i(TAG, "=== RAGManager.indexDocument ===")
-        Log.i(TAG, "Title: '$title'")
-        Log.i(TAG, "Content length: ${content.length}")
-        Log.i(TAG, "Collection: $collectionId")
+        Log.i(TAG, "Indexing document: contentLength=${content.length}")
 
         // Create document record first
         val document = vectorStore.addDocument(
@@ -109,7 +106,6 @@ class RAGManager(
             // Generate embeddings and store vectors
             val storedVectors = chunks.mapIndexed { index, chunk ->
                 val embedding = embeddingEngine.embed(chunk.content)
-                Log.i(TAG, "  Chunk[$index]: content='${chunk.content.take(50)}...', vector sample=${embedding.vector.take(3).joinToString { String.format("%.4f", it) }}")
                 StoredVector(
                     collectionId = collectionId,
                     documentId = documentId,
@@ -137,7 +133,7 @@ class RAGManager(
                 indexedAt = System.currentTimeMillis().toDouble()
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Error indexing document: ${e.message}", e)
+            Log.e(TAG, "Error indexing document")
             vectorStore.updateDocumentStatus(
                 documentId,
                 RAGDocumentStatus.ERROR,
@@ -185,14 +181,11 @@ class RAGManager(
         topK: Int = 5,
         minRelevance: Double = 0.0
     ): List<SearchResult> = withContext(Dispatchers.IO) {
-        Log.i(TAG, "=== RAGManager.search ===")
-        Log.i(TAG, "Query: '$query'")
-        Log.i(TAG, "Collection: $collectionId, TopK: $topK, MinRelevance: $minRelevance")
+        Log.i(TAG, "Searching collection: topK=$topK, minRelevance=$minRelevance")
 
         // Generate query embedding
         val queryEmbedding = embeddingEngine.embed(query)
         Log.i(TAG, "Query embedding generated, dimension: ${queryEmbedding.vector.size}")
-        Log.i(TAG, "Query vector sample (first 5): ${queryEmbedding.vector.take(5).joinToString { String.format("%.4f", it) }}")
 
         // Search vector store
         val results = vectorStore.search(
@@ -219,9 +212,6 @@ class RAGManager(
         }
 
         Log.i(TAG, "Final search results: ${searchResults.size}")
-        searchResults.forEachIndexed { index, result ->
-            Log.i(TAG, "  [$index] doc='${result.documentTitle}', score=${String.format("%.4f", result.relevanceScore)}, content='${result.content.take(50)}...'")
-        }
 
         searchResults
     }

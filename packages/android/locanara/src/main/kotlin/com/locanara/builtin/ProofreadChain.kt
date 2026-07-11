@@ -28,13 +28,10 @@ class ProofreadChain(
             mapOf("text" to input.text)
         )
 
-        println("[ProofreadChain] input: ${input.text.take(200)}")
         val response = model.generate(prompt, GenerationConfig.STRUCTURED)
         val corrected = BuiltInPrompts.stripPreamble(response.text.trim())
-        println("[ProofreadChain] output: $corrected")
 
         val corrections = detectCorrections(input.text, corrected)
-        println("[ProofreadChain] corrections: ${corrections.joinToString { "${it.original} → ${it.corrected}" }}")
 
         val result = ProofreadResult(
             correctedText = corrected,

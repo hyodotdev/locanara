@@ -33,10 +33,8 @@ class RewriteChain(
             mapOf("text" to input.text, "styleInstruction" to styleInstruction)
         )
 
-        println("[RewriteChain] input: ${input.text.take(200)}")
         val response = model.generate(prompt, GenerationConfig.STRUCTURED)
         val rewritten = BuiltInPrompts.stripPreamble(response.text.trim())
-        println("[RewriteChain] output: $rewritten")
 
         val result = RewriteResult(
             rewrittenText = rewritten,

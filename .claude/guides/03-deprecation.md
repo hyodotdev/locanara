@@ -33,4 +33,7 @@ fun oldMethod() { }
 
 ## Current Deprecations
 
-None at this time.
+No public deprecations were found in the current SDK scan. Apple
+`InferenceRouter` has a private deprecated `buildPrompt` helper retained for
+internal migration context. Re-run an annotation search before making release
+or compatibility claims; this section is not a permanent registry.

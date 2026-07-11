@@ -2,6 +2,11 @@
 
 Reviews PR comments and applies feedback.
 
+Reading and classifying review feedback is always allowed. Editing code requires
+the user's request to address the feedback. Committing, pushing, replying, and
+resolving threads are separate external write actions and must be explicitly
+requested; never infer them from a review-only request.
+
 ## Usage
 
 ```text
@@ -26,17 +31,20 @@ When this command is executed, perform the following:
 ### 1. Gather PR Information
 
 ```bash
+# Normalize a number or PR URL once for later REST/GraphQL calls
+PR_NUMBER=$(gh pr view "$ARGUMENTS" --json number --jq '.number')
+
 # Get PR details
-gh pr view $ARGUMENTS --json number,title,body,state,headRefName,baseRefName
+gh pr view "$PR_NUMBER" --json number,title,body,state,headRefName,baseRefName
 
 # Get review comments
-gh pr view $ARGUMENTS --json reviews,comments
+gh pr view "$PR_NUMBER" --json reviews,comments
 
 # Get list of changed files
-gh pr diff $ARGUMENTS --name-only
+gh pr diff "$PR_NUMBER" --name-only
 
 # Get diff content
-gh pr diff $ARGUMENTS
+gh pr diff "$PR_NUMBER"
 ```
 
 ### 2. Analyze Comments
@@ -48,23 +56,19 @@ Analyze review comments and classify them as:
 - **Suggestion**: Optional improvements
 - **Approval**: No changes needed
 
-### 3. Package-specific Build Commands
+### 3. Changed-Path Verification
 
-Run the following validation before commit based on changed files:
-
-| Package             | Command                                                 |
-| ------------------- | ------------------------------------------------------- |
-| `packages/gql/`     | `cd packages/gql && bun run lint && bun run typecheck`  |
-| `packages/site/`    | `cd packages/site && bun run lint && bun run typecheck` |
-| `packages/apple/`   | `cd packages/apple && swift build`                      |
-| `packages/android/` | `cd packages/android && ./gradlew :locanara:build`      |
+Use `/verify-all` in changed-path mode rather than maintaining a partial command
+list here. For GraphQL changes, run `bun run generate`, review the tracked Swift
+and Kotlin output diff, and use `git diff --exit-code` only on a clean CI/drift
+baseline.
 
 ### 4. Check Project Conventions
 
 Check the following project-specific rules during review:
 
-- **iOS functions**: `IOS` suffix required (e.g., `executeFeatureIOS`, `DeviceInfoIOS`)
-- **Android functions**: `Android` suffix for platform-specific APIs (e.g., `executeFeatureAndroid`, `DeviceInfoAndroid`)
+- **GraphQL platform APIs/types**: use the repository's terminal `IOS` or
+  `Android` suffix rules; verify generated/public language names before renaming
 - **Generated files**: Do not directly modify `packages/apple/Sources/Types.swift`, `packages/android/locanara/src/main/kotlin/com/locanara/Types.kt`
 
 See [CLAUDE.md](../../CLAUDE.md) for detailed conventions.
@@ -78,22 +82,24 @@ For each comment:
 3. Perform modification
 4. Sync related files (Example app, docs, etc.)
 
-### 6. Verify and Commit
+### 6. Verify and Prepare
 
 1. Run build/test for changed packages
 2. Confirm all verification passes
-3. Commit in meaningful units
-4. Follow commit message format
+3. Report the proposed commit scope
+4. Commit only when explicitly requested, following `/commit`
 
 ### 7. Reply to PR Comments and Resolve Threads
 
-After completing modifications, automatically reply to each comment and resolve threads.
+After completing modifications, reply and resolve only when the user explicitly
+requested GitHub updates and the fix is pushed. A local edit is not sufficient.
 
 #### 7.1 Get Inline Review Comments
 
 ```bash
 # Get inline review comments with their IDs
-gh api repos/hyodotdev/locanara/pulls/$PR_NUMBER/comments \
+gh api "repos/hyodotdev/locanara/pulls/$PR_NUMBER/comments" \
+  --paginate \
   --jq '.[] | {id: .id, path: .path, line: .line, body: .body[:100]}'
 ```
 
@@ -103,7 +109,7 @@ Use the GitHub API to reply to each fixed comment:
 
 ```bash
 # Reply to a specific comment
-gh api repos/hyodotdev/locanara/pulls/$PR_NUMBER/comments/$COMMENT_ID/replies \
+gh api "repos/hyodotdev/locanara/pulls/$PR_NUMBER/comments/$COMMENT_ID/replies" \
   -X POST -f body="Fixed in $COMMIT_HASH. $DESCRIPTION"
 ```
 
@@ -134,11 +140,14 @@ After replying, resolve the thread using GraphQL:
 
 ```bash
 # Get unresolved thread IDs
-gh api graphql -f query='
-query {
+gh api graphql \
+  --paginate \
+  -F number="$PR_NUMBER" \
+  -f query='
+query($number: Int!, $endCursor: String) {
   repository(owner: "hyodotdev", name: "locanara") {
-    pullRequest(number: $PR_NUMBER) {
-      reviewThreads(first: 50) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $endCursor) {
         nodes {
           id
           isResolved
@@ -147,15 +156,18 @@ query {
             nodes { databaseId }
           }
         }
+        pageInfo { hasNextPage endCursor }
       }
     }
   }
 }'
 
 # Resolve a specific thread
-gh api graphql -f query='
-mutation {
-  resolveReviewThread(input: {threadId: "$THREAD_ID"}) {
+gh api graphql \
+  -F threadId="$THREAD_ID" \
+  -f query='
+mutation($threadId: ID!) {
+  resolveReviewThread(input: {threadId: $threadId}) {
     thread { id isResolved }
   }
 }'
@@ -167,21 +179,19 @@ mutation {
 - Do not resolve threads that are just suggestions for future improvement
 - Do not resolve threads awaiting user clarification
 
-## Auto Workflow
+## Workflow
 
 When user runs `/review-pr 123`:
 
 1. **Gather**: Get all review comments for PR #123
 2. **Analyze**: Understand and classify comment content
 3. **Execute**:
-   - Code change request → Perform modification
+   - Code change request → Modify only when the user requested feedback fixes
    - Question → Ask user for clarification
 4. **Verify**: Build/test changed packages
-5. **Commit**: Commit modifications
-6. **Push**: Push commits to remote
-7. **Reply**: Reply to each fixed comment via GitHub API
-8. **Resolve**: Resolve threads for fixed issues via GraphQL
-9. **Report**: Summarize completed work
+5. **Report**: Summarize modifications and verification
+6. **Commit/Push**: Only if explicitly requested
+7. **Reply/Resolve**: Only if explicitly requested and the pushed fix or concrete evidence is available
 
 ## Notes
 
@@ -193,7 +203,11 @@ When user runs `/review-pr 123`:
    - Run build command for changed packages
    - If build fails, fix and retry
 
-3. **Follow conventions**
+3. **Preserve scope**
+   - Never stage unrelated user changes
+   - Never push directly to `main`
+
+4. **Follow conventions**
    - Check naming rules
    - Follow commit message format
 

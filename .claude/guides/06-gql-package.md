@@ -1,66 +1,35 @@
-# GQL Package (Schema & Types)
-
-## Overview
+# GraphQL Schema and Generated Types
 
 Location: `packages/gql/`
 
-The GQL package is the **single source of truth** for all types in Locanara. It defines the GraphQL schema and generates type definitions for TypeScript, Swift, and Kotlin.
+GraphQL is the source of truth for shared generated Apple/Android types. It is
+not a substitute for platform behavior, wrapper specs, or runtime tests.
 
-## Type Generation
+## Commands
 
 ```bash
 cd packages/gql
-
-# Generate all types
-bun run generate
-
-# Generate individually
-bun run generate:ts      # TypeScript types
-bun run generate:swift   # Swift types
-bun run generate:kotlin  # Kotlin types
-
-# Sync to platform packages
-bun run sync
+bun run generate          # all generators plus sync
+bun run generate:ts       # GraphQL TypeScript output
+bun run codegen:swift     # custom Swift generator
+bun run codegen:kotlin    # custom Kotlin generator
+bun run codegen:dart      # custom Dart generator
+bun run sync              # copy current tracked platform outputs
 ```
-
-Or from project root:
-
-```bash
-bun run generate
-```
-
-## Project Structure
-
-```text
-packages/gql/
-├── src/
-│   ├── schemas/         # GraphQL schema definitions
-│   └── generated/       # Generated types (do not edit)
-│       ├── types.ts     # TypeScript
-│       ├── Types.swift  # Swift
-│       └── Types.kt     # Kotlin
-├── scripts/
-│   ├── generate-swift-types.mjs
-│   ├── generate-kotlin-types.mjs
-│   └── sync-to-platforms.mjs
-└── codegen.ts           # GraphQL Codegen config
-```
-
-## Dependencies
-
-- `graphql` - GraphQL parser
-- `@graphql-codegen/cli` - Code generation
-- `@graphql-codegen/typescript` - TypeScript output
 
 ## Workflow
 
-1. Edit schema in `src/schemas/*.graphql`
-2. Run `bun run generate`
-3. Types are generated to `src/generated/`
-4. Types are synced to `packages/apple` and `packages/android`
+1. Edit the relevant `packages/gql/src/*.graphql` files.
+2. Run `bun run generate`.
+3. Inspect intermediate output in `packages/gql/src/generated/`.
+4. Inspect tracked outputs:
+   - `packages/apple/Sources/Types.swift`
+   - `packages/android/locanara/src/main/kotlin/com/locanara/Types.kt`
+5. Build/test every affected SDK and wrapper.
 
-## Important
+Never hand-edit generated outputs. The intermediate generated directory is
+gitignored, so checking only `git status packages/gql/src/generated` cannot
+detect drift. CI must diff the tracked destination files after generation.
 
-- **Never edit files in `src/generated/`** - they are overwritten on generation
-- Always commit generated files after schema changes
-- Run generation before platform builds
+The current sync script does not establish automatic Web/Expo/React
+Native/Flutter parity; verify those public contracts separately.

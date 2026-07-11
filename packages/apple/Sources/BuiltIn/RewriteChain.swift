@@ -42,10 +42,8 @@ public struct RewriteChain: Chain {
             "styleInstruction": styleInstruction
         ])
 
-        print("[RewriteChain] input: \(input.text.prefix(200))")
         let response = try await model.generate(prompt: prompt, config: .structured)
         let rewritten = BuiltInPrompts.stripPreamble(response.text.trimmingCharacters(in: .whitespacesAndNewlines))
-        print("[RewriteChain] output: \(rewritten)")
 
         let result = RewriteResult(
             rewrittenText: rewritten,

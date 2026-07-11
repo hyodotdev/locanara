@@ -4,6 +4,11 @@ import os.log
 
 private let logger = Logger(subsystem: "com.locanara", category: "FeedbackCollector")
 
+private enum FeedbackSQLBinding {
+    case text(String)
+    case double(Double)
+}
+
 /// Error types for feedback collection
 public enum FeedbackError: LocalizedError {
     case databaseError(message: String)
@@ -99,7 +104,7 @@ public actor FeedbackCollector {
         try createTables()
         isInitialized = true
 
-        logger.info("Feedback collector initialized at: \(self.dbPath)")
+        logger.info("Feedback collector initialized")
     }
 
     /// Shutdown the feedback collector
@@ -180,7 +185,7 @@ public actor FeedbackCollector {
             throw FeedbackError.databaseError(message: String(cString: sqlite3_errmsg(db)))
         }
 
-        logger.info("Created profile: \(profileId) (\(name))")
+        logger.info("Created feedback profile")
 
         return PersonalizationProfile(
             profileId: profileId,
@@ -250,11 +255,22 @@ public actor FeedbackCollector {
     public func activateProfile(_ profileId: String) throws -> PersonalizationProfile {
         guard isInitialized else { throw FeedbackError.notInitialized }
 
-        // Deactivate all profiles
-        try execute("UPDATE profiles SET is_active = 0;")
+        guard try getProfiles().contains(where: { $0.profileId == profileId }) else {
+            throw FeedbackError.profileNotFound(id: profileId)
+        }
 
-        // Activate the specified profile
-        try execute("UPDATE profiles SET is_active = 1, updated_at = \(Date().timeIntervalSince1970) WHERE id = '\(profileId)';")
+        try execute("BEGIN TRANSACTION;")
+        do {
+            try execute("UPDATE profiles SET is_active = 0;")
+            try execute(
+                "UPDATE profiles SET is_active = 1, updated_at = ? WHERE id = ?;",
+                bindings: [.double(Date().timeIntervalSince1970), .text(profileId)]
+            )
+            try execute("COMMIT;")
+        } catch {
+            try? execute("ROLLBACK;")
+            throw error
+        }
 
         // Return the updated profile
         let profiles = try getProfiles()
@@ -262,7 +278,7 @@ public actor FeedbackCollector {
             throw FeedbackError.profileNotFound(id: profileId)
         }
 
-        logger.info("Activated profile: \(profileId)")
+        logger.info("Activated feedback profile")
         return profile
     }
 
@@ -278,12 +294,12 @@ public actor FeedbackCollector {
         guard isInitialized else { throw FeedbackError.notInitialized }
 
         // Delete feedback first (due to foreign key)
-        try execute("DELETE FROM feedback WHERE profile_id = '\(profileId)';")
+        try execute("DELETE FROM feedback WHERE profile_id = ?;", bindings: [.text(profileId)])
 
         // Delete profile
-        try execute("DELETE FROM profiles WHERE id = '\(profileId)';")
+        try execute("DELETE FROM profiles WHERE id = ?;", bindings: [.text(profileId)])
 
-        logger.info("Deleted profile: \(profileId)")
+        logger.info("Deleted feedback profile")
     }
 
     // MARK: - Execution Tracking
@@ -318,7 +334,7 @@ public actor FeedbackCollector {
             }
         }
 
-        logger.debug("Registered execution \(executionId) for feedback")
+        logger.debug("Registered execution for feedback")
     }
 
     // MARK: - Feedback Recording
@@ -371,12 +387,15 @@ public actor FeedbackCollector {
         }
 
         // Update profile timestamp
-        try execute("UPDATE profiles SET updated_at = \(now) WHERE id = '\(execution.profileId)';")
+        try execute(
+            "UPDATE profiles SET updated_at = ? WHERE id = ?;",
+            bindings: [.double(now), .text(execution.profileId)]
+        )
 
         // Remove from pending
         pendingExecutions.removeValue(forKey: executionId)
 
-        logger.info("Recorded feedback for \(executionId): \(liked ? "liked" : "disliked")")
+        logger.info("Recorded feedback")
     }
 
     // MARK: - Feedback Retrieval
@@ -497,10 +516,13 @@ public actor FeedbackCollector {
     public func clearFeedback(profileId: String) throws {
         guard isInitialized else { throw FeedbackError.notInitialized }
 
-        try execute("DELETE FROM feedback WHERE profile_id = '\(profileId)';")
-        try execute("UPDATE profiles SET updated_at = \(Date().timeIntervalSince1970) WHERE id = '\(profileId)';")
+        try execute("DELETE FROM feedback WHERE profile_id = ?;", bindings: [.text(profileId)])
+        try execute(
+            "UPDATE profiles SET updated_at = ? WHERE id = ?;",
+            bindings: [.double(Date().timeIntervalSince1970), .text(profileId)]
+        )
 
-        logger.info("Cleared feedback for profile: \(profileId)")
+        logger.info("Cleared feedback for profile")
     }
 
     // MARK: - Statistics
@@ -595,6 +617,37 @@ public actor FeedbackCollector {
             let message = errorMessage.map { String(cString: $0) } ?? "Unknown error"
             sqlite3_free(errorMessage)
             throw FeedbackError.databaseError(message: message)
+        }
+    }
+
+    private func execute(_ sql: String, bindings: [FeedbackSQLBinding]) throws {
+        guard let db = db else { throw FeedbackError.notInitialized }
+
+        var statement: OpaquePointer?
+        defer { sqlite3_finalize(statement) }
+
+        guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+            throw FeedbackError.databaseError(message: String(cString: sqlite3_errmsg(db)))
+        }
+
+        for (index, binding) in bindings.enumerated() {
+            let position = Int32(index + 1)
+            switch binding {
+            case .text(let value):
+                sqlite3_bind_text(
+                    statement,
+                    position,
+                    value,
+                    -1,
+                    unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+                )
+            case .double(let value):
+                sqlite3_bind_double(statement, position, value)
+            }
+        }
+
+        guard sqlite3_step(statement) == SQLITE_DONE else {
+            throw FeedbackError.databaseError(message: String(cString: sqlite3_errmsg(db)))
         }
     }
 }

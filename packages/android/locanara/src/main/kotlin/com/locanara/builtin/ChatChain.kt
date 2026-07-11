@@ -72,11 +72,8 @@ class ChatChain(
             )
         )
 
-        println("[ChatChain] detected language: $detectedLang")
-        println("[ChatChain] input: ${input.text}")
         val response = model.generate(prompt, GenerationConfig.CONVERSATIONAL)
         val message = response.text.trim()
-        println("[ChatChain] output: $message")
 
         val result = ChatResult(
             message = message,
@@ -128,16 +125,11 @@ class ChatChain(
             )
         )
 
-        println("[ChatChain] streaming, detected language: $detectedLang")
-        println("[ChatChain] input: $text")
-
         var accumulated = ""
         model.stream(prompt, GenerationConfig.CONVERSATIONAL).collect { chunk ->
             accumulated += chunk
             emit(chunk)
         }
-
-        println("[ChatChain] output (streamed): $accumulated")
 
         memory?.let { mem ->
             val result = ChatResult(message = accumulated, canContinue = true)

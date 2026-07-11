@@ -1,119 +1,56 @@
 # Locanara Shared Knowledge Base
 
-This is the **Single Source of Truth (SSOT)** for all AI agents working on this project.
+This directory supplements agent policy; it is not the sole source of truth.
 
-## Architecture: "Shared Brain, Dual Body"
+## Authority Order
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         SHARED KNOWLEDGE BASE                               │
-│                           /knowledge/                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  /internal/              /external/              /_claude-context/          │
-│  ┌─────────────┐        ┌─────────────┐        ┌─────────────┐             │
-│  │ Project     │        │ Apple       │        │ context.md  │             │
-│  │ Philosophy  │        │ Intelligence│        │ (compiled)  │             │
-│  │ Conventions │        │ LocalLLM    │        │             │             │
-│  └─────────────┘        └─────────────┘        └─────────────┘             │
-│         │                      │                      │                     │
-└─────────┼──────────────────────┼──────────────────────┼─────────────────────┘
-          │                      │                      │
-          ▼                      ▼                      ▼
-    ┌─────────────────────────────────┐    ┌─────────────────────────┐
-    │        LOCAL RAG AGENT          │    │      CLAUDE CODE        │
-    │  ┌─────────────────────────┐    │    │                         │
-    │  │       LanceDB           │    │    │  claude --context       │
-    │  │  • internal_rule        │    │    │  context.md             │
-    │  │  • external_api         │    │    │                         │
-    │  │  • code_map             │    │    │                         │
-    │  └─────────────────────────┘    │    │                         │
-    │              │                   │    │                         │
-    │              ▼                   │    │                         │
-    │      _generated/                │    │     (direct edit)       │
-    └─────────────────────────────────┘    └─────────────────────────┘
-                   │                                  │
-                   └──────────── COMPARE ────────────┘
-```
+1. `AGENTS.md` — repository policy and safety boundaries
+2. Current GraphQL schema, manifests, implementation, and tests
+3. `knowledge/internal/` — detailed project conventions
+4. Timestamped `knowledge/external/` references (optional, never embedded by default)
+5. Generated context under `knowledge/_claude-context/`
 
-## Folder Structure
+Generated or external content must never override `AGENTS.md` or live code. If
+two sources disagree, stop treating the lower source as authoritative and fix
+the source/generator rather than adding another duplicate rule.
 
-```
+## Structure
+
+```text
 knowledge/
-├── README.md                        # This file
-├── internal/                        # MANDATORY - Project philosophy
-│   ├── 01-naming-conventions.md    # Function/file naming rules
-│   ├── 02-architecture.md          # SDK structure, tier patterns
-│   ├── 03-coding-style.md          # Swift/Kotlin style rules
-│   ├── 04-api-design.md            # API design principles
-│   └── 05-git-deployment.md        # Git conventions, deployment
-├── external/                        # REFERENCE - External APIs
-│   ├── foundation-models-api.md    # Apple Foundation Models reference
-│   ├── localllmclient-api.md       # LocalLLMClient library reference
-│   └── gemini-nano-api.md          # Google Gemini Nano reference
-└── _claude-context/                 # COMPILED - For Claude Code CLI
-    └── context.md                   # Auto-generated combined context
+├── README.md
+├── internal/          # maintained project conventions
+├── external/          # reviewable, potentially stale upstream references
+└── _claude-context/   # generated; never edit by hand
+    └── context.md
 ```
 
-## Usage
+## External Reference Rules
 
-### Compile Both (Recommended)
+- The compiler lists external file paths but does not embed their bodies in the
+  default agent context.
+- Date snapshots and link official primary sources.
+- Do not add cloud SDKs or server inference to an on-device integration note.
+- Verify dependency versions from current manifests at execution time.
+- Mark uncertain or unverified APIs instead of inventing sample code.
+- Recheck every external claim before using it for an implementation change.
+
+## Regeneration
+
+After changing `AGENTS.md`, an allowlisted `knowledge/internal/` source, the
+external reference inventory, or the compiler:
 
 ```bash
 cd scripts/agent
-
-# Compile for both Claude Code + Local RAG
+bun run typecheck
+bun test
+bun run lint:markdown
 bun run compile
+bun run check
 ```
 
-### For Claude Code Only
-
-```bash
-cd scripts/agent
-
-# Compile context.md for Claude Code
-bun run compile:ai
-
-# Use with Claude Code
-claude --context knowledge/_claude-context/context.md
-
-# Or in an existing session
-/context add knowledge/_claude-context/context.md
-```
-
-### For Local RAG Agent
-
-```bash
-cd scripts/agent
-
-# Index knowledge + Code Map to LanceDB
-bun run compile:local
-
-# Run agent
-bun run agent --prompt "Add streaming support to summarize"
-
-# Output goes to: _generated/
-```
-
-## Knowledge Priority
-
-| Priority | Type | Source | Purpose |
-|----------|------|--------|---------|
-| 1 (Highest) | `internal_rule` | `/internal/` | MUST follow exactly |
-| 2 | `code_map` | Project scan | Code structure reference |
-| 3 | `external_api` | `/external/` | API reference (adapt to internal rules) |
-
-## Regenerating Context
-
-After modifying any files in `internal/` or `external/`:
-
-```bash
-cd scripts/agent
-
-# Regenerate for both targets
-bun run compile
-
-# Or individually:
-bun run compile:ai    # Claude Code context.md
-bun run compile:local # Local RAG LanceDB index
-```
+Review the generated diff. The compiler must be deterministic for a supplied
+input and must not publish, deploy, or mutate package versions. Machine-local
+`claude-mem-context` blocks are intentionally excluded from tracked generated
+context. Root/site version-map drift is surfaced in the generated reference and
+compiler log; it is never silently treated as synchronized.

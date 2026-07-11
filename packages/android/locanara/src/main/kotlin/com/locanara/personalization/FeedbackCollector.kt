@@ -118,7 +118,7 @@ class FeedbackCollector(
         }
 
         db.insertOrThrow(TABLE_PROFILES, null, values)
-        Log.i(TAG, "Created profile: $profileId ($name)")
+        Log.i(TAG, "Created personalization profile")
 
         return PersonalizationProfile(
             profileId = profileId,
@@ -349,7 +349,7 @@ class FeedbackCollector(
             pendingExecutions.remove(executionId)
         }
 
-        Log.i(TAG, "Recorded feedback for execution $executionId: ${if (liked) "liked" else "disliked"}")
+        Log.i(TAG, "Recorded execution feedback")
     }
 
     /**
@@ -376,8 +376,8 @@ class FeedbackCollector(
                 val featureString = it.getString(2)
                 val feature = try {
                     FeatureType.valueOf(featureString)
-                } catch (e: IllegalArgumentException) {
-                    Log.w(TAG, "Unknown feature type in database: $featureString, defaulting to CHAT")
+                } catch (_: IllegalArgumentException) {
+                    Log.w(TAG, "Unknown feature type in database; defaulting to CHAT")
                     FeatureType.CHAT
                 }
                 feedback.add(
@@ -417,8 +417,8 @@ class FeedbackCollector(
                 val featureString = it.getString(2)
                 val feature = try {
                     FeatureType.valueOf(featureString)
-                } catch (e: IllegalArgumentException) {
-                    Log.w(TAG, "Unknown feature type in database: $featureString, defaulting to CHAT")
+                } catch (_: IllegalArgumentException) {
+                    Log.w(TAG, "Unknown feature type in database; defaulting to CHAT")
                     FeatureType.CHAT
                 }
                 feedback.add(
@@ -444,7 +444,7 @@ class FeedbackCollector(
     fun clearFeedback(profileId: String) {
         val db = writableDatabase
         db.delete(TABLE_FEEDBACK, "profile_id = ?", arrayOf(profileId))
-        Log.i(TAG, "Cleared feedback for profile: $profileId")
+        Log.i(TAG, "Cleared personalization feedback")
     }
 
     //endregion

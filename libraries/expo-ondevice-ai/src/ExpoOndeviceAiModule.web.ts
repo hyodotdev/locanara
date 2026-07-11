@@ -13,6 +13,8 @@ import type {
   ExtractResult,
   ChatOptions,
   ChatResult,
+  DescribeImageOptions,
+  DescribeImageResult,
   TranslateOptions,
   TranslateResult,
   RewriteOptions,
@@ -39,6 +41,7 @@ interface ChromeSummarizerConstructor {
 
 interface ChromeSummarizer {
   summarize(text: string): Promise<string>;
+  summarizeStreaming?(text: string): AsyncIterable<string>;
   destroy(): void;
 }
 
@@ -51,6 +54,7 @@ interface ChromeTranslatorConstructor {
 
 interface ChromeTranslator {
   translate(text: string): Promise<string>;
+  translateStreaming?(text: string): AsyncIterable<string>;
   destroy(): void;
 }
 
@@ -64,6 +68,7 @@ interface ChromeRewriterConstructor {
 
 interface ChromeRewriter {
   rewrite(text: string): Promise<string>;
+  rewriteStreaming?(text: string): AsyncIterable<string>;
   destroy(): void;
 }
 
@@ -151,21 +156,46 @@ let cachedRewriter: ChromeRewriter | null = null;
 let cachedWriter: ChromeWriter | null = null;
 
 // Simple event emitter for web (mimics Expo native module EventEmitter)
-const eventListeners = new Map<string, Set<(data: ChatStreamChunkData) => void>>();
+const eventListeners = new Map<string, Set<(data: StreamChunkData) => void>>();
 
-interface ChatStreamChunkData {
+interface StreamChunkData {
   delta: string;
   accumulated: string;
   isFinal: boolean;
 }
 
-function emitEvent(eventName: string, data: ChatStreamChunkData) {
+function emitEvent(eventName: string, data: StreamChunkData) {
   const listeners = eventListeners.get(eventName);
   if (listeners) {
     for (const listener of listeners) {
       listener(data);
     }
   }
+}
+
+async function consumeTextStream(
+  eventName: string,
+  stream: AsyncIterable<string>,
+): Promise<string> {
+  let accumulated = '';
+
+  for await (const chunk of stream) {
+    const text = typeof chunk === 'string' ? chunk : String(chunk);
+    let delta: string;
+
+    // Chrome API revisions have emitted both cumulative and delta chunks.
+    if (text.length >= accumulated.length && text.startsWith(accumulated)) {
+      delta = text.slice(accumulated.length);
+      accumulated = text;
+    } else {
+      delta = text;
+      accumulated += text;
+    }
+
+    emitEvent(eventName, {delta, accumulated, isFinal: false});
+  }
+
+  return accumulated;
 }
 
 // ============================================================================
@@ -447,7 +477,7 @@ const ExpoOndeviceAiModule = {
     };
   },
 
-  addListener(eventName: string, listener: (data: ChatStreamChunkData) => void) {
+  addListener(eventName: string, listener: (data: StreamChunkData) => void) {
     if (!eventListeners.has(eventName))
       eventListeners.set(eventName, new Set());
     eventListeners.get(eventName)!.add(listener);
@@ -544,6 +574,153 @@ const ExpoOndeviceAiModule = {
       sourceLanguage: options.sourceLanguage ?? 'en',
       targetLanguage: options.targetLanguage,
     };
+  },
+
+  async summarizeStreaming(
+    text: string,
+    options?: SummarizeOptions,
+  ): Promise<SummarizeResult> {
+    const Summarizer = getSummarizerAPI();
+    if (!Summarizer)
+      throw new Error('Summarizer API not available in this browser');
+
+    const length =
+      options?.outputType === 'ONE_BULLET'
+        ? 'short'
+        : options?.outputType === 'TWO_BULLETS'
+          ? 'medium'
+          : 'long';
+    const optionsKey = `key-points:${length}`;
+    if (!cachedSummarizer || cachedSummarizerKey !== optionsKey) {
+      cachedSummarizer?.destroy();
+      cachedSummarizer = await Summarizer.create({
+        type: 'key-points',
+        length,
+        format: 'markdown',
+      });
+      cachedSummarizerKey = optionsKey;
+    }
+    if (typeof cachedSummarizer.summarizeStreaming !== 'function') {
+      throw new Error(
+        'Summarizer streaming API not available in this browser',
+      );
+    }
+
+    const summary = await consumeTextStream(
+      'onSummarizeStreamChunk',
+      cachedSummarizer.summarizeStreaming(text),
+    );
+
+    emitEvent('onSummarizeStreamChunk', {
+      delta: '',
+      accumulated: summary,
+      isFinal: true,
+    });
+    return {
+      summary,
+      originalLength: text.length,
+      summaryLength: summary.length,
+    };
+  },
+
+  async translateStreaming(
+    text: string,
+    options: TranslateOptions,
+  ): Promise<TranslateResult> {
+    const Translator = getTranslatorAPI();
+    if (!Translator)
+      throw new Error('Translator API not available in this browser');
+
+    const sourceLanguage = options.sourceLanguage ?? 'en';
+    const key = `${sourceLanguage}-${options.targetLanguage}`;
+    if (!cachedTranslators.has(key)) {
+      if (cachedTranslators.size >= MAX_CACHED_TRANSLATORS) {
+        const oldestKey = cachedTranslators.keys().next().value!;
+        cachedTranslators.get(oldestKey)?.destroy();
+        cachedTranslators.delete(oldestKey);
+      }
+      cachedTranslators.set(
+        key,
+        await Translator.create({
+          sourceLanguage,
+          targetLanguage: options.targetLanguage,
+        }),
+      );
+    }
+
+    const translator = cachedTranslators.get(key)!;
+    if (typeof translator.translateStreaming !== 'function') {
+      throw new Error('Translator streaming API not available in this browser');
+    }
+
+    const translatedText = await consumeTextStream(
+      'onTranslateStreamChunk',
+      translator.translateStreaming(text),
+    );
+    emitEvent('onTranslateStreamChunk', {
+      delta: '',
+      accumulated: translatedText,
+      isFinal: true,
+    });
+    return {
+      translatedText,
+      sourceLanguage,
+      targetLanguage: options.targetLanguage,
+    };
+  },
+
+  async rewriteStreaming(
+    text: string,
+    options: RewriteOptions,
+  ): Promise<RewriteResult> {
+    const Rewriter = getRewriterAPI();
+    if (!Rewriter)
+      throw new Error('Rewriter API not available in this browser');
+
+    const toneMap: Record<string, 'more-casual' | 'more-formal' | 'as-is'> = {
+      FRIENDLY: 'more-casual',
+      PROFESSIONAL: 'more-formal',
+      ELABORATE: 'as-is',
+      SHORTEN: 'as-is',
+      EMOJIFY: 'more-casual',
+      REPHRASE: 'as-is',
+    };
+    const lengthMap: Record<string, 'shorter' | 'as-is' | 'longer'> = {
+      ELABORATE: 'longer',
+      SHORTEN: 'shorter',
+    };
+
+    cachedRewriter?.destroy();
+    cachedRewriter = await Rewriter.create({
+      tone: toneMap[options.outputType] ?? 'as-is',
+      length: lengthMap[options.outputType] ?? 'as-is',
+    });
+    if (typeof cachedRewriter.rewriteStreaming !== 'function') {
+      throw new Error('Rewriter streaming API not available in this browser');
+    }
+
+    const rewrittenText = await consumeTextStream(
+      'onRewriteStreamChunk',
+      cachedRewriter.rewriteStreaming(text),
+    );
+    emitEvent('onRewriteStreamChunk', {
+      delta: '',
+      accumulated: rewrittenText,
+      isFinal: true,
+    });
+    return {
+      rewrittenText,
+      style: options.outputType,
+    };
+  },
+
+  async describeImage(
+    _imageUri: string,
+    _options?: DescribeImageOptions,
+  ): Promise<DescribeImageResult> {
+    throw new Error(
+      'describeImage is not supported on Web because the Expo API accepts native image URIs',
+    );
   },
 
   async rewrite(text: string, options: RewriteOptions): Promise<RewriteResult> {

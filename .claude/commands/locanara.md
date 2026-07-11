@@ -1,80 +1,60 @@
 # /locanara
 
-Main entry point for the Locanara project.
+Project-wide router for Locanara work.
 
-## Description
+## Start Here
 
-Locanara is a cross-platform on-device AI SDK based on Apple Intelligence and Gemini Nano.
-This command provides the main interface for project-wide tasks.
+1. Read `AGENTS.md` and `git status --short --branch`.
+2. Inspect existing diffs before making changes.
+3. Select the source of truth and the smallest matching workflow.
+4. Use changed-path verification unless a full audit is requested.
 
-## Available Skills
+## Source-of-Truth Routing
 
-The Locanara project consists of the following specialized skills:
+| Request | Read first | Workflow |
+| --- | --- | --- |
+| Shared type or API contract | `packages/gql/src/*.graphql` | `/gql` |
+| Apple behavior | `packages/apple/Sources/` and guide 04 | `/apple` |
+| Android behavior | `packages/android/locanara/src/main/` and guide 05 | `/android` |
+| Browser behavior | `packages/web/src/` | Implement in Web; verify with `/test` Web checks |
+| Wrapper API | platform SDK, spec/public facade, then matching guide | Implement in wrapper; verify with `/test` library checks |
+| Docs or examples | implementation, schema, then site page | `/docs` |
+| Repository health | manifests, CI, code, tests | `/audit-code` or `/verify-all` |
+| GitHub issue | issue criteria and current default branch | `/resolve-issue` |
+| Upstream technology status | official sources plus current code | `/knowledge-compile` |
 
-1. **GraphQL Architect** (`/gql` command)
-
-   - GraphQL schema design and management
-   - Common and platform-specific type definitions
-   - API operation design
-
-2. **Apple Intelligence SDK** (`/apple` command)
-
-   - iOS Swift SDK implementation
-   - Apple Intelligence API integration
-   - Foundation Models processing
-
-3. **Android SDK** (`/android` command)
-
-   - Android Kotlin SDK implementation
-   - Gemini Nano API integration
-   - Android-specific features
-
-4. **Test Engineer** (`/test` command)
-
-   - Unit and integration test writing
-   - Test coverage management
-
-5. **Documentation Manager** (`/docs` command)
-
-   - Project documentation management
-   - Automatic API documentation generation
-
-## Quick Start
-
-To see all available skills:
-
-```text
-/skills-index
-```
-
-For detailed command information, refer to each command file:
-
-- `.claude/commands/gql.md`
-- `.claude/commands/apple.md`
-- `.claude/commands/android.md`
-- `.claude/commands/test.md`
-- `.claude/commands/docs.md`
-
-## Project Structure
+## Repository Map
 
 ```text
 locanara/
 ├── packages/
-│   ├── gql/          # GraphQL schema and type generation
-│   ├── apple/        # iOS SDK (Swift) - Apple Intelligence
-│   ├── android/      # Android SDK (Kotlin) - Gemini Nano
-│   └── site/         # Website (landing + docs + community)
-├── libraries/        # Third-party framework integrations
-└── .claude/
-    ├── commands/     # Slash commands
-    └── guides/       # Project guides
+│   ├── gql/       # shared schemas and generators
+│   ├── apple/     # Swift SDK and example
+│   ├── android/   # Kotlin SDK and example
+│   ├── web/       # Chrome Built-in AI SDK
+│   └── site/      # website and documentation
+├── libraries/
+│   ├── expo-ondevice-ai/
+│   ├── react-native-ondevice-ai/
+│   └── flutter_ondevice_ai/
+├── knowledge/     # internal rules and timestamped external references
+└── scripts/agent/ # AI context compiler
 ```
 
-## Workflow Example
+## Cross-Platform Change Order
 
-Adding a new AI Feature:
+1. Change the schema when a shared generated contract changes.
+2. Regenerate tracked platform outputs; never hand-edit generated files.
+3. Implement Apple, Android, and Web behavior where applicable.
+4. Update Expo, React Native, and Flutter wrappers from their own specs.
+5. Update docs and examples with code copied from the verified implementation.
+6. Run the complete affected verification matrix.
 
-1. Define schema with GraphQL Architect
-2. Implement on each platform with Apple/Android SDK
-3. Write tests with Test Engineer
-4. Update documentation with Docs Manager
+## Guardrails
+
+- On-device inference only. Cloud inference, server fallback, and prompt
+  telemetry are outside project scope.
+- Audit/review requests are read-only unless the user also asks for fixes.
+- Never publish, deploy, tag, or trigger release workflows.
+- Never close an issue based on age or commit wording alone.
+- Report skipped or device-only verification explicitly.

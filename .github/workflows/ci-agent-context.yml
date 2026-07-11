@@ -1,0 +1,98 @@
+name: CI Agent Context
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "GEMINI.md"
+      - "SKILLS_INDEX.md"
+      - "package.json"
+      - ".markdownlint.json"
+      - ".claude/commands/**"
+      - ".claude/guides/**"
+      - ".claude/knowledge/**"
+      - ".codex/skills/**"
+      - "knowledge/**"
+      - "scripts/agent/**"
+      - "locanara-versions.json"
+      - "packages/site/locanara-versions.json"
+      - "llms.txt"
+      - "llms-full.txt"
+      - "packages/site/public/llms.txt"
+      - "packages/site/public/llms-full.txt"
+      - ".github/workflows/ci-agent-context.yml"
+      - ".github/workflows/ci-version-mirrors.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "GEMINI.md"
+      - "SKILLS_INDEX.md"
+      - "package.json"
+      - ".markdownlint.json"
+      - ".claude/commands/**"
+      - ".claude/guides/**"
+      - ".claude/knowledge/**"
+      - ".codex/skills/**"
+      - "knowledge/**"
+      - "scripts/agent/**"
+      - "locanara-versions.json"
+      - "packages/site/locanara-versions.json"
+      - "llms.txt"
+      - "llms-full.txt"
+      - "packages/site/public/llms.txt"
+      - "packages/site/public/llms-full.txt"
+      - ".github/workflows/ci-agent-context.yml"
+      - ".github/workflows/ci-version-mirrors.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify generated AI context
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.13"
+
+      - name: Install compiler dependencies
+        working-directory: scripts/agent
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Verify policy aliases
+        run: |
+          test -L CLAUDE.md
+          test -L GEMINI.md
+          test "$(readlink CLAUDE.md)" = "AGENTS.md"
+          test "$(readlink GEMINI.md)" = "AGENTS.md"
+
+      - name: Type check compiler
+        working-directory: scripts/agent
+        run: bun run typecheck
+
+      - name: Lint maintained Markdown
+        working-directory: scripts/agent
+        run: bun run lint:markdown
+
+      - name: Test compiler
+        working-directory: scripts/agent
+        run: bun test
+
+      - name: Verify generated outputs
+        working-directory: scripts/agent
+        run: bun run check
+
+      - name: Verify checks were read-only
+        run: test -z "$(git status --porcelain --untracked-files=all)"
