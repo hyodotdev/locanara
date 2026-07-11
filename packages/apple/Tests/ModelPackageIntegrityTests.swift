@@ -273,6 +273,53 @@ final class ModelPackageIntegrityTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: storage.getModelPath("\(model.modelId)-mmproj").path))
     }
 
+    func testCancellationStopsActiveNonstandardThirdPackageAsset() async {
+        let model = makeMultimodalModel()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [TrackedPackageCancellationURLProtocol.self]
+        let downloader = ModelDownloader(
+            storage: storage,
+            foregroundConfiguration: configuration,
+            packageAssetsProvider: { modelInfo in
+                guard var assets = modelInfo.packageAssets else { return nil }
+                assets.append(DownloadableModelAsset(
+                    modelId: "\(modelInfo.modelId)-tokenizer",
+                    url: URL(string: "https://locanara.test/third-slow.bin")!,
+                    sizeMB: 1,
+                    checksum: "sha256:6c45cb72a026c7a7e0e21fb424e83916243ea980cf2d82b9c94627d3c8d64540"
+                ))
+                return assets
+            }
+        )
+        let consumer = Task { () -> [ModelDownloadState] in
+            var states: [ModelDownloadState] = []
+            for await progress in downloader.downloadModel(model) {
+                states.append(progress.state)
+            }
+            return states
+        }
+
+        XCTAssertEqual(
+            TrackedPackageCancellationURLProtocol.thirdAssetStarted.wait(timeout: .now() + 2),
+            .success
+        )
+        downloader.cancelDownload(model.modelId)
+        XCTAssertEqual(
+            TrackedPackageCancellationURLProtocol.thirdAssetStopped.wait(timeout: .now() + 1),
+            .success,
+            "Cancellation must target the active package asset instead of assuming a fixed suffix"
+        )
+
+        let states = await consumer.value
+        XCTAssertEqual(states.filter { $0 == .cancelled }.count, 1)
+        XCTAssertFalse(states.contains(.completed))
+        XCTAssertFalse(
+            FileManager.default.fileExists(
+                atPath: storage.getModelPath("\(model.modelId)-tokenizer").path
+            )
+        )
+    }
+
     func testCancellingConsumerStopsTransferWithoutPublishingFile() async throws {
         let downloader = makeStubDownloader()
         let model = DownloadableModelInfo(
@@ -973,6 +1020,65 @@ private final class ModelDownloadURLProtocol: URLProtocol, @unchecked Sendable {
         lock.withLock {
             pendingWork?.cancel()
             pendingWork = nil
+        }
+    }
+
+    private var isStopped: Bool {
+        lock.withLock { pendingWork?.isCancelled ?? true }
+    }
+}
+
+private final class TrackedPackageCancellationURLProtocol: URLProtocol, @unchecked Sendable {
+    static let thirdAssetStarted = DispatchSemaphore(value: 0)
+    static let thirdAssetStopped = DispatchSemaphore(value: 0)
+
+    private let lock = NSLock()
+    private var pendingWork: DispatchWorkItem?
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        request.url?.host == "locanara.test"
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !self.isStopped else { return }
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: "HTTP/1.1",
+                headerFields: ["Content-Type": "application/octet-stream"]
+            )!
+            self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            self.client?.urlProtocol(self, didLoad: Data(url.lastPathComponent.utf8))
+            self.client?.urlProtocolDidFinishLoading(self)
+        }
+        lock.withLock { pendingWork = work }
+
+        if url.lastPathComponent == "third-slow.bin" {
+            Self.thirdAssetStarted.signal()
+            DispatchQueue.global().asyncAfter(deadline: .now() + 5, execute: work)
+        } else {
+            work.perform()
+        }
+    }
+
+    override func stopLoading() {
+        let isThirdAsset = request.url?.lastPathComponent == "third-slow.bin"
+        lock.withLock {
+            pendingWork?.cancel()
+            pendingWork = nil
+        }
+        if isThirdAsset {
+            Self.thirdAssetStopped.signal()
         }
     }
 

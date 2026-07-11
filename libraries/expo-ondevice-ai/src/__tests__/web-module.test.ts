@@ -6,6 +6,14 @@ async function* chunks(values: string[]): AsyncGenerator<string> {
   }
 }
 
+async function* chunksThenThrow(
+  values: string[],
+  error: Error,
+): AsyncGenerator<string> {
+  yield* chunks(values);
+  throw error;
+}
+
 function setWebApi(name: string, value: unknown): void {
   (globalThis as Record<string, unknown>)[name] = value;
 }
@@ -13,7 +21,12 @@ function setWebApi(name: string, value: unknown): void {
 describe('ExpoOndeviceAiModule.web', () => {
   afterEach(() => {
     ExpoOndeviceAiModule.destroy();
-    for (const api of ['Summarizer', 'Translator', 'Rewriter', 'LanguageModel']) {
+    for (const api of [
+      'Summarizer',
+      'Translator',
+      'Rewriter',
+      'LanguageModel',
+    ]) {
       delete (globalThis as Record<string, unknown>)[api];
     }
   });
@@ -111,6 +124,7 @@ describe('ExpoOndeviceAiModule.web', () => {
     expect(create).toHaveBeenCalledWith({
       sourceLanguage: 'en',
       targetLanguage: 'ko',
+      signal: expect.any(AbortSignal),
     });
     expect(translateStreaming).toHaveBeenCalledWith('Hello');
     expect(result).toEqual({
@@ -123,6 +137,351 @@ describe('ExpoOndeviceAiModule.web', () => {
       accumulated: '안녕',
       isFinal: true,
     });
+  });
+
+  it('reuses one cached translator for direct and streaming calls', async () => {
+    const translate = jest.fn().mockResolvedValue('Bonjour');
+    const translateStreaming = jest.fn(() => chunks(['Bon', 'jour']));
+    const create = jest.fn().mockResolvedValue({
+      translate,
+      translateStreaming,
+      destroy: jest.fn(),
+    });
+    setWebApi('Translator', {create});
+
+    await ExpoOndeviceAiModule.translate('Hello', {targetLanguage: 'fr'});
+    await ExpoOndeviceAiModule.translateStreaming('Hello again', {
+      targetLanguage: 'fr',
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith({
+      sourceLanguage: 'en',
+      targetLanguage: 'fr',
+      signal: expect.any(AbortSignal),
+    });
+    expect(translate).toHaveBeenCalledWith('Hello');
+    expect(translateStreaming).toHaveBeenCalledWith('Hello again');
+  });
+
+  it('single-flights concurrent translator creation for the same language pair', async () => {
+    const translate = jest.fn().mockResolvedValue('Bonjour');
+    const translateStreaming = jest.fn(() => chunks(['Bon', 'jour']));
+    const translator = {
+      translate,
+      translateStreaming,
+      destroy: jest.fn(),
+    };
+    let resolveCreation = (_translator: typeof translator) => {};
+    const create = jest.fn(
+      () =>
+        new Promise<typeof translator>((resolve) => {
+          resolveCreation = resolve;
+        }),
+    );
+    setWebApi('Translator', {create});
+
+    const directResult = ExpoOndeviceAiModule.translate('Hello', {
+      targetLanguage: 'fr',
+    });
+    const streamResult = ExpoOndeviceAiModule.translateStreaming(
+      'Hello again',
+      {targetLanguage: 'fr'},
+    );
+
+    expect(create).toHaveBeenCalledTimes(1);
+    resolveCreation(translator);
+
+    await expect(directResult).resolves.toMatchObject({
+      translatedText: 'Bonjour',
+    });
+    await expect(streamResult).resolves.toMatchObject({
+      translatedText: 'Bonjour',
+    });
+    expect(translate).toHaveBeenCalledWith('Hello');
+    expect(translateStreaming).toHaveBeenCalledWith('Hello again');
+  });
+
+  it('clears a failed translator single-flight so a later call can retry', async () => {
+    const creationError = new Error('Translator creation failed');
+    const create = jest
+      .fn()
+      .mockRejectedValueOnce(creationError)
+      .mockResolvedValueOnce({
+        translate: jest.fn().mockResolvedValue('Bonjour'),
+        destroy: jest.fn(),
+      });
+    setWebApi('Translator', {create});
+
+    const firstAttempt = ExpoOndeviceAiModule.translate('Hello', {
+      targetLanguage: 'fr',
+    });
+    const sharedAttempt = ExpoOndeviceAiModule.translate('Hello again', {
+      targetLanguage: 'fr',
+    });
+
+    await expect(Promise.all([firstAttempt, sharedAttempt])).rejects.toBe(
+      creationError,
+    );
+    expect(create).toHaveBeenCalledTimes(1);
+    await expect(
+      ExpoOndeviceAiModule.translate('Retry', {targetLanguage: 'fr'}),
+    ).resolves.toMatchObject({translatedText: 'Bonjour'});
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the translator cache bounded across concurrent creations', async () => {
+    const destroyers: jest.Mock[] = [];
+    const create = jest.fn(async () => {
+      await Promise.resolve();
+      const destroy = jest.fn();
+      destroyers.push(destroy);
+      return {
+        translate: jest.fn().mockResolvedValue('translated'),
+        destroy,
+      };
+    });
+    setWebApi('Translator', {create});
+
+    await Promise.all(
+      Array.from({length: 11}, (_, index) =>
+        ExpoOndeviceAiModule.translate('Hello', {
+          sourceLanguage: 'en',
+          targetLanguage: `language-${index}`,
+        }),
+      ),
+    );
+
+    expect(create).toHaveBeenCalledTimes(11);
+    expect(
+      destroyers.reduce(
+        (destroyCount, destroy) => destroyCount + destroy.mock.calls.length,
+        0,
+      ),
+    ).toBe(1);
+  });
+
+  it('never evicts a translator while its request is active', async () => {
+    let resolveFirstTranslation = (_value: string) => {};
+    let markFirstTranslationStarted = () => {};
+    const firstTranslationStarted = new Promise<void>((resolve) => {
+      markFirstTranslationStarted = resolve;
+    });
+    const destroyers = new Map<string, jest.Mock>();
+    const create = jest.fn(
+      async (options: {sourceLanguage: string; targetLanguage: string}) => {
+        const destroy = jest.fn();
+        destroyers.set(options.targetLanguage, destroy);
+        return {
+          translate: jest.fn(() => {
+            if (options.targetLanguage !== 'language-0') {
+              return Promise.resolve('translated');
+            }
+
+            markFirstTranslationStarted();
+            return new Promise<string>((resolve) => {
+              resolveFirstTranslation = resolve;
+            });
+          }),
+          destroy,
+        };
+      },
+    );
+    setWebApi('Translator', {create});
+
+    const firstRequest = ExpoOndeviceAiModule.translate('Hello', {
+      sourceLanguage: 'en',
+      targetLanguage: 'language-0',
+    });
+    await firstTranslationStarted;
+
+    await Promise.all(
+      Array.from({length: 10}, (_, index) =>
+        ExpoOndeviceAiModule.translate('Hello', {
+          sourceLanguage: 'en',
+          targetLanguage: `language-${index + 1}`,
+        }),
+      ),
+    );
+
+    expect(destroyers.get('language-0')).not.toHaveBeenCalled();
+    resolveFirstTranslation('translated');
+    await expect(firstRequest).resolves.toMatchObject({
+      translatedText: 'translated',
+    });
+  });
+
+  it('releases direct and streaming translator leases after failures', async () => {
+    const directError = new Error('Direct translation failed');
+    const streamError = new Error('Streaming translation failed');
+    const destroyers = new Map<string, jest.Mock>();
+    const create = jest.fn(
+      async (options: {sourceLanguage: string; targetLanguage: string}) => {
+        const destroy = jest.fn();
+        destroyers.set(options.targetLanguage, destroy);
+        return {
+          translate: jest.fn(() =>
+            options.targetLanguage === 'language-0'
+              ? Promise.reject(directError)
+              : Promise.resolve('translated'),
+          ),
+          translateStreaming: jest.fn(() =>
+            options.targetLanguage === 'language-1'
+              ? chunksThenThrow([], streamError)
+              : chunks(['translated']),
+          ),
+          destroy,
+        };
+      },
+    );
+    setWebApi('Translator', {create});
+
+    await expect(
+      ExpoOndeviceAiModule.translate('Hello', {
+        sourceLanguage: 'en',
+        targetLanguage: 'language-0',
+      }),
+    ).rejects.toBe(directError);
+    await expect(
+      ExpoOndeviceAiModule.translateStreaming('Hello', {
+        sourceLanguage: 'en',
+        targetLanguage: 'language-1',
+      }),
+    ).rejects.toBe(streamError);
+
+    for (let index = 2; index < 12; index += 1) {
+      await ExpoOndeviceAiModule.translate('Hello', {
+        sourceLanguage: 'en',
+        targetLanguage: `language-${index}`,
+      });
+    }
+
+    expect(destroyers.get('language-0')).toHaveBeenCalledTimes(1);
+    expect(destroyers.get('language-1')).toHaveBeenCalledTimes(1);
+  });
+
+  it('evicts the least recently used idle translator', async () => {
+    const destroyers = new Map<string, jest.Mock>();
+    const create = jest.fn(
+      async (options: {sourceLanguage: string; targetLanguage: string}) => {
+        const destroy = jest.fn();
+        destroyers.set(options.targetLanguage, destroy);
+        return {
+          translate: jest.fn().mockResolvedValue('translated'),
+          destroy,
+        };
+      },
+    );
+    setWebApi('Translator', {create});
+
+    for (let index = 0; index < 10; index += 1) {
+      await ExpoOndeviceAiModule.translate('Hello', {
+        sourceLanguage: 'en',
+        targetLanguage: `language-${index}`,
+      });
+    }
+    await ExpoOndeviceAiModule.translate('Refresh', {
+      sourceLanguage: 'en',
+      targetLanguage: 'language-0',
+    });
+    await ExpoOndeviceAiModule.translate('Overflow', {
+      sourceLanguage: 'en',
+      targetLanguage: 'language-10',
+    });
+
+    expect(destroyers.get('language-0')).not.toHaveBeenCalled();
+    expect(destroyers.get('language-1')).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts pending creation without disturbing the next generation', async () => {
+    type TestTranslator = {
+      translate: jest.Mock<Promise<string>, [string]>;
+      destroy: jest.Mock;
+    };
+    const creations: {
+      signal?: AbortSignal;
+      resolve: (translator: TestTranslator) => void;
+    }[] = [];
+    const create = jest.fn(
+      (options: {
+        sourceLanguage: string;
+        targetLanguage: string;
+        signal?: AbortSignal;
+      }) =>
+        new Promise<TestTranslator>((resolve, reject) => {
+          creations.push({signal: options.signal, resolve});
+          options.signal?.addEventListener(
+            'abort',
+            () => {
+              const abortError = new Error('Translator creation aborted');
+              abortError.name = 'AbortError';
+              reject(abortError);
+            },
+            {once: true},
+          );
+        }),
+    );
+    setWebApi('Translator', {create});
+
+    const firstRequest = ExpoOndeviceAiModule.translate('Before reset', {
+      sourceLanguage: 'en',
+      targetLanguage: 'fr',
+    });
+    expect(creations).toHaveLength(1);
+    expect(creations[0]?.signal?.aborted).toBe(false);
+
+    ExpoOndeviceAiModule.destroy();
+    expect(creations[0]?.signal?.aborted).toBe(true);
+
+    const secondRequest = ExpoOndeviceAiModule.translate('After reset', {
+      sourceLanguage: 'en',
+      targetLanguage: 'fr',
+    });
+    expect(creations).toHaveLength(2);
+    expect(creations[1]?.signal?.aborted).toBe(false);
+    await expect(firstRequest).rejects.toMatchObject({name: 'AbortError'});
+
+    const sharedSecondRequest = ExpoOndeviceAiModule.translate(
+      'After reset again',
+      {sourceLanguage: 'en', targetLanguage: 'fr'},
+    );
+    expect(create).toHaveBeenCalledTimes(2);
+    creations[1]?.resolve({
+      translate: jest.fn().mockResolvedValue('Bonjour'),
+      destroy: jest.fn(),
+    });
+
+    await expect(
+      Promise.all([secondRequest, sharedSecondRequest]),
+    ).resolves.toHaveLength(2);
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps delimiter-containing translator language pairs distinct', async () => {
+    const create = jest.fn(
+      async (options: {sourceLanguage: string; targetLanguage: string}) => ({
+        translate: jest
+          .fn()
+          .mockResolvedValue(
+            `${options.sourceLanguage}:${options.targetLanguage}`,
+          ),
+        destroy: jest.fn(),
+      }),
+    );
+    setWebApi('Translator', {create});
+
+    const first = await ExpoOndeviceAiModule.translate('Hello', {
+      sourceLanguage: 'en-US',
+      targetLanguage: 'fr',
+    });
+    const second = await ExpoOndeviceAiModule.translate('Hello', {
+      sourceLanguage: 'en',
+      targetLanguage: 'US-fr',
+    });
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(first.translatedText).toBe('en-US:fr');
+    expect(second.translatedText).toBe('en:US-fr');
   });
 
   it('does not mistake a delta that starts with prior output for cumulative text', async () => {
@@ -144,9 +503,7 @@ describe('ExpoOndeviceAiModule.web', () => {
   });
 
   it('streams rewrites through the Chrome Rewriter API', async () => {
-    const rewriteStreaming = jest.fn(() =>
-      chunks(['A', ' better sentence.']),
-    );
+    const rewriteStreaming = jest.fn(() => chunks(['A', ' better sentence.']));
     const create = jest.fn().mockResolvedValue({
       rewrite: jest.fn(),
       rewriteStreaming,
@@ -167,6 +524,101 @@ describe('ExpoOndeviceAiModule.web', () => {
       rewrittenText: 'A better sentence.',
       style: 'PROFESSIONAL',
     });
+  });
+
+  it('shares rewrite option mappings across direct and streaming calls', async () => {
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce({
+        rewrite: jest.fn().mockResolvedValue('Expanded sentence.'),
+        destroy: jest.fn(),
+      })
+      .mockResolvedValueOnce({
+        rewriteStreaming: jest.fn(() => chunks(['Expanded', ' sentence.'])),
+        destroy: jest.fn(),
+      });
+    setWebApi('Rewriter', {create});
+
+    await ExpoOndeviceAiModule.rewrite('Sentence.', {
+      outputType: 'ELABORATE',
+    });
+    await ExpoOndeviceAiModule.rewriteStreaming('Sentence.', {
+      outputType: 'ELABORATE',
+    });
+
+    expect(create).toHaveBeenNthCalledWith(1, {
+      tone: 'as-is',
+      length: 'longer',
+    });
+    expect(create).toHaveBeenNthCalledWith(2, {
+      tone: 'as-is',
+      length: 'longer',
+    });
+  });
+
+  it('emits the latest accumulated text before rethrowing stream errors', async () => {
+    const streamError = new Error('Chrome stream failed');
+    setWebApi('Summarizer', {
+      create: jest.fn().mockResolvedValue({
+        summarize: jest.fn(),
+        summarizeStreaming: jest.fn(() =>
+          chunksThenThrow(['Partial summary'], streamError),
+        ),
+        destroy: jest.fn(),
+      }),
+    });
+    const received: {
+      delta: string;
+      accumulated: string;
+      isFinal: boolean;
+    }[] = [];
+    const subscription = ExpoOndeviceAiModule.addListener(
+      'onSummarizeStreamChunk',
+      (chunk) => received.push(chunk),
+    );
+
+    await expect(
+      ExpoOndeviceAiModule.summarizeStreaming('Long input'),
+    ).rejects.toBe(streamError);
+
+    subscription.remove();
+    expect(received).toEqual([
+      {
+        delta: 'Partial summary',
+        accumulated: 'Partial summary',
+        isFinal: false,
+      },
+      {delta: '', accumulated: 'Partial summary', isFinal: true},
+    ]);
+  });
+
+  it('emits a terminal event when the stream factory throws synchronously', async () => {
+    const streamError = new Error('Chrome stream factory failed');
+    setWebApi('Summarizer', {
+      create: jest.fn().mockResolvedValue({
+        summarize: jest.fn(),
+        summarizeStreaming: jest.fn(() => {
+          throw streamError;
+        }),
+        destroy: jest.fn(),
+      }),
+    });
+    const received: {
+      delta: string;
+      accumulated: string;
+      isFinal: boolean;
+    }[] = [];
+    const subscription = ExpoOndeviceAiModule.addListener(
+      'onSummarizeStreamChunk',
+      (chunk) => received.push(chunk),
+    );
+
+    await expect(
+      ExpoOndeviceAiModule.summarizeStreaming('Long input'),
+    ).rejects.toBe(streamError);
+
+    subscription.remove();
+    expect(received).toEqual([{delta: '', accumulated: '', isFinal: true}]);
   });
 
   it('uses delta semantics for LanguageModel chat streams', async () => {

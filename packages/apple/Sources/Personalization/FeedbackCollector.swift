@@ -293,11 +293,18 @@ public actor FeedbackCollector {
     public func deleteProfile(_ profileId: String) throws {
         guard isInitialized else { throw FeedbackError.notInitialized }
 
-        // Delete feedback first (due to foreign key)
-        try execute("DELETE FROM feedback WHERE profile_id = ?;", bindings: [.text(profileId)])
+        try execute("BEGIN TRANSACTION;")
+        do {
+            // Delete feedback first (due to foreign key)
+            try execute("DELETE FROM feedback WHERE profile_id = ?;", bindings: [.text(profileId)])
 
-        // Delete profile
-        try execute("DELETE FROM profiles WHERE id = ?;", bindings: [.text(profileId)])
+            // Delete profile
+            try execute("DELETE FROM profiles WHERE id = ?;", bindings: [.text(profileId)])
+            try execute("COMMIT;")
+        } catch {
+            try? execute("ROLLBACK;")
+            throw error
+        }
 
         logger.info("Deleted feedback profile")
     }

@@ -1,3 +1,5 @@
+import {requireNativeModule} from 'expo-modules-core';
+
 import {
   initialize,
   getDeviceCapability,
@@ -112,7 +114,6 @@ describe('expo-ondevice-ai', () => {
     });
 
     it('should pass options to native module without onChunk', async () => {
-      const {requireNativeModule} = require('expo-modules-core');
       const mockModule = requireNativeModule('ExpoOndeviceAi');
 
       await chatStream('Hello', {
@@ -129,34 +130,38 @@ describe('expo-ondevice-ai', () => {
     });
 
     it('should clean up subscription after completion', async () => {
-      const {requireNativeModule} = require('expo-modules-core');
       const mockModule = requireNativeModule('ExpoOndeviceAi');
 
       const onChunk = jest.fn();
+      const subscriptionIndex = mockModule.addListener.mock.results.length;
       await chatStream('Hello', {onChunk});
 
-      // addListener should have been called
       expect(mockModule.addListener).toHaveBeenCalledWith(
         'onChatStreamChunk',
         expect.any(Function),
       );
+      expect(
+        mockModule.addListener.mock.results[subscriptionIndex].value.remove,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('should clean up subscription on error', async () => {
-      const {requireNativeModule} = require('expo-modules-core');
       const mockModule = requireNativeModule('ExpoOndeviceAi');
 
       // Temporarily make chatStream reject
       mockModule.chatStream.mockRejectedValueOnce(new Error('Stream failed'));
 
       const onChunk = jest.fn();
+      const subscriptionIndex = mockModule.addListener.mock.results.length;
       await expect(chatStream('Hello', {onChunk})).rejects.toThrow(
         'Stream failed',
       );
+      expect(
+        mockModule.addListener.mock.results[subscriptionIndex].value.remove,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('serializes concurrent streams before registering the next listener', async () => {
-      const {requireNativeModule} = require('expo-modules-core');
       const mockModule = requireNativeModule('ExpoOndeviceAi');
       const initialCalls = mockModule.chatStream.mock.calls.length;
       let resolveFirst = (_value: unknown) => {};
@@ -202,6 +207,92 @@ describe('expo-ondevice-ai', () => {
       await expect(
         rewriteStreaming('Hello', {outputType: 'PROFESSIONAL'}),
       ).resolves.toHaveProperty('rewrittenText');
+    });
+
+    it('uses one subscription lifecycle and strips callbacks for every stream', async () => {
+      const mockModule = requireNativeModule('ExpoOndeviceAi');
+      const cases = [
+        {
+          eventName: 'onChatStreamChunk',
+          nativeOperation: mockModule.chatStream,
+          expectedArguments: ['Lifecycle chat', {systemPrompt: 'Be concise'}],
+          invoke: (onChunk: (chunk: ChatStreamChunk) => void) =>
+            chatStream('Lifecycle chat', {
+              systemPrompt: 'Be concise',
+              onChunk,
+            }),
+        },
+        {
+          eventName: 'onSummarizeStreamChunk',
+          nativeOperation: mockModule.summarizeStreaming,
+          expectedArguments: ['Lifecycle summary', {outputType: 'ONE_BULLET'}],
+          invoke: (onChunk: (chunk: TextStreamChunk) => void) =>
+            summarizeStreaming('Lifecycle summary', {
+              outputType: 'ONE_BULLET',
+              onChunk,
+            }),
+        },
+        {
+          eventName: 'onTranslateStreamChunk',
+          nativeOperation: mockModule.translateStreaming,
+          expectedArguments: [
+            'Lifecycle translation',
+            {sourceLanguage: 'en', targetLanguage: 'ko'},
+          ],
+          invoke: (onChunk: (chunk: TextStreamChunk) => void) =>
+            translateStreaming('Lifecycle translation', {
+              sourceLanguage: 'en',
+              targetLanguage: 'ko',
+              onChunk,
+            }),
+        },
+        {
+          eventName: 'onRewriteStreamChunk',
+          nativeOperation: mockModule.rewriteStreaming,
+          expectedArguments: [
+            'Lifecycle rewrite',
+            {outputType: 'PROFESSIONAL'},
+          ],
+          invoke: (onChunk: (chunk: TextStreamChunk) => void) =>
+            rewriteStreaming('Lifecycle rewrite', {
+              outputType: 'PROFESSIONAL',
+              onChunk,
+            }),
+        },
+      ];
+
+      for (const testCase of cases) {
+        const subscriptionIndex = mockModule.addListener.mock.results.length;
+        await testCase.invoke(jest.fn());
+
+        expect(mockModule.addListener.mock.calls.at(-1)?.[0]).toBe(
+          testCase.eventName,
+        );
+        expect(testCase.nativeOperation.mock.calls.at(-1)).toEqual(
+          testCase.expectedArguments,
+        );
+        expect(
+          mockModule.addListener.mock.results[subscriptionIndex].value.remove,
+        ).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it('removes a non-chat stream subscription when native execution fails', async () => {
+      const mockModule = requireNativeModule('ExpoOndeviceAi');
+      const streamError = new Error('Translate stream failed');
+      mockModule.translateStreaming.mockRejectedValueOnce(streamError);
+      const subscriptionIndex = mockModule.addListener.mock.results.length;
+
+      await expect(
+        translateStreaming('Hello', {
+          targetLanguage: 'ko',
+          onChunk: jest.fn(),
+        }),
+      ).rejects.toBe(streamError);
+
+      expect(
+        mockModule.addListener.mock.results[subscriptionIndex].value.remove,
+      ).toHaveBeenCalledTimes(1);
     });
   });
 

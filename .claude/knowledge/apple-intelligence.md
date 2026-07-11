@@ -1,19 +1,21 @@
 # Apple Intelligence / Foundation Models - Knowledge Update
 
-> Last updated: 2026-02-16
+> Last updated: 2026-07-12
 >
 > **Historical research snapshot, not implementation guidance.** Re-verify OS,
 > Xcode, API, and deadline claims with current official Apple documentation and
 > compare them with `packages/apple/` before acting.
 >
-> Repository implementation reconciled: 2026-07-11.
+> Repository implementation reconciled: 2026-07-12 against the Xcode 26.6
+> (17F113) FoundationModels Swift interface installed in this workspace.
 
 ## Current Status
 
 - **Framework**: `import FoundationModels` (introduced WWDC 2025)
 - **OS**: iOS 26+, iPadOS 26+, macOS Tahoe 26+, visionOS 26+
 - **Model**: ~3B parameter LLM, 2-bit quantized, on-device
-- **Xcode**: 26.3 (current), apps must use iOS 26 SDK after April 28, 2026
+- **Xcode**: locally verified with 26.6 (17F113); re-check the current release
+  and submission requirements before shipping
 - **Locanara integration**: `FoundationLanguageModel` in Platform layer
 
 ## Key APIs
@@ -22,29 +24,35 @@
 
 - `SystemLanguageModel.default` - general-purpose model
 - `SystemLanguageModel(useCase: .contentTagging)` - specialized adapters
-- `.availability` returns `.available` or `.unavailable(reason:)` (.notEligible / .notOptedIn / .notReady)
+- `.availability` returns `.available` or `.unavailable(reason:)` with
+  `.deviceNotEligible`, `.appleIntelligenceNotEnabled`, or `.modelNotReady`
 
 ### LanguageModelSession
 
 - `respond(to:)` - single response
 - `respond(to:, generating: T.self)` - structured output
-- `streamResponse(to:, generating: T.self)` - streaming with PartiallyGenerated<T>
+- `streamResponse(to:, generating: T.self)` - streaming whose snapshots expose
+  `T.PartiallyGenerated` through `ResponseStream<T>.Snapshot.content`
 - `session.transcript` - full conversation history
-- `session.prewarm()` - **NEW**: preload model for lower latency
-- `session.append()` - add context after creation
+- `session.prewarm(promptPrefix:)` - preload the model, optionally with a prompt prefix
+- `session.transcript` plus `LanguageModelSession(..., transcript:)` - inspect
+  history and initialize another session from a transcript; there is no
+  `session.append()` API
 
 ### GenerationOptions (NEW)
 
 - `GenerationOptions(sampling: .greedy)` - deterministic output
 - `GenerationOptions(temperature: 0.5)` - temperature control
-- `.init(includeSchemaInPrompt: false)` - optimization for subsequent requests
+- `includeSchemaInPrompt` is a parameter on structured `respond(...)` and
+  `streamResponse(...)` overloads, not a `GenerationOptions` property
 
 ### @Generable / @Guide
 
 - @Generable supports: String, Int, Double, Float, Decimal, Bool, arrays, nested types
 - **NEW**: @Generable enums with associated values
 - **NEW**: Regex-based @Guide constraints
-- **NEW**: `PartiallyGenerated<T>` for structured streaming (properties fill in declaration order)
+- **NEW**: each `Generable` has an associated `PartiallyGenerated` type for
+  structured streaming (properties fill in declaration order)
 - **NEW**: Dynamic schemas via `DynamicGenerationSchema`
 
 ### Tool Protocol (NEW)
@@ -54,7 +62,7 @@ struct MyTool: Tool {
     let name = "toolName"
     let description = "What it does"
     @Generable struct Arguments { var param: String }
-    func call(arguments: Arguments) async throws -> ToolOutput { ... }
+    func call(arguments: Arguments) async throws -> String { ... }
 }
 let session = LanguageModelSession(tools: [MyTool()], instructions: "...")
 ```
@@ -79,7 +87,10 @@ LanguageModelSession(instructions: {
 3. User input handling (direct / combined / curated)
 4. App-level mitigations
 
-Error types: `.guardrailViolation`, `.unsupportedLanguageOrLocale`, `.exceededContextWindowSize`
+`GenerationError` cases in the verified SDK: `.exceededContextWindowSize`,
+`.assetsUnavailable`, `.guardrailViolation`, `.unsupportedGuide`,
+`.unsupportedLanguageOrLocale`, `.decodingFailure`, `.rateLimited`,
+`.concurrentRequests`, and `.refusal`.
 
 ## Impact on Locanara
 
@@ -90,8 +101,9 @@ Error types: `.guardrailViolation`, `.unsupportedLanguageOrLocale`, `.exceededCo
   streaming.
 - `FoundationModelToolBridge` adapts a Locanara `Tool` to Apple's
   `FoundationModels.Tool` protocol.
-- Optional session instructions, `prewarm()`, and `GenerationConfig` to
-  `GenerationOptions` temperature/greedy mapping are implemented.
+- Optional session instructions, `prewarm(promptPrefix: nil)`, and
+  `GenerationConfig` to `GenerationOptions` temperature/greedy mapping are
+  implemented.
 
 ### Remaining Audits
 

@@ -68,6 +68,10 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
     /// Internal deterministic barrier for cancellation-between-assets tests.
     private let betweenAssets: @Sendable () -> Void
 
+    /// Resolves the complete set of assets owned by a package. Injectable in
+    /// tests so cancellation remains correct as package layouts evolve.
+    private let packageAssetsProvider: @Sendable (DownloadableModelInfo) -> [DownloadableModelAsset]?
+
     /// URLSession for downloads
     private lazy var urlSession: URLSession = {
         let config = foregroundConfiguration
@@ -97,17 +101,22 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
         self.storage = .shared
         self.foregroundConfiguration = .default
         self.betweenAssets = {}
+        self.packageAssetsProvider = { $0.packageAssets }
         super.init()
     }
 
     init(
         storage: ModelStorage,
         foregroundConfiguration: URLSessionConfiguration,
-        betweenAssets: @Sendable @escaping () -> Void = {}
+        betweenAssets: @Sendable @escaping () -> Void = {},
+        packageAssetsProvider: @Sendable @escaping (DownloadableModelInfo) -> [DownloadableModelAsset]? = {
+            $0.packageAssets
+        }
     ) {
         self.storage = storage
         self.foregroundConfiguration = foregroundConfiguration
         self.betweenAssets = betweenAssets
+        self.packageAssetsProvider = packageAssetsProvider
         super.init()
     }
 
@@ -144,7 +153,7 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
                 return
             }
 
-            guard let assets = modelInfo.packageAssets else {
+            guard let assets = self.packageAssetsProvider(modelInfo) else {
                 continuation.yield(ModelDownloadProgress(
                     modelId: modelId,
                     bytesDownloaded: 0,
@@ -158,7 +167,7 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
             // Acquire ownership before returning the stream. This closes the
             // create-then-immediately-cancel race and prevents a duplicate
             // stream's termination handler from cancelling the true owner.
-            let totalBytes = Int64(modelInfo.totalDownloadSizeMB) * 1024 * 1024
+            let totalBytes = Int64(assets.reduce(0) { $0 + $1.sizeMB }) * 1024 * 1024
             let ownsPackage = self.queue.sync {
                 let inserted = self.activePackages.insert(modelId).inserted
                 if inserted {
@@ -355,14 +364,15 @@ public final class ModelDownloader: NSObject, @unchecked Sendable {
 
     /// Cancel a download in progress
     ///
-    /// Also cancels the companion mmproj download for multimodal models.
+    /// Cancels whichever package asset is currently transferring.
     /// - Parameter modelId: Model identifier
     public func cancelDownload(_ modelId: String) {
         queue.sync {
             self.cancelledPackages.insert(modelId)
 
-            // Cancel both the main model and its mmproj companion (if any)
-            let idsToCancel = [modelId, "\(modelId)-mmproj"]
+            let idsToCancel = activeTasks.keys.filter { assetId in
+                taskInfo[assetId]?.packageModelId == modelId
+            }
             for id in idsToCancel {
                 guard let task = activeTasks[id] else { continue }
                 downloadResults[id] = false

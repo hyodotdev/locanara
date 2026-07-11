@@ -35,6 +35,23 @@ export * from './types';
 export {ExpoOndeviceAiLog} from './log';
 
 type StreamKind = 'chat' | 'summarize' | 'translate' | 'rewrite';
+type StreamEventName =
+  | 'onChatStreamChunk'
+  | 'onSummarizeStreamChunk'
+  | 'onTranslateStreamChunk'
+  | 'onRewriteStreamChunk';
+type EmptyNativeOptionsPolicy = 'omit' | 'preserve';
+type StreamCallbackOptions<TChunk> = {
+  onChunk?: (chunk: TChunk) => void;
+};
+type NativeStreamOptions<TOptions> = Omit<TOptions, 'onChunk'>;
+
+const streamEventEmitter = ExpoOndeviceAiModule as unknown as {
+  addListener<TChunk>(
+    name: StreamEventName,
+    listener: (chunk: TChunk) => void,
+  ): EventSubscription;
+};
 
 const streamTails: Record<StreamKind, Promise<void>> = {
   chat: Promise.resolve(),
@@ -59,6 +76,47 @@ async function runSerializedStream<T>(
   } finally {
     release();
   }
+}
+
+async function runStreamingOperation<
+  TResult,
+  TChunk,
+  TOptions extends StreamCallbackOptions<TChunk>,
+>(
+  kind: StreamKind,
+  eventName: StreamEventName,
+  options: TOptions | undefined,
+  emptyOptionsPolicy: EmptyNativeOptionsPolicy,
+  operation: (
+    nativeOptions: NativeStreamOptions<TOptions> | undefined,
+  ) => Promise<TResult>,
+): Promise<TResult> {
+  return runSerializedStream(kind, async () => {
+    let subscription: EventSubscription | undefined;
+
+    try {
+      if (options?.onChunk) {
+        subscription = streamEventEmitter.addListener<TChunk>(
+          eventName,
+          (chunk) => options.onChunk!(chunk),
+        );
+      }
+
+      const {onChunk: _, ...nativeOptions} = options ?? {};
+      const normalizedOptions =
+        emptyOptionsPolicy === 'omit' && Object.keys(nativeOptions).length === 0
+          ? undefined
+          : (nativeOptions as NativeStreamOptions<TOptions>);
+      const result = await operation(normalizedOptions);
+
+      // Flush the event queue so queued native events (sendEvent) are
+      // delivered before we remove the subscription in the finally block.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      return result;
+    } finally {
+      subscription?.remove();
+    }
+  });
 }
 
 /**
@@ -135,40 +193,13 @@ export async function chatStream(
   message: string,
   options?: ChatStreamOptions,
 ): Promise<ChatResult> {
-  return runSerializedStream('chat', async () => {
-    let subscription: EventSubscription | undefined;
-
-    try {
-      if (options?.onChunk) {
-        // ExpoOndeviceAiModule is an EventEmitter since expo-modules-core SDK 52+
-        subscription = (
-          ExpoOndeviceAiModule as unknown as {
-            addListener: (
-              name: string,
-              listener: (chunk: ChatStreamChunk) => void,
-            ) => EventSubscription;
-          }
-        ).addListener('onChatStreamChunk', (chunk: ChatStreamChunk) => {
-          options.onChunk!(chunk);
-        });
-      }
-
-      // Strip onChunk before sending to native — functions are not serializable
-      const {onChunk: _, ...nativeOptions} = options ?? {};
-      const result: ChatResult = await ExpoOndeviceAiModule.chatStream(
-        message,
-        Object.keys(nativeOptions).length > 0 ? nativeOptions : undefined,
-      );
-
-      // Flush the event queue so queued native events (sendEvent) are
-      // delivered before we remove the subscription in the finally block.
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-
-      return result;
-    } finally {
-      subscription?.remove();
-    }
-  });
+  return runStreamingOperation<ChatResult, ChatStreamChunk, ChatStreamOptions>(
+    'chat',
+    'onChatStreamChunk',
+    options,
+    'omit',
+    (nativeOptions) => ExpoOndeviceAiModule.chatStream(message, nativeOptions),
+  );
 }
 
 /**
@@ -220,36 +251,13 @@ export async function summarizeStreaming(
   text: string,
   options?: SummarizeStreamOptions,
 ): Promise<SummarizeResult> {
-  return runSerializedStream('summarize', async () => {
-    let subscription: EventSubscription | undefined;
-
-    try {
-      if (options?.onChunk) {
-        subscription = (
-          ExpoOndeviceAiModule as unknown as {
-            addListener: (
-              name: string,
-              listener: (chunk: TextStreamChunk) => void,
-            ) => EventSubscription;
-          }
-        ).addListener('onSummarizeStreamChunk', (chunk: TextStreamChunk) => {
-          options.onChunk!(chunk);
-        });
-      }
-
-      const {onChunk: _, ...nativeOptions} = options ?? {};
-      const result: SummarizeResult =
-        await ExpoOndeviceAiModule.summarizeStreaming(
-          text,
-          Object.keys(nativeOptions).length > 0 ? nativeOptions : undefined,
-        );
-
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      return result;
-    } finally {
-      subscription?.remove();
-    }
-  });
+  return runStreamingOperation<
+    SummarizeResult,
+    TextStreamChunk,
+    SummarizeStreamOptions
+  >('summarize', 'onSummarizeStreamChunk', options, 'omit', (nativeOptions) =>
+    ExpoOndeviceAiModule.summarizeStreaming(text, nativeOptions),
+  );
 }
 
 /**
@@ -263,33 +271,18 @@ export async function translateStreaming(
   text: string,
   options: TranslateStreamOptions,
 ): Promise<TranslateResult> {
-  return runSerializedStream('translate', async () => {
-    let subscription: EventSubscription | undefined;
-
-    try {
-      if (options.onChunk) {
-        subscription = (
-          ExpoOndeviceAiModule as unknown as {
-            addListener: (
-              name: string,
-              listener: (chunk: TextStreamChunk) => void,
-            ) => EventSubscription;
-          }
-        ).addListener('onTranslateStreamChunk', (chunk: TextStreamChunk) => {
-          options.onChunk!(chunk);
-        });
-      }
-
-      const {onChunk: _, ...nativeOptions} = options;
-      const result: TranslateResult =
-        await ExpoOndeviceAiModule.translateStreaming(text, nativeOptions);
-
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      return result;
-    } finally {
-      subscription?.remove();
-    }
-  });
+  return runStreamingOperation<
+    TranslateResult,
+    TextStreamChunk,
+    TranslateStreamOptions
+  >(
+    'translate',
+    'onTranslateStreamChunk',
+    options,
+    'preserve',
+    (nativeOptions) =>
+      ExpoOndeviceAiModule.translateStreaming(text, nativeOptions!),
+  );
 }
 
 /**
@@ -303,35 +296,13 @@ export async function rewriteStreaming(
   text: string,
   options: RewriteStreamOptions,
 ): Promise<RewriteResult> {
-  return runSerializedStream('rewrite', async () => {
-    let subscription: EventSubscription | undefined;
-
-    try {
-      if (options.onChunk) {
-        subscription = (
-          ExpoOndeviceAiModule as unknown as {
-            addListener: (
-              name: string,
-              listener: (chunk: TextStreamChunk) => void,
-            ) => EventSubscription;
-          }
-        ).addListener('onRewriteStreamChunk', (chunk: TextStreamChunk) => {
-          options.onChunk!(chunk);
-        });
-      }
-
-      const {onChunk: _, ...nativeOptions} = options;
-      const result: RewriteResult = await ExpoOndeviceAiModule.rewriteStreaming(
-        text,
-        nativeOptions,
-      );
-
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      return result;
-    } finally {
-      subscription?.remove();
-    }
-  });
+  return runStreamingOperation<
+    RewriteResult,
+    TextStreamChunk,
+    RewriteStreamOptions
+  >('rewrite', 'onRewriteStreamChunk', options, 'preserve', (nativeOptions) =>
+    ExpoOndeviceAiModule.rewriteStreaming(text, nativeOptions!),
+  );
 }
 
 // MARK: - Image Description

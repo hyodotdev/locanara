@@ -22,6 +22,7 @@ import org.pytorch.executorch.extension.llm.LlmModule
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * ExecuTorch inference engine for Android
@@ -64,7 +65,7 @@ class ExecuTorchEngine private constructor(
             isGenerating.set(true)
 
             try {
-                Log.d(TAG, "Starting generation with config: $config")
+                Log.d(TAG, "Starting generation: maxTokens=${config.maxTokens}")
                 Log.d(TAG, "Prompt length: ${prompt.length}")
 
                 // Reset internal state before new generation to clear KV cache and position counters
@@ -73,42 +74,33 @@ class ExecuTorchEngine private constructor(
                 try {
                     llmModule.stop()
                     Log.d(TAG, "Reset LlmModule state before generation")
-                } catch (_: Exception) {
+                } catch (e: Exception) {
                     // Log error but continue - stop() failure usually means the module is already
                     // in a clean state, but generation may fail if state is truly corrupted
-                    Log.e(TAG, "Failed to reset LlmModule state; generation may fail")
+                    Log.e(
+                        TAG,
+                        sanitizedFailureReason(
+                            "Failed to reset LlmModule state; generation may fail",
+                            e
+                        )
+                    )
                 }
 
                 val result = StringBuilder()
-
-                suspendCancellableCoroutine { continuation ->
-                    continuation.invokeOnCancellation {
-                        Log.d(TAG, "Generation cancelled via coroutine cancellation")
-                        try { llmModule.stop() } catch (_: Exception) {}
-                    }
-
-                    val callback = object : LlmCallback {
-                        override fun onResult(token: String) {
-                            result.append(token)
-                        }
-
-                        override fun onStats(stats: String) {
-                            Log.d(TAG, "Generation statistics received")
-                            if (continuation.isActive) {
-                                continuation.resume(Unit)
-                            }
-                        }
-                    }
-
-                    try {
+                awaitExecuTorchNativeGeneration(
+                    start = { callback ->
                         llmModule.generate(prompt, config.maxTokens, callback)
-                    } catch (_: Exception) {
-                        Log.e(TAG, "Native generation failed")
-                        if (continuation.isActive) {
-                            continuation.resume(Unit)
+                    },
+                    onToken = result::append,
+                    onCancellation = {
+                        Log.d(TAG, "Generation cancelled via coroutine cancellation")
+                        try {
+                            llmModule.stop()
+                        } catch (e: Exception) {
+                            Log.e(TAG, sanitizedFailureReason("Failed to stop cancelled generation", e))
                         }
                     }
-                }
+                )
 
                 val fullOutput = result.toString()
                 Log.d(TAG, "Generation complete, full output length: ${fullOutput.length}")
@@ -122,11 +114,11 @@ class ExecuTorchEngine private constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: LocanaraException) {
-                Log.e(TAG, "Generation failed")
+                Log.e(TAG, sanitizedFailureReason("Generation failed", e))
                 throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Generation failed")
-                throw LocanaraException.ExecutionFailed("ExecuTorch generation failed: ${e.message}", e)
+                Log.e(TAG, sanitizedFailureReason("Generation failed", e))
+                throw sanitizedExecutionFailure("ExecuTorch generation failed", e)
             } finally {
                 isGenerating.set(false)
             }
@@ -148,8 +140,14 @@ class ExecuTorchEngine private constructor(
             try {
                 llmModule.stop()
                 Log.d(TAG, "Reset LlmModule state before streaming generation")
-            } catch (_: Exception) {
-                Log.e(TAG, "Failed to reset LlmModule state; streaming may fail")
+            } catch (e: Exception) {
+                Log.e(
+                    TAG,
+                    sanitizedFailureReason(
+                        "Failed to reset LlmModule state; streaming may fail",
+                        e
+                    )
+                )
             }
 
             val tokenChannel = Channel<String>(Channel.UNLIMITED)
@@ -161,16 +159,23 @@ class ExecuTorchEngine private constructor(
 
                 override fun onStats(stats: String) {
                     Log.d(TAG, "Generation statistics received")
-                    tokenChannel.close()
                 }
             }
 
             // Start generation in background using engine-scoped coroutine
             val genJob = engineScope.launch {
                 try {
-                    llmModule.generate(prompt, config.maxTokens, callback)
+                    val status = llmModule.generate(prompt, config.maxTokens, callback)
+                    if (status == EXECUTORCH_SUCCESS) {
+                        tokenChannel.close()
+                    } else {
+                        Log.e(TAG, "Native streaming generation failed (status=$status)")
+                        tokenChannel.close(
+                            nativeStatusFailure("ExecuTorch streaming failed", status)
+                        )
+                    }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Native streaming generation failed")
+                    Log.e(TAG, sanitizedFailureReason("Native streaming generation failed", e))
                     tokenChannel.close(e)
                 }
             }
@@ -183,7 +188,11 @@ class ExecuTorchEngine private constructor(
             } finally {
                 // Stop native generation when flow collector cancels
                 if (genJob.isActive) {
-                    try { llmModule.stop() } catch (_: Exception) {}
+                    try {
+                        llmModule.stop()
+                    } catch (e: Exception) {
+                        Log.e(TAG, sanitizedFailureReason("Failed to stop streaming generation", e))
+                    }
                     genJob.cancel()
                 }
             }
@@ -192,11 +201,11 @@ class ExecuTorchEngine private constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: LocanaraException) {
-            Log.e(TAG, "Streaming generation failed")
+            Log.e(TAG, sanitizedFailureReason("Streaming generation failed", e))
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Streaming generation failed")
-            throw LocanaraException.ExecutionFailed("ExecuTorch streaming failed: ${e.message}", e)
+            Log.e(TAG, sanitizedFailureReason("Streaming generation failed", e))
+            throw sanitizedExecutionFailure("ExecuTorch streaming failed", e)
         } finally {
             isGenerating.set(false)
         }
@@ -209,8 +218,8 @@ class ExecuTorchEngine private constructor(
         if (isGenerating.get()) {
             try {
                 llmModule.stop()
-            } catch (_: Exception) {
-                Log.e(TAG, "Error stopping generation")
+            } catch (e: Exception) {
+                Log.e(TAG, sanitizedFailureReason("Error stopping generation", e))
             }
             return true
         }
@@ -226,8 +235,8 @@ class ExecuTorchEngine private constructor(
             engineScope.cancel()
             try {
                 llmModule.stop()
-            } catch (_: Exception) {
-                Log.e(TAG, "Error unloading model")
+            } catch (e: Exception) {
+                Log.e(TAG, sanitizedFailureReason("Error unloading model", e))
             }
             memoryManager.requestGC()
         }
@@ -264,19 +273,7 @@ class ExecuTorchEngine private constructor(
                     "modelSizeBytes=${modelFile.length()}, tokenizerExists=${tokenizerFile.exists()}"
             )
 
-            if (!modelFile.exists()) {
-                throw LocanaraException.Custom(
-                    ErrorCode.MODEL_NOT_FOUND,
-                    "Model file not found: ${modelFile.absolutePath}"
-                )
-            }
-
-            if (!tokenizerFile.exists()) {
-                throw LocanaraException.Custom(
-                    ErrorCode.MODEL_NOT_FOUND,
-                    "Tokenizer file not found: ${tokenizerFile.absolutePath}"
-                )
-            }
+            validateExecuTorchModelFiles(modelFile, tokenizerFile)
 
             val memoryManager = MemoryManager(context)
             val modelSize = modelFile.length()
@@ -316,13 +313,111 @@ class ExecuTorchEngine private constructor(
                     tokenizerFile.absolutePath,
                     memoryManager
                 )
+            } catch (e: LocanaraException) {
+                Log.e(TAG, sanitizedFailureReason("Failed to load model", e))
+                throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load model")
+                Log.e(TAG, sanitizedFailureReason("Failed to load model", e))
                 throw LocanaraException.Custom(
                     ErrorCode.MODEL_LOAD_FAILED,
-                    "Failed to load model: ${e.message}"
+                    sanitizedFailureReason("Failed to load model", e)
                 )
             }
         }
     }
 }
+
+private const val MAX_EXCEPTION_TYPE_LENGTH = 64
+private const val EXECUTORCH_SUCCESS = 0
+
+internal suspend fun awaitExecuTorchNativeGeneration(
+    start: (LlmCallback) -> Int,
+    onToken: (String) -> Unit,
+    onCancellation: () -> Unit = {}
+) {
+    suspendCancellableCoroutine { continuation ->
+        val callback = object : LlmCallback {
+            override fun onResult(token: String) {
+                onToken(token)
+            }
+
+            override fun onStats(stats: String) = Unit
+        }
+
+        if (!continuation.isActive) {
+            return@suspendCancellableCoroutine
+        }
+
+        continuation.invokeOnCancellation { onCancellation() }
+        if (!continuation.isActive) {
+            return@suspendCancellableCoroutine
+        }
+
+        try {
+            val status = start(callback)
+            if (continuation.isActive) {
+                if (status == EXECUTORCH_SUCCESS) {
+                    continuation.resume(Unit)
+                } else {
+                    continuation.resumeWithException(
+                        nativeStatusFailure("ExecuTorch generation failed", status)
+                    )
+                }
+            }
+        } catch (error: CancellationException) {
+            if (continuation.isActive) {
+                continuation.resumeWithException(error)
+            }
+        } catch (error: Exception) {
+            if (continuation.isActive) {
+                continuation.resumeWithException(
+                    sanitizedExecutionFailure("ExecuTorch generation failed", error)
+                )
+            }
+        }
+    }
+}
+
+internal fun nativeStatusFailure(
+    operation: String,
+    status: Int
+): LocanaraException.ExecutionFailed =
+    LocanaraException.ExecutionFailed("$operation (native status $status)")
+
+internal fun validateExecuTorchModelFiles(modelFile: File, tokenizerFile: File) {
+    if (!modelFile.exists()) {
+        throw LocanaraException.Custom(
+            ErrorCode.MODEL_NOT_FOUND,
+            "Model file not found"
+        )
+    }
+
+    if (!tokenizerFile.exists()) {
+        throw LocanaraException.Custom(
+            ErrorCode.MODEL_NOT_FOUND,
+            "Tokenizer file not found"
+        )
+    }
+}
+
+/**
+ * Builds a public failure reason without copying native exception messages, which may contain
+ * prompts, generated text, or local file paths.
+ */
+internal fun sanitizedFailureReason(operation: String, error: Throwable): String {
+    val typeName = error.javaClass.simpleName
+        .takeIf { it.isNotBlank() }
+        ?.take(MAX_EXCEPTION_TYPE_LENGTH)
+        ?: "Exception"
+    return "$operation ($typeName)"
+}
+
+/**
+ * Maps native failures to the public ExecuTorch error without retaining a cause whose message may
+ * contain prompt, output, or path data.
+ */
+internal fun sanitizedExecutionFailure(
+    operation: String,
+    error: Throwable
+): LocanaraException.ExecutionFailed =
+    LocanaraException.ExecutionFailed(sanitizedFailureReason(operation, error))

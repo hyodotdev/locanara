@@ -49,6 +49,7 @@ interface ChromeTranslatorConstructor {
   create(options: {
     sourceLanguage: string;
     targetLanguage: string;
+    signal?: AbortSignal;
   }): Promise<ChromeTranslator>;
 }
 
@@ -146,14 +147,146 @@ function getLanguageModelAPI(): ChromeLanguageModelConstructor | undefined {
 // ============================================================================
 
 const MAX_CACHED_TRANSLATORS = 10;
+const REWRITE_TONE_MAP: Record<
+  string,
+  'more-casual' | 'more-formal' | 'as-is'
+> = {
+  FRIENDLY: 'more-casual',
+  PROFESSIONAL: 'more-formal',
+  ELABORATE: 'as-is',
+  SHORTEN: 'as-is',
+  EMOJIFY: 'more-casual',
+  REPHRASE: 'as-is',
+};
+const REWRITE_LENGTH_MAP: Record<string, 'shorter' | 'as-is' | 'longer'> = {
+  ELABORATE: 'longer',
+  SHORTEN: 'shorter',
+};
 
 let cachedSummarizer: ChromeSummarizer | null = null;
 let cachedSummarizerKey = '';
 let cachedLanguageModel: ChromeLanguageModelSession | null = null;
 let cachedSystemPrompt: string | undefined = undefined;
 const cachedTranslators = new Map<string, ChromeTranslator>();
+
+interface PendingTranslatorCreation {
+  controller: AbortController;
+  generation: number;
+  promise: Promise<ChromeTranslator>;
+}
+
+interface TranslatorLease {
+  translator: ChromeTranslator;
+  release(): void;
+}
+
+const pendingTranslators = new Map<string, PendingTranslatorCreation>();
+const activeTranslatorLeases = new Map<string, number>();
+let translatorCacheGeneration = 0;
 let cachedRewriter: ChromeRewriter | null = null;
 let cachedWriter: ChromeWriter | null = null;
+
+function translatorCacheKey(
+  sourceLanguage: string,
+  targetLanguage: string,
+): string {
+  return JSON.stringify([sourceLanguage, targetLanguage]);
+}
+
+function translatorLeaseKey(generation: number, cacheKey: string): string {
+  return `${generation}:${cacheKey}`;
+}
+
+function trimTranslatorCache(): void {
+  if (cachedTranslators.size <= MAX_CACHED_TRANSLATORS) return;
+
+  for (const [key, translator] of cachedTranslators) {
+    if (cachedTranslators.size <= MAX_CACHED_TRANSLATORS) break;
+
+    const leaseKey = translatorLeaseKey(translatorCacheGeneration, key);
+    if ((activeTranslatorLeases.get(leaseKey) ?? 0) > 0) continue;
+
+    translator.destroy();
+    cachedTranslators.delete(key);
+  }
+}
+
+async function acquireTranslator(
+  Translator: ChromeTranslatorConstructor,
+  sourceLanguage: string,
+  targetLanguage: string,
+): Promise<TranslatorLease> {
+  const key = translatorCacheKey(sourceLanguage, targetLanguage);
+  const generation = translatorCacheGeneration;
+  const leaseKey = translatorLeaseKey(generation, key);
+  // Reserve before awaiting creation so trim cannot evict the instance before
+  // this caller resumes and starts using it.
+  activeTranslatorLeases.set(
+    leaseKey,
+    (activeTranslatorLeases.get(leaseKey) ?? 0) + 1,
+  );
+
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+
+    const activeCount = activeTranslatorLeases.get(leaseKey) ?? 0;
+    if (activeCount <= 1) {
+      activeTranslatorLeases.delete(leaseKey);
+    } else {
+      activeTranslatorLeases.set(leaseKey, activeCount - 1);
+    }
+    trimTranslatorCache();
+  };
+
+  try {
+    const cachedTranslator = cachedTranslators.get(key);
+    if (cachedTranslator) {
+      // Refresh insertion order so the first Map key is least recently used.
+      cachedTranslators.delete(key);
+      cachedTranslators.set(key, cachedTranslator);
+      return {translator: cachedTranslator, release};
+    }
+
+    let pendingTranslator = pendingTranslators.get(key);
+    if (!pendingTranslator || pendingTranslator.generation !== generation) {
+      const controller = new AbortController();
+      let pendingEntry!: PendingTranslatorCreation;
+      const promise = (async () => {
+        const translator = await Translator.create({
+          sourceLanguage,
+          targetLanguage,
+          signal: controller.signal,
+        });
+
+        if (generation !== translatorCacheGeneration) {
+          translator.destroy();
+          throw new Error(
+            'Translator creation cancelled because module was reset',
+          );
+        }
+
+        cachedTranslators.set(key, translator);
+        trimTranslatorCache();
+        return translator;
+      })().finally(() => {
+        if (pendingTranslators.get(key) === pendingEntry) {
+          pendingTranslators.delete(key);
+        }
+      });
+      pendingEntry = {controller, generation, promise};
+      pendingTranslators.set(key, pendingEntry);
+      pendingTranslator = pendingEntry;
+    }
+
+    const translator = await pendingTranslator.promise;
+    return {translator, release};
+  } catch (error) {
+    release();
+    throw error;
+  }
+}
 
 // Simple event emitter for web (mimics Expo native module EventEmitter)
 const eventListeners = new Map<string, Set<(data: StreamChunkData) => void>>();
@@ -175,16 +308,25 @@ function emitEvent(eventName: string, data: StreamChunkData) {
 
 async function consumeTextStream(
   eventName: string,
-  stream: AsyncIterable<string>,
+  createStream: () => AsyncIterable<string>,
 ): Promise<string> {
   let accumulated = '';
 
-  for await (const chunk of stream) {
-    const text = typeof chunk === 'string' ? chunk : String(chunk);
-    // Current Chrome Built-in AI streaming APIs emit append-only deltas.
-    // Inferring cumulative snapshots from content is ambiguous and loses text.
-    accumulated += text;
-    emitEvent(eventName, {delta: text, accumulated, isFinal: false});
+  try {
+    for await (const chunk of createStream()) {
+      const text = typeof chunk === 'string' ? chunk : String(chunk);
+      // Current Chrome Built-in AI streaming APIs emit append-only deltas.
+      // Inferring cumulative snapshots from content is ambiguous and loses text.
+      accumulated += text;
+      emitEvent(eventName, {delta: text, accumulated, isFinal: false});
+    }
+  } catch (error) {
+    try {
+      emitEvent(eventName, {delta: '', accumulated, isFinal: true});
+    } catch {
+      // A listener failure must not replace the original stream error.
+    }
+    throw error;
   }
 
   return accumulated;
@@ -423,8 +565,8 @@ const ExpoOndeviceAiModule = {
             }
           });
         } else if (typeof obj === 'object' && obj !== null) {
-          Object.entries(obj as Record<string, unknown>).forEach(([key, value]) =>
-            walk(value, key),
+          Object.entries(obj as Record<string, unknown>).forEach(
+            ([key, value]) => walk(value, key),
           );
         } else {
           const normalized =
@@ -500,11 +642,11 @@ const ExpoOndeviceAiModule = {
       cachedSystemPrompt = newSystemPrompt;
     }
 
-    if (typeof cachedLanguageModel.promptStreaming === 'function') {
-      const stream = cachedLanguageModel.promptStreaming(message);
-      const accumulated = await consumeTextStream(
-        'onChatStreamChunk',
-        stream,
+    const promptStreaming =
+      cachedLanguageModel.promptStreaming?.bind(cachedLanguageModel);
+    if (promptStreaming) {
+      const accumulated = await consumeTextStream('onChatStreamChunk', () =>
+        promptStreaming(message),
       );
 
       emitEvent('onChatStreamChunk', {delta: '', accumulated, isFinal: true});
@@ -529,29 +671,23 @@ const ExpoOndeviceAiModule = {
     if (!Translator)
       throw new Error('Translator API not available in this browser');
 
-    const key = `${options.sourceLanguage ?? 'en'}-${options.targetLanguage}`;
-    if (!cachedTranslators.has(key)) {
-      // Evict oldest entry if cache is full
-      if (cachedTranslators.size >= MAX_CACHED_TRANSLATORS) {
-        const oldestKey = cachedTranslators.keys().next().value!;
-        cachedTranslators.get(oldestKey)?.destroy();
-        cachedTranslators.delete(oldestKey);
-      }
-      const translator = await Translator.create({
-        sourceLanguage: options.sourceLanguage ?? 'en',
+    const sourceLanguage = options.sourceLanguage ?? 'en';
+    const translatorLease = await acquireTranslator(
+      Translator,
+      sourceLanguage,
+      options.targetLanguage,
+    );
+    try {
+      const translatedText = await translatorLease.translator.translate(text);
+
+      return {
+        translatedText,
+        sourceLanguage,
         targetLanguage: options.targetLanguage,
-      });
-      cachedTranslators.set(key, translator);
+      };
+    } finally {
+      translatorLease.release();
     }
-
-    const translator = cachedTranslators.get(key)!;
-    const translatedText = await translator.translate(text);
-
-    return {
-      translatedText,
-      sourceLanguage: options.sourceLanguage ?? 'en',
-      targetLanguage: options.targetLanguage,
-    };
   },
 
   async summarizeStreaming(
@@ -578,15 +714,14 @@ const ExpoOndeviceAiModule = {
       });
       cachedSummarizerKey = optionsKey;
     }
-    if (typeof cachedSummarizer.summarizeStreaming !== 'function') {
-      throw new Error(
-        'Summarizer streaming API not available in this browser',
-      );
+    const summarizeStreaming =
+      cachedSummarizer.summarizeStreaming?.bind(cachedSummarizer);
+    if (!summarizeStreaming) {
+      throw new Error('Summarizer streaming API not available in this browser');
     }
 
-    const summary = await consumeTextStream(
-      'onSummarizeStreamChunk',
-      cachedSummarizer.summarizeStreaming(text),
+    const summary = await consumeTextStream('onSummarizeStreamChunk', () =>
+      summarizeStreaming(text),
     );
 
     emitEvent('onSummarizeStreamChunk', {
@@ -610,41 +745,39 @@ const ExpoOndeviceAiModule = {
       throw new Error('Translator API not available in this browser');
 
     const sourceLanguage = options.sourceLanguage ?? 'en';
-    const key = `${sourceLanguage}-${options.targetLanguage}`;
-    if (!cachedTranslators.has(key)) {
-      if (cachedTranslators.size >= MAX_CACHED_TRANSLATORS) {
-        const oldestKey = cachedTranslators.keys().next().value!;
-        cachedTranslators.get(oldestKey)?.destroy();
-        cachedTranslators.delete(oldestKey);
-      }
-      cachedTranslators.set(
-        key,
-        await Translator.create({
-          sourceLanguage,
-          targetLanguage: options.targetLanguage,
-        }),
-      );
-    }
-
-    const translator = cachedTranslators.get(key)!;
-    if (typeof translator.translateStreaming !== 'function') {
-      throw new Error('Translator streaming API not available in this browser');
-    }
-
-    const translatedText = await consumeTextStream(
-      'onTranslateStreamChunk',
-      translator.translateStreaming(text),
-    );
-    emitEvent('onTranslateStreamChunk', {
-      delta: '',
-      accumulated: translatedText,
-      isFinal: true,
-    });
-    return {
-      translatedText,
+    const translatorLease = await acquireTranslator(
+      Translator,
       sourceLanguage,
-      targetLanguage: options.targetLanguage,
-    };
+      options.targetLanguage,
+    );
+    try {
+      const translateStreaming =
+        translatorLease.translator.translateStreaming?.bind(
+          translatorLease.translator,
+        );
+      if (!translateStreaming) {
+        throw new Error(
+          'Translator streaming API not available in this browser',
+        );
+      }
+
+      const translatedText = await consumeTextStream(
+        'onTranslateStreamChunk',
+        () => translateStreaming(text),
+      );
+      emitEvent('onTranslateStreamChunk', {
+        delta: '',
+        accumulated: translatedText,
+        isFinal: true,
+      });
+      return {
+        translatedText,
+        sourceLanguage,
+        targetLanguage: options.targetLanguage,
+      };
+    } finally {
+      translatorLease.release();
+    }
   },
 
   async rewriteStreaming(
@@ -655,31 +788,19 @@ const ExpoOndeviceAiModule = {
     if (!Rewriter)
       throw new Error('Rewriter API not available in this browser');
 
-    const toneMap: Record<string, 'more-casual' | 'more-formal' | 'as-is'> = {
-      FRIENDLY: 'more-casual',
-      PROFESSIONAL: 'more-formal',
-      ELABORATE: 'as-is',
-      SHORTEN: 'as-is',
-      EMOJIFY: 'more-casual',
-      REPHRASE: 'as-is',
-    };
-    const lengthMap: Record<string, 'shorter' | 'as-is' | 'longer'> = {
-      ELABORATE: 'longer',
-      SHORTEN: 'shorter',
-    };
-
     cachedRewriter?.destroy();
     cachedRewriter = await Rewriter.create({
-      tone: toneMap[options.outputType] ?? 'as-is',
-      length: lengthMap[options.outputType] ?? 'as-is',
+      tone: REWRITE_TONE_MAP[options.outputType] ?? 'as-is',
+      length: REWRITE_LENGTH_MAP[options.outputType] ?? 'as-is',
     });
-    if (typeof cachedRewriter.rewriteStreaming !== 'function') {
+    const rewriteStreaming =
+      cachedRewriter.rewriteStreaming?.bind(cachedRewriter);
+    if (!rewriteStreaming) {
       throw new Error('Rewriter streaming API not available in this browser');
     }
 
-    const rewrittenText = await consumeTextStream(
-      'onRewriteStreamChunk',
-      cachedRewriter.rewriteStreaming(text),
+    const rewrittenText = await consumeTextStream('onRewriteStreamChunk', () =>
+      rewriteStreaming(text),
     );
     emitEvent('onRewriteStreamChunk', {
       delta: '',
@@ -706,23 +827,10 @@ const ExpoOndeviceAiModule = {
     if (!Rewriter)
       throw new Error('Rewriter API not available in this browser');
 
-    const toneMap: Record<string, 'more-casual' | 'more-formal' | 'as-is'> = {
-      FRIENDLY: 'more-casual',
-      PROFESSIONAL: 'more-formal',
-      ELABORATE: 'as-is',
-      SHORTEN: 'as-is',
-      EMOJIFY: 'more-casual',
-      REPHRASE: 'as-is',
-    };
-    const lengthMap: Record<string, 'shorter' | 'as-is' | 'longer'> = {
-      ELABORATE: 'longer',
-      SHORTEN: 'shorter',
-    };
-
     cachedRewriter?.destroy();
     cachedRewriter = await Rewriter.create({
-      tone: toneMap[options.outputType] ?? 'as-is',
-      length: lengthMap[options.outputType] ?? 'as-is',
+      tone: REWRITE_TONE_MAP[options.outputType] ?? 'as-is',
+      length: REWRITE_LENGTH_MAP[options.outputType] ?? 'as-is',
     });
 
     const rewrittenText = await cachedRewriter.rewrite(text);
@@ -868,6 +976,13 @@ ${text}`;
 
   /** Destroy all cached Chrome AI instances and free resources */
   destroy() {
+    translatorCacheGeneration += 1;
+    for (const pendingTranslator of pendingTranslators.values()) {
+      pendingTranslator.controller.abort();
+    }
+    pendingTranslators.clear();
+    activeTranslatorLeases.clear();
+
     cachedSummarizer?.destroy();
     cachedSummarizer = null;
     cachedSummarizerKey = '';

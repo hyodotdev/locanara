@@ -134,12 +134,12 @@ const mockModule = {
     }
     mockListeners[eventName].push(listener);
     return {
-      remove: () => {
+      remove: jest.fn(() => {
         const idx = mockListeners[eventName]?.indexOf(listener);
         if (idx !== undefined && idx >= 0) {
           mockListeners[eventName].splice(idx, 1);
         }
-      },
+      }),
     };
   }),
 };
