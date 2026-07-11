@@ -224,7 +224,7 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
 
     static var engineType: InferenceEngineType { .llamaCpp }
     var engineName: String { "On-Device LLM (llama.cpp via bridge)" }
-    private(set) var isLoaded: Bool = false
+    var isLoaded: Bool { lock.withLock { loaded } }
     var isMultimodal: Bool { mmprojPath != nil }
 
     private var llmSession: LLMSession?
@@ -232,11 +232,16 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
     private let mmprojPath: URL?
     private var isCancelled = false
     private var isInferencing = false
+    private var loaded = false
     private let lock = NSLock()
 
     init(modelPath: URL, mmprojPath: URL?) {
         self.modelPath = modelPath
         self.mmprojPath = mmprojPath
+    }
+
+    private func loadedSessionSnapshot() -> LLMSession? {
+        lock.withLock { loaded ? llmSession : nil }
     }
 
     func loadModel() async throws {
@@ -274,9 +279,12 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
             mmprojURL: mmprojPath,
             parameter: llamaParam
         )
-        llmSession = LLMSession(model: localModel)
-        try await llmSession?.prewarm()
-        isLoaded = true
+        let session = LLMSession(model: localModel)
+        try await session.prewarm()
+        lock.withLock {
+            llmSession = session
+            loaded = true
+        }
         logger.info("Bridge engine loaded model: \\(self.modelPath.lastPathComponent)")
     }
 
@@ -287,7 +295,7 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
         lock.withLock { isInferencing = true; isCancelled = false }
         defer { lock.withLock { isInferencing = false } }
 
-        guard isLoaded, let session = llmSession else {
+        guard let session = loadedSessionSnapshot() else {
             throw LocanaraError.custom(.modelNotLoaded, "Model not loaded")
         }
 
@@ -316,7 +324,7 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
             return result.trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {
             if error.localizedDescription.contains("nil") || error.localizedDescription.contains("fatal") {
-                lock.withLock { isLoaded = false; llmSession = nil }
+                lock.withLock { loaded = false; llmSession = nil }
             }
             throw LocanaraError.executionFailed(error.localizedDescription)
         }
@@ -325,7 +333,11 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
     func generateStreaming(prompt: String, config: InferenceConfig) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task { [weak self] in
-                guard let self, self.isLoaded, let session = self.llmSession else {
+                guard let self else {
+                    continuation.finish(throwing: LocanaraError.custom(.modelNotLoaded, "Model not loaded"))
+                    return
+                }
+                guard let session = self.loadedSessionSnapshot() else {
                     continuation.finish(throwing: LocanaraError.custom(.modelNotLoaded, "Model not loaded"))
                     return
                 }
@@ -346,7 +358,7 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
         guard isMultimodal else {
             throw LocanaraError.custom(.featureNotSupported, "mmproj file required for image input")
         }
-        guard isLoaded, let session = llmSession else {
+        guard let session = loadedSessionSnapshot() else {
             throw LocanaraError.custom(.modelNotLoaded, "Model not loaded")
         }
 
@@ -370,8 +382,10 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
     }
 
     func unload() {
-        llmSession = nil
-        isLoaded = false
+        lock.withLock {
+            llmSession = nil
+            loaded = false
+        }
         logger.info("Bridge engine unloaded")
     }
 }
@@ -380,15 +394,58 @@ final class BridgedLlamaCppEngine: @unchecked Sendable, InferenceEngine, LlamaCp
 
 @objc
 @available(iOS 17.0, *)
-public class LlamaCppBridgeEngine: NSObject, LlamaCppBridgeProvider {
+public class LlamaCppBridgeEngine: NSObject, LlamaCppPreparedBridgeProvider {
 
-    private var engine: BridgedLlamaCppEngine?
+    private var preparedEngine: BridgedLlamaCppEngine?
+    private var committedEngine: BridgedLlamaCppEngine?
+    private var isPreparing = false
+    private var prepareGeneration: UInt64 = 0
+    private let stateLock = NSLock()
 
     public var isModelLoaded: Bool {
-        engine?.isLoaded ?? false
+        stateLock.withLock { committedEngine?.isLoaded ?? false }
     }
 
     public func loadAndRegisterModel(_ modelPath: String, mmprojPath: String?, completion: @escaping (NSError?) -> Void) {
+        prepareModel(modelPath, mmprojPath: mmprojPath) { [weak self] error in
+            if let error {
+                completion(error)
+                return
+            }
+
+            guard let self else {
+                completion(NSError(domain: "LlamaCppBridge", code: -3, userInfo: [NSLocalizedDescriptionKey: "Bridge provider was released during model load"]))
+                return
+            }
+
+            do {
+                try self.commitPreparedModel()
+                completion(nil)
+            } catch {
+                completion(error as NSError)
+            }
+        }
+    }
+
+    public func prepareModel(_ modelPath: String, mmprojPath: String?, completion: @escaping (NSError?) -> Void) {
+        let generation: UInt64
+        let displacedEngine: BridgedLlamaCppEngine?
+
+        stateLock.lock()
+        guard !isPreparing else {
+            stateLock.unlock()
+            completion(NSError(domain: "LlamaCppBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Model preparation already in progress"]))
+            return
+        }
+        isPreparing = true
+        prepareGeneration &+= 1
+        generation = prepareGeneration
+        displacedEngine = preparedEngine
+        preparedEngine = nil
+        stateLock.unlock()
+
+        displacedEngine?.unload()
+
         Task {
             do {
                 let modelURL = URL(fileURLWithPath: modelPath)
@@ -397,23 +454,84 @@ public class LlamaCppBridgeEngine: NSObject, LlamaCppBridgeProvider {
                 let newEngine = BridgedLlamaCppEngine(modelPath: modelURL, mmprojPath: mmprojURL)
                 try await newEngine.loadModel()
 
-                self.engine = newEngine
-                InferenceRouter.shared.registerEngine(newEngine as any InferenceEngine)
+                let accepted = self.stateLock.withLock {
+                    guard self.isPreparing, self.prepareGeneration == generation else {
+                        return false
+                    }
+                    self.preparedEngine = newEngine
+                    self.isPreparing = false
+                    return true
+                }
 
-                logger.info("Bridge: model loaded and engine registered")
-                completion(nil)
+                if accepted {
+                    logger.info("Bridge: model prepared")
+                    completion(nil)
+                } else {
+                    newEngine.unload()
+                    completion(NSError(domain: "LlamaCppBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "Model preparation was discarded"]))
+                }
             } catch {
-                logger.error("Bridge: loadModel failed: \\(error.localizedDescription)")
+                self.stateLock.withLock {
+                    if self.prepareGeneration == generation {
+                        self.isPreparing = false
+                    }
+                }
+                logger.error("Bridge: prepareModel failed: \\(error.localizedDescription)")
                 completion(error as NSError)
             }
         }
     }
 
+    public func commitPreparedModel() throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+
+        guard !isPreparing, let nextEngine = preparedEngine else {
+            throw NSError(domain: "LlamaCppBridge", code: -4, userInfo: [NSLocalizedDescriptionKey: "No prepared model is available to commit"])
+        }
+
+        if let oldEngine = committedEngine {
+            InferenceRouter.shared.unregisterEngine()
+            oldEngine.unload()
+        }
+
+        preparedEngine = nil
+        committedEngine = nextEngine
+        InferenceRouter.shared.registerEngine(nextEngine as any InferenceEngine)
+        logger.info("Bridge: prepared model committed and engine registered")
+    }
+
+    public func discardPreparedModel() {
+        let engineToDiscard = stateLock.withLock {
+            prepareGeneration &+= 1
+            isPreparing = false
+            let engine = preparedEngine
+            preparedEngine = nil
+            return engine
+        }
+
+        engineToDiscard?.unload()
+        logger.info("Bridge: prepared model discarded")
+    }
+
     public func unloadModel() {
-        engine?.unload()
-        InferenceRouter.shared.unregisterEngine()
-        engine = nil
-        logger.info("Bridge: model unloaded and engine unregistered")
+        let discardedEngine: BridgedLlamaCppEngine?
+
+        stateLock.lock()
+        prepareGeneration &+= 1
+        isPreparing = false
+        discardedEngine = preparedEngine
+        preparedEngine = nil
+
+        if let engine = committedEngine {
+            InferenceRouter.shared.unregisterEngine()
+            engine.unload()
+            committedEngine = nil
+            logger.info("Bridge: committed model unloaded and engine unregistered")
+        }
+        stateLock.unlock()
+
+        discardedEngine?.unload()
     }
 }
 `;

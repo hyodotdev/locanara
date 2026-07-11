@@ -3,11 +3,20 @@ import os.log
 
 private let logger = Logger(subsystem: "com.locanara", category: "ModelManager")
 
-/// Result of preparing a local-model backend. The external bridge registers
-/// itself while the built-in engine is registered by `ModelManager` only after
-/// the lifecycle token and verified files pass their final checks.
+/// Sendable ownership wrapper for an ObjC bridge prepared without router side
+/// effects. `ModelManager` commits or discards this exact provider instance.
+final class PreparedBridgeBackend: @unchecked Sendable {
+    let provider: LlamaCppPreparedBridgeProvider
+
+    init(_ provider: LlamaCppPreparedBridgeProvider) {
+        self.provider = provider
+    }
+}
+
+/// Result of preparing a local-model backend. Neither backend is registered
+/// until the lifecycle token and verified files pass their final checks.
 enum ModelLoadBackend: Sendable {
-    case bridge
+    case bridge(PreparedBridgeBackend)
     case engine(any InferenceEngine & LlamaCppEngineProtocol)
 }
 
@@ -75,6 +84,9 @@ public final class ModelManager: @unchecked Sendable {
 
     /// Engine reference (set after loading)
     private var currentEngine: LlamaCppEngineProtocol?
+
+    /// Exact external bridge instance committed for the loaded model.
+    private var currentBridge: LlamaCppPreparedBridgeProvider?
 
     /// Serial queue for state management
     private let stateQueue = DispatchQueue(label: "com.locanara.modelmanager.state")
@@ -646,12 +658,24 @@ public final class ModelManager: @unchecked Sendable {
         }
     }
 
+    static func validatedPreparedBridge(
+        _ bridge: LlamaCppBridgeProvider
+    ) throws -> LlamaCppPreparedBridgeProvider {
+        guard let preparedBridge = bridge as? LlamaCppPreparedBridgeProvider else {
+            throw LocanaraError.modelLoadFailed(
+                "Linked llama.cpp bridge does not support the safe prepared-model lifecycle"
+            )
+        }
+        return preparedBridge
+    }
+
     static func loadDefaultBackend(modelPath: URL, mmprojPath: URL?) async throws -> ModelLoadBackend {
-        // External bridges isolate C++ interop for wrapper builds and perform
-        // their own router registration.
+        // External bridges isolate C++ interop for wrapper builds. Preparation
+        // must not register globally before ModelManager validates its token.
         if let bridge = LlamaCppBridge.findBridge() {
+            let preparedBridge = try validatedPreparedBridge(bridge)
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                bridge.loadAndRegisterModel(
+                preparedBridge.prepareModel(
                     modelPath.path,
                     mmprojPath: mmprojPath?.path
                 ) { error in
@@ -662,7 +686,7 @@ public final class ModelManager: @unchecked Sendable {
                     }
                 }
             }
-            return .bridge
+            return .bridge(PreparedBridgeBackend(preparedBridge))
         }
 
         guard #available(iOS 17.0, *) else {
@@ -677,10 +701,8 @@ public final class ModelManager: @unchecked Sendable {
 
     private func discardPreparedBackend(_ backend: ModelLoadBackend) {
         switch backend {
-        case .bridge:
-            if let bridge = LlamaCppBridge.findBridge(), bridge.isModelLoaded {
-                bridge.unloadModel()
-            }
+        case let .bridge(preparedBridge):
+            preparedBridge.provider.discardPreparedModel()
         case let .engine(engine):
             engine.unload()
         }
@@ -694,8 +716,8 @@ public final class ModelManager: @unchecked Sendable {
         modelInfo: DownloadableModelInfo,
         token: UUID,
         verifiedMetadata: [String: ModelStorage.ModelFileMetadata]
-    ) -> Bool {
-        let publication: (ModelStateChange, [@Sendable (ModelStateChange) -> Void])? = stateQueue.sync {
+    ) throws -> Bool {
+        let publication: (ModelStateChange, [@Sendable (ModelStateChange) -> Void])? = try stateQueue.sync {
             guard activeOperations[modelInfo.modelId] == token,
                   activeLoadOperation?.modelId == modelInfo.modelId,
                   activeLoadOperation?.token == token,
@@ -710,15 +732,18 @@ public final class ModelManager: @unchecked Sendable {
             }
 
             switch backend {
-            case .bridge:
+            case let .bridge(preparedBridge):
+                try preparedBridge.provider.commitPreparedModel()
                 engineLock.withLock {
                     currentEngine = nil
+                    currentBridge = preparedBridge.provider
                     loadedModelId = modelInfo.modelId
                 }
             case let .engine(engine):
                 InferenceRouter.shared.registerEngine(engine as any InferenceEngine)
                 engineLock.withLock {
                     currentEngine = engine
+                    currentBridge = nil
                     loadedModelId = modelInfo.modelId
                 }
             }
@@ -847,7 +872,7 @@ public final class ModelManager: @unchecked Sendable {
                 preparedBackend = nil
                 throw CancellationError()
             }
-            guard publishLoadedBackend(
+            guard try publishLoadedBackend(
                 backend,
                 modelInfo: modelInfo,
                 token: operationToken,
@@ -903,18 +928,20 @@ public final class ModelManager: @unchecked Sendable {
                 timestamp: Date()
             )
 
-            let engine = engineLock.withLock { () -> LlamaCppEngineProtocol? in
+            let loadedBackend = engineLock.withLock {
                 let engine = currentEngine
+                let bridge = currentBridge
                 currentEngine = nil
+                currentBridge = nil
                 loadedModelId = nil
-                return engine
+                return (engine, bridge)
             }
 
-            // Use bridge for unloading if available, otherwise direct unregister.
-            if let bridge = LlamaCppBridge.findBridge(), bridge.isModelLoaded {
+            // Unload the exact backend committed for this model.
+            if let bridge = loadedBackend.1 {
                 bridge.unloadModel()
             } else {
-                (engine as? any InferenceEngine)?.unload()
+                (loadedBackend.0 as? any InferenceEngine)?.unload()
                 InferenceRouter.shared.unregisterEngine()
             }
 

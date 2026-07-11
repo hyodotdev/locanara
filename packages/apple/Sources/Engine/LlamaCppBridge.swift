@@ -3,7 +3,7 @@ import os.log
 
 private let logger = Logger(subsystem: "com.locanara", category: "LlamaCppBridge")
 
-/// Protocol for external llama.cpp engine providers.
+/// Legacy one-phase protocol for external llama.cpp engine providers.
 ///
 /// Enables C++ interop-dependent llama.cpp code to be isolated in a separate
 /// framework target, avoiding the viral propagation of C++ interop to modules
@@ -13,6 +13,11 @@ private let logger = Logger(subsystem: "com.locanara", category: "LlamaCppBridge
 /// 1. Create an `InferenceEngine`-conforming engine using LocalLLMClient
 /// 2. Register it with `InferenceRouter.shared.registerEngine()`
 /// 3. Signal completion via the callback
+///
+/// `ModelManager` deliberately rejects providers that conform only to this
+/// protocol. Third-party bridges must also adopt
+/// `LlamaCppPreparedBridgeProvider` so preparation has no global router side
+/// effects before lifecycle validation commits the model.
 @objc public protocol LlamaCppBridgeProvider: AnyObject {
     /// Load a model and register the engine with InferenceRouter.
     ///
@@ -27,6 +32,25 @@ private let logger = Logger(subsystem: "com.locanara", category: "LlamaCppBridge
 
     /// Whether a model is currently loaded.
     var isModelLoaded: Bool { get }
+}
+
+/// Two-phase bridge lifecycle used by `ModelManager`.
+///
+/// Preparing a model must not mutate `InferenceRouter`. The manager calls
+/// `commitPreparedModel()` only while its lifecycle token and verified files
+/// are current. A stale or cancelled load is released with
+/// `discardPreparedModel()` instead.
+@objc public protocol LlamaCppPreparedBridgeProvider: LlamaCppBridgeProvider {
+    /// Prepare an engine without registering it globally.
+    func prepareModel(_ modelPath: String, mmprojPath: String?, completion: @escaping (NSError?) -> Void)
+
+    /// Register the prepared engine. This must return promptly, must not call
+    /// back into `ModelManager`, and must either complete fully or throw without
+    /// leaving a partially committed router state.
+    func commitPreparedModel() throws
+
+    /// Release only the prepared engine without changing `InferenceRouter`.
+    func discardPreparedModel()
 }
 
 /// Discovery mechanism for external llama.cpp bridge implementations.

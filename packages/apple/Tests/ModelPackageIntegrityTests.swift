@@ -401,6 +401,117 @@ final class ModelPackageIntegrityTests: XCTestCase {
         }
     }
 
+    func testDeleteCancelsPreparedBridgeBeforeCommit() async throws {
+        let model = makeMultimodalModel()
+        try writeVerifiedPackage(model)
+        let loaderEntered = AsyncGate()
+        let releaseLoader = AsyncGate()
+        let bridge = TestPreparedBridge()
+        let manager = ModelManager(
+            registry: ModelRegistry(models: [model]),
+            storage: storage,
+            downloader: makeStubDownloader(),
+            engineLoader: { _, _ in
+                bridge.prepareForTest()
+                await loaderEntered.open()
+                await releaseLoader.wait()
+                return .bridge(PreparedBridgeBackend(bridge))
+            }
+        )
+        let loadTask = Task { try await manager.loadModel(model.modelId) }
+
+        await loaderEntered.wait()
+        try manager.deleteModel(model.modelId)
+        await releaseLoader.open()
+
+        do {
+            try await loadTask.value
+            XCTFail("A deleted bridge model must not commit")
+        } catch {
+            // Expected: deletion invalidated the load token before publication.
+        }
+        XCTAssertNil(manager.getLoadedModel())
+        XCTAssertFalse(bridge.isModelLoaded)
+        XCTAssertEqual(bridge.commitCount, 0)
+        XCTAssertEqual(bridge.discardCount, 1)
+        XCTAssertEqual(bridge.unloadCount, 0)
+        guard case .notDownloaded = manager.getModelState(model.modelId) else {
+            return XCTFail("Delete must remain terminal after bridge preparation")
+        }
+    }
+
+    func testPreparedBridgeCommitsAndUnloadsExactProvider() async throws {
+        let model = makeMultimodalModel()
+        try writeVerifiedPackage(model)
+        let bridge = TestPreparedBridge()
+        let manager = ModelManager(
+            registry: ModelRegistry(models: [model]),
+            storage: storage,
+            downloader: makeStubDownloader(),
+            engineLoader: { _, _ in
+                bridge.prepareForTest()
+                return .bridge(PreparedBridgeBackend(bridge))
+            }
+        )
+
+        try await manager.loadModel(model.modelId)
+
+        XCTAssertEqual(manager.getLoadedModel(), model.modelId)
+        XCTAssertTrue(bridge.isModelLoaded)
+        XCTAssertEqual(bridge.commitCount, 1)
+        XCTAssertEqual(bridge.discardCount, 0)
+
+        manager.unloadModel(model.modelId)
+
+        XCTAssertFalse(bridge.isModelLoaded)
+        XCTAssertEqual(bridge.unloadCount, 1)
+    }
+
+    func testPreparedBridgeCommitFailureDiscardsAndCanRetry() async throws {
+        let model = makeMultimodalModel()
+        try writeVerifiedPackage(model)
+        let bridge = TestPreparedBridge(failCommit: true)
+        let manager = ModelManager(
+            registry: ModelRegistry(models: [model]),
+            storage: storage,
+            downloader: makeStubDownloader(),
+            engineLoader: { _, _ in
+                bridge.prepareForTest()
+                return .bridge(PreparedBridgeBackend(bridge))
+            }
+        )
+
+        do {
+            try await manager.loadModel(model.modelId)
+            XCTFail("A failed bridge commit must fail the load")
+        } catch {
+            // Expected: ModelManager discards the still-prepared engine.
+        }
+
+        XCTAssertNil(manager.getLoadedModel())
+        XCTAssertFalse(bridge.isModelLoaded)
+        XCTAssertEqual(bridge.commitCount, 0)
+        XCTAssertEqual(bridge.discardCount, 1)
+
+        bridge.setCommitFailure(false)
+        try await manager.loadModel(model.modelId)
+
+        XCTAssertEqual(manager.getLoadedModel(), model.modelId)
+        XCTAssertEqual(bridge.commitCount, 1)
+        manager.unloadModel(model.modelId)
+    }
+
+    func testLegacyOnePhaseBridgeIsRejectedExplicitly() {
+        XCTAssertThrowsError(
+            try ModelManager.validatedPreparedBridge(TestLegacyBridge())
+        ) { error in
+            guard case let LocanaraError.modelLoadFailed(message) = error else {
+                return XCTFail("Expected modelLoadFailed, got \(error)")
+            }
+            XCTAssertTrue(message.contains("safe prepared-model lifecycle"))
+        }
+    }
+
     func testConcurrentLoadsInvokeEngineLoaderOnce() async throws {
         let model = makeMultimodalModel()
         try writeVerifiedPackage(model)
@@ -591,6 +702,116 @@ private final class LockedCounter: @unchecked Sendable {
     var value: Int {
         lock.withLock { count }
     }
+}
+
+@available(iOS 15.0, macOS 14.0, *)
+private final class TestPreparedBridge: NSObject, LlamaCppPreparedBridgeProvider, @unchecked Sendable {
+    private let lock = NSLock()
+    private var prepared = false
+    private var loaded = false
+    private var commits = 0
+    private var discards = 0
+    private var unloads = 0
+    private var failCommit: Bool
+
+    init(failCommit: Bool = false) {
+        self.failCommit = failCommit
+        super.init()
+    }
+
+    var isModelLoaded: Bool { lock.withLock { loaded } }
+    var commitCount: Int { lock.withLock { commits } }
+    var discardCount: Int { lock.withLock { discards } }
+    var unloadCount: Int { lock.withLock { unloads } }
+
+    func prepareForTest() {
+        lock.withLock { prepared = true }
+    }
+
+    func setCommitFailure(_ shouldFail: Bool) {
+        lock.withLock { failCommit = shouldFail }
+    }
+
+    func prepareModel(
+        _ modelPath: String,
+        mmprojPath: String?,
+        completion: @escaping (NSError?) -> Void
+    ) {
+        prepareForTest()
+        completion(nil)
+    }
+
+    func commitPreparedModel() throws {
+        try lock.withLock {
+            guard prepared else {
+                throw NSError(
+                    domain: "TestPreparedBridge",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "No prepared model"]
+                )
+            }
+            if failCommit {
+                throw NSError(
+                    domain: "TestPreparedBridge",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "Commit failed"]
+                )
+            }
+            prepared = false
+            loaded = true
+            commits += 1
+        }
+    }
+
+    func discardPreparedModel() {
+        lock.withLock {
+            guard prepared else { return }
+            prepared = false
+            discards += 1
+        }
+    }
+
+    func loadAndRegisterModel(
+        _ modelPath: String,
+        mmprojPath: String?,
+        completion: @escaping (NSError?) -> Void
+    ) {
+        prepareModel(modelPath, mmprojPath: mmprojPath) { [weak self] error in
+            guard error == nil, let self else {
+                completion(error)
+                return
+            }
+            do {
+                try self.commitPreparedModel()
+                completion(nil)
+            } catch {
+                completion(error as NSError)
+            }
+        }
+    }
+
+    func unloadModel() {
+        lock.withLock {
+            guard loaded else { return }
+            loaded = false
+            unloads += 1
+        }
+    }
+}
+
+@available(iOS 15.0, macOS 14.0, *)
+private final class TestLegacyBridge: NSObject, LlamaCppBridgeProvider {
+    var isModelLoaded: Bool { false }
+
+    func loadAndRegisterModel(
+        _ modelPath: String,
+        mmprojPath: String?,
+        completion: @escaping (NSError?) -> Void
+    ) {
+        completion(nil)
+    }
+
+    func unloadModel() {}
 }
 
 private actor AsyncGate {
