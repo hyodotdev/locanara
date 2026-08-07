@@ -39,6 +39,7 @@ import TypesWeb from "./types/web";
 import UtilsWeb from "./utils/web";
 import Example from "./example";
 import Resources from "./resources";
+import ReleaseNotes from "./release-notes";
 import TutorialsIndex from "./tutorials/index";
 import ModelSelectionTutorial from "./tutorials/model-selection";
 import SummarizeTutorial from "./tutorials/summarize";
@@ -221,6 +222,15 @@ function Docs() {
                 onClick={closeSidebar}
               >
                 Resources
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/docs/release-notes"
+                className={({ isActive }) => (isActive ? "active" : "")}
+                onClick={closeSidebar}
+              >
+                Release Notes
               </NavLink>
             </li>
           </ul>
@@ -457,6 +467,7 @@ function Docs() {
           <Route path="web-setup" element={<WebSetup />} />
           <Route path="example" element={<Example />} />
           <Route path="resources" element={<Resources />} />
+          <Route path="release-notes" element={<ReleaseNotes />} />
           <Route path="tutorials" element={<TutorialsIndex />} />
           {/* Redirects from old getting-started URLs */}
           <Route
