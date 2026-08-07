@@ -11,6 +11,36 @@ import kotlinx.serialization.Serializable
 // ============================================
 
 @Serializable
+enum class ErrorCode {
+    SDK_NOT_INITIALIZED,
+    INITIALIZATION_FAILED,
+    FEATURE_NOT_AVAILABLE,
+    FEATURE_NOT_SUPPORTED,
+    MODEL_NOT_LOADED,
+    MODEL_DOWNLOAD_REQUIRED,
+    MODEL_NOT_FOUND,
+    MODEL_LOAD_FAILED,
+    MODEL_BUSY,
+    BACKGROUND_USE_BLOCKED,
+    EXECUTION_FAILED,
+    EXECUTION_TIMEOUT,
+    EXECUTION_CANCELLED,
+    INVALID_INPUT,
+    INPUT_TOO_LONG,
+    INSUFFICIENT_MEMORY,
+    LOW_POWER_MODE,
+    DEVICE_NOT_SUPPORTED,
+    CONTEXT_NOT_FOUND,
+    CONTEXT_INVALID,
+    PERMISSION_DENIED,
+    PERMISSION_NOT_GRANTED,
+    NETWORK_UNAVAILABLE,
+    API_ERROR,
+    UNKNOWN_ERROR,
+    INTERNAL_ERROR
+}
+
+@Serializable
 enum class EventCategory {
     CAPABILITY,
     MODEL,
@@ -154,45 +184,18 @@ enum class RAGDocumentStatus {
     ERROR
 }
 
-@Serializable
-enum class ErrorCode {
-    SDK_NOT_INITIALIZED,
-    INITIALIZATION_FAILED,
-    FEATURE_NOT_AVAILABLE,
-    FEATURE_NOT_SUPPORTED,
-    MODEL_NOT_LOADED,
-    MODEL_DOWNLOAD_REQUIRED,
-    MODEL_NOT_FOUND,
-    MODEL_LOAD_FAILED,
-    MODEL_BUSY,
-    BACKGROUND_USE_BLOCKED,
-    EXECUTION_FAILED,
-    EXECUTION_TIMEOUT,
-    EXECUTION_CANCELLED,
-    INVALID_INPUT,
-    INPUT_TOO_LONG,
-    INSUFFICIENT_MEMORY,
-    LOW_POWER_MODE,
-    DEVICE_NOT_SUPPORTED,
-    CONTEXT_NOT_FOUND,
-    CONTEXT_INVALID,
-    PERMISSION_DENIED,
-    PERMISSION_NOT_GRANTED,
-    NETWORK_UNAVAILABLE,
-    API_ERROR,
-    UNKNOWN_ERROR,
-    INTERNAL_ERROR
-}
-
 // ============================================
 // TYPES
 // ============================================
 
 @Serializable
-data class LocanaraEventPayload(
-    val event: LocanaraEvent,
-    val timestamp: Double,
-    val data: String? = null
+data class ErrorDetails(
+    val code: ErrorCode,
+    val message: String,
+    val technicalDetails: String? = null,
+    val suggestedAction: String? = null,
+    val canRetry: Boolean,
+    val platform: Platform? = null
 )
 
 @Serializable
@@ -252,6 +255,29 @@ data class Event(
     val timestamp: Double,
     val data: EventData? = null,
     val platform: Platform? = null
+)
+
+@Serializable
+data class GeminiNanoInfoAndroid(
+    val version: String,
+    val variant: String? = null,
+    val supportedLanguages: List<String>,
+    val capabilities: List<String>,
+    val isDownloaded: Boolean,
+    val downloadSizeMB: Int? = null,
+    val isReady: Boolean
+)
+
+@Serializable
+data class DeviceInfoAndroid(
+    val manufacturer: String,
+    val model: String,
+    val apiLevel: Int,
+    val androidVersion: String,
+    val supportsGeminiNano: Boolean,
+    val systemLanguages: List<String>,
+    val gpuInfo: String? = null,
+    val totalRAMMB: Int
 )
 
 @Serializable
@@ -534,41 +560,30 @@ data class ExternalModel(
 )
 
 @Serializable
-data class GeminiNanoInfoAndroid(
-    val version: String,
-    val variant: String? = null,
-    val supportedLanguages: List<String>,
-    val capabilities: List<String>,
-    val isDownloaded: Boolean,
-    val downloadSizeMB: Int? = null,
-    val isReady: Boolean
-)
-
-@Serializable
-data class DeviceInfoAndroid(
-    val manufacturer: String,
-    val model: String,
-    val apiLevel: Int,
-    val androidVersion: String,
-    val supportsGeminiNano: Boolean,
-    val systemLanguages: List<String>,
-    val gpuInfo: String? = null,
-    val totalRAMMB: Int
-)
-
-@Serializable
-data class ErrorDetails(
-    val code: ErrorCode,
-    val message: String,
-    val technicalDetails: String? = null,
-    val suggestedAction: String? = null,
-    val canRetry: Boolean,
-    val platform: Platform? = null
+data class LocanaraEventPayload(
+    val event: LocanaraEvent,
+    val timestamp: Double,
+    val data: String? = null
 )
 
 // ============================================
 // INPUT TYPES
 // ============================================
+
+@Serializable
+data class ExecuteFeatureOptionsAndroid(
+    val useGeminiNano: Boolean? = null,
+    val modelVariant: String? = null,
+    val enableGPU: Boolean? = null,
+    val numThreads: Int? = null
+)
+
+@Serializable
+data class ImageDescriptionParametersAndroid(
+    val imageBase64: String? = null,
+    val imagePath: String? = null,
+    val language: MLKitLanguage? = null
+)
 
 @Serializable
 data class ExecuteFeatureOptionsIOS(
@@ -725,21 +740,6 @@ data class RecordFeedbackInput(
 data class ExecutePersonalizedInput(
     val featureInput: ExecuteFeatureInput,
     val profileId: String? = null
-)
-
-@Serializable
-data class ExecuteFeatureOptionsAndroid(
-    val useGeminiNano: Boolean? = null,
-    val modelVariant: String? = null,
-    val enableGPU: Boolean? = null,
-    val numThreads: Int? = null
-)
-
-@Serializable
-data class ImageDescriptionParametersAndroid(
-    val imageBase64: String? = null,
-    val imagePath: String? = null,
-    val language: MLKitLanguage? = null
 )
 
 // ============================================

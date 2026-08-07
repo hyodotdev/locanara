@@ -56,7 +56,7 @@ export function parseGraphQLFiles(options: ParserOptions): ParsedFile[] {
     const hasValidExtension = extensions.some((ext) => f.endsWith(ext))
     const isExcluded = shouldExclude(f, excludePatterns)
     return hasValidExtension && !isExcluded
-  })
+  }).sort()
 
   const parsedFiles: ParsedFile[] = []
 

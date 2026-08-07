@@ -5,6 +5,35 @@ import Foundation
 
 // MARK: - Enums
 
+public enum ErrorCode: String, Codable, CaseIterable, Sendable {
+    case sdkNotInitialized = "SDK_NOT_INITIALIZED"
+    case initializationFailed = "INITIALIZATION_FAILED"
+    case featureNotAvailable = "FEATURE_NOT_AVAILABLE"
+    case featureNotSupported = "FEATURE_NOT_SUPPORTED"
+    case modelNotLoaded = "MODEL_NOT_LOADED"
+    case modelDownloadRequired = "MODEL_DOWNLOAD_REQUIRED"
+    case modelNotFound = "MODEL_NOT_FOUND"
+    case modelLoadFailed = "MODEL_LOAD_FAILED"
+    case modelBusy = "MODEL_BUSY"
+    case backgroundUseBlocked = "BACKGROUND_USE_BLOCKED"
+    case executionFailed = "EXECUTION_FAILED"
+    case executionTimeout = "EXECUTION_TIMEOUT"
+    case executionCancelled = "EXECUTION_CANCELLED"
+    case invalidInput = "INVALID_INPUT"
+    case inputTooLong = "INPUT_TOO_LONG"
+    case insufficientMemory = "INSUFFICIENT_MEMORY"
+    case lowPowerMode = "LOW_POWER_MODE"
+    case deviceNotSupported = "DEVICE_NOT_SUPPORTED"
+    case contextNotFound = "CONTEXT_NOT_FOUND"
+    case contextInvalid = "CONTEXT_INVALID"
+    case permissionDenied = "PERMISSION_DENIED"
+    case permissionNotGranted = "PERMISSION_NOT_GRANTED"
+    case networkUnavailable = "NETWORK_UNAVAILABLE"
+    case apiError = "API_ERROR"
+    case unknownError = "UNKNOWN_ERROR"
+    case internalError = "INTERNAL_ERROR"
+}
+
 public enum EventCategory: String, Codable, CaseIterable, Sendable {
     case capability = "CAPABILITY"
     case model = "MODEL"
@@ -132,50 +161,30 @@ public enum RAGDocumentStatus: String, Codable, CaseIterable, Sendable {
     case error = "ERROR"
 }
 
-public enum ErrorCode: String, Codable, CaseIterable, Sendable {
-    case sdkNotInitialized = "SDK_NOT_INITIALIZED"
-    case initializationFailed = "INITIALIZATION_FAILED"
-    case featureNotAvailable = "FEATURE_NOT_AVAILABLE"
-    case featureNotSupported = "FEATURE_NOT_SUPPORTED"
-    case modelNotLoaded = "MODEL_NOT_LOADED"
-    case modelDownloadRequired = "MODEL_DOWNLOAD_REQUIRED"
-    case modelNotFound = "MODEL_NOT_FOUND"
-    case modelLoadFailed = "MODEL_LOAD_FAILED"
-    case modelBusy = "MODEL_BUSY"
-    case backgroundUseBlocked = "BACKGROUND_USE_BLOCKED"
-    case executionFailed = "EXECUTION_FAILED"
-    case executionTimeout = "EXECUTION_TIMEOUT"
-    case executionCancelled = "EXECUTION_CANCELLED"
-    case invalidInput = "INVALID_INPUT"
-    case inputTooLong = "INPUT_TOO_LONG"
-    case insufficientMemory = "INSUFFICIENT_MEMORY"
-    case lowPowerMode = "LOW_POWER_MODE"
-    case deviceNotSupported = "DEVICE_NOT_SUPPORTED"
-    case contextNotFound = "CONTEXT_NOT_FOUND"
-    case contextInvalid = "CONTEXT_INVALID"
-    case permissionDenied = "PERMISSION_DENIED"
-    case permissionNotGranted = "PERMISSION_NOT_GRANTED"
-    case networkUnavailable = "NETWORK_UNAVAILABLE"
-    case apiError = "API_ERROR"
-    case unknownError = "UNKNOWN_ERROR"
-    case internalError = "INTERNAL_ERROR"
-}
-
 // MARK: - Types
 
-public struct LocanaraEventPayload: Codable, Sendable {
-    public var event: LocanaraEvent
-    public var timestamp: Double
-    public var data: String?
+public struct ErrorDetails: Codable, Sendable {
+    public var code: ErrorCode
+    public var message: String
+    public var technicalDetails: String?
+    public var suggestedAction: String?
+    public var canRetry: Bool
+    public var platform: Platform?
 
     public init(
-        event: LocanaraEvent,
-        timestamp: Double,
-        data: String? = nil
+        code: ErrorCode,
+        message: String,
+        technicalDetails: String? = nil,
+        suggestedAction: String? = nil,
+        canRetry: Bool,
+        platform: Platform? = nil
     ) {
-        self.event = event
-        self.timestamp = timestamp
-        self.data = data
+        self.code = code
+        self.message = message
+        self.technicalDetails = technicalDetails
+        self.suggestedAction = suggestedAction
+        self.canRetry = canRetry
+        self.platform = platform
     }
 }
 
@@ -990,28 +999,19 @@ public struct ExternalModel: Codable, Sendable {
     }
 }
 
-public struct ErrorDetails: Codable, Sendable {
-    public var code: ErrorCode
-    public var message: String
-    public var technicalDetails: String?
-    public var suggestedAction: String?
-    public var canRetry: Bool
-    public var platform: Platform?
+public struct LocanaraEventPayload: Codable, Sendable {
+    public var event: LocanaraEvent
+    public var timestamp: Double
+    public var data: String?
 
     public init(
-        code: ErrorCode,
-        message: String,
-        technicalDetails: String? = nil,
-        suggestedAction: String? = nil,
-        canRetry: Bool,
-        platform: Platform? = nil
+        event: LocanaraEvent,
+        timestamp: Double,
+        data: String? = nil
     ) {
-        self.code = code
-        self.message = message
-        self.technicalDetails = technicalDetails
-        self.suggestedAction = suggestedAction
-        self.canRetry = canRetry
-        self.platform = platform
+        self.event = event
+        self.timestamp = timestamp
+        self.data = data
     }
 }
 

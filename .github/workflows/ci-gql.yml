@@ -33,6 +33,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
+      - name: Test generator
+        working-directory: packages/gql
+        run: bun test
+
       - name: Generate types
         working-directory: packages/gql
         run: bun run generate

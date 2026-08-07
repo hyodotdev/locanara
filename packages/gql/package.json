@@ -16,7 +16,8 @@
     "codegen:kotlin": "bun codegen/cli.ts --kotlin",
     "codegen:swift": "bun codegen/cli.ts --swift",
     "codegen:dart": "bun codegen/cli.ts --dart",
-    "sync": "bun scripts/sync-to-platforms.mjs"
+    "sync": "bun scripts/sync-to-platforms.mjs",
+    "test": "bun test codegen"
   },
   "keywords": [
     "graphql",
