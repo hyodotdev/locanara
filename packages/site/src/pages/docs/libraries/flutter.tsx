@@ -123,55 +123,21 @@ if (capability.isSupported) {
       <section>
         <h2 id="framework">Framework</h2>
         <p>
-          Under the hood, Locanara is a composable AI framework inspired by
-          LangChain. The built-in utils above are pre-built{" "}
-          <Link to="/docs/apis/chain">Chains</Link> — but you can compose your
-          own multi-step AI workflows using the native SDK directly.
+          The Flutter facade exposes feature methods, not the native Swift or
+          Kotlin <Link to="/docs/apis/pipeline">Pipeline builder</Link>. Compose
+          calls explicitly in Dart; use the native SDK directly only when
+          writing native platform code.
         </p>
-        <ul>
-          <li>
-            <Link to="/docs/apis/chain">
-              <code>Chain</code>
-            </Link>{" "}
-            - Composable building block for AI logic
-          </li>
-          <li>
-            <Link to="/docs/apis/pipeline">
-              <code>Pipeline</code>
-            </Link>{" "}
-            - Chain multiple steps with type-safe DSL
-          </li>
-          <li>
-            <Link to="/docs/apis/memory">
-              <code>Memory</code>
-            </Link>{" "}
-            - Conversation context (Buffer / Summary)
-          </li>
-          <li>
-            <Link to="/docs/apis/guardrail">
-              <code>Guardrail</code>
-            </Link>{" "}
-            - Input/output validation and safety
-          </li>
-          <li>
-            <Link to="/docs/apis/session">
-              <code>Session</code>
-            </Link>{" "}
-            - Stateful conversation management
-          </li>
-          <li>
-            <Link to="/docs/apis/agent">
-              <code>Agent</code>
-            </Link>{" "}
-            - Autonomous ReAct-style reasoning with tools
-          </li>
-        </ul>
-        <CodeBlock language="swift">{`// Example: Pipeline DSL (native SDK)
-// Proofread → Translate in one pipeline
-let result = try await model.pipeline {
-    Proofread()
-    Translate(to: "ko")
-}.run("Hello wrold, how are you?")`}</CodeBlock>
+        <CodeBlock language="dart">{`final corrected = await ai.proofread(
+  'Hello wrold, how are you?',
+);
+final translated = await ai.translate(
+  corrected.correctedText,
+  options: TranslateOptions(
+    sourceLanguage: 'en',
+    targetLanguage: 'ko',
+  ),
+);`}</CodeBlock>
       </section>
 
       <section>

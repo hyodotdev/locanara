@@ -46,9 +46,67 @@ Most on-device AI SDKs give you raw model access. Locanara gives you a **framewo
 
 ### Three Levels of API
 
-1. **Simple** — One-liner convenience methods for common tasks
-2. **Chain** — Configurable built-in chains with typed results
-3. **Custom** — Implement the Chain protocol for app-specific AI features
+1. **Simple** — Call a model extension for a common task.
+2. **Chain** — Configure and run a built-in chain directly.
+3. **Custom** — Implement `Chain` for app-specific behavior.
+
+**Swift**
+
+```swift
+import Foundation
+import Locanara
+
+let model = LocanaraDefaults.model
+let article = "On-device AI keeps private data on the device."
+
+// 1. Simple
+let summary = try await model.summarize(article, bulletCount: 3)
+
+// 2. Chain
+let chain = SummarizeChain(model: model, bulletCount: 3)
+let configured = try await chain.run(article)
+
+// 3. Custom
+struct TrimChain: Chain {
+    let name = "TrimChain"
+
+    func invoke(_ input: ChainInput) async throws -> ChainOutput {
+        let text = input.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ChainOutput(value: text, text: text, metadata: input.metadata)
+    }
+}
+```
+
+**Kotlin**
+
+```kotlin
+import com.locanara.builtin.SummarizeChain
+import com.locanara.composable.Chain
+import com.locanara.core.ChainInput
+import com.locanara.core.ChainOutput
+import com.locanara.core.LocanaraDefaults
+import com.locanara.dsl.summarize
+
+val model = LocanaraDefaults.model
+val article = "On-device AI keeps private data on the device."
+
+// 1. Simple
+val summary = model.summarize(article, bulletCount = 3)
+
+// 2. Chain
+val chain = SummarizeChain(model = model, bulletCount = 3)
+val configured = chain.run(article)
+
+// 3. Custom
+class TrimChain : Chain {
+    override val name = "TrimChain"
+
+    override suspend fun invoke(input: ChainInput): ChainOutput {
+        val text = input.text.trim()
+        return ChainOutput(value = text, text = text, metadata = input.metadata)
+    }
+}
+```
 
 ### Architecture
 
@@ -171,9 +229,9 @@ implementation("com.locanara:locanara:1.1.2")
 
 ## Pipeline DSL
 
-Compose multiple AI steps into a single type-safe workflow. Each step's output becomes the next step's input, and the return type is determined by the last step.
+Compose multiple AI steps into one workflow. Each step passes its text and metadata to the next step, and the last step determines the pipeline's compile-time return type. The builders do not prove that every adjacent step is semantically compatible.
 
-### Basic Pipeline (two steps)
+### Manual Composition (all platforms)
 
 **Swift**
 
@@ -218,7 +276,7 @@ suspend fun example(context: Context) {
 
 ### Declarative Pipeline Builder (Swift)
 
-Swift's `@PipelineBuilder` result builder enforces return types at compile time. The compiler rejects pipelines with incompatible step types, making multi-step workflows safe to refactor.
+Swift's `@PipelineBuilder` tracks the last step's result type. Assigning the result to a different type is a compile error, while adjacent steps still exchange `ChainOutput.text` and metadata at runtime.
 
 ```swift
 import Locanara
@@ -226,7 +284,7 @@ import Locanara
 let model = FoundationLanguageModel()
 
 // Two-step: proofread → translate
-// Return type is TranslateResult — compiler enforced
+// Return type is TranslateResult — tracked from the final step
 let result = try await model.pipeline {
     Proofread()
     Translate(to: "ko")
@@ -259,7 +317,7 @@ suspend fun pipelineExample(context: Context) {
         .translate(to = "ko")
         .run("Ths is a tset sentece about on-devce AI.")
 
-    // result is TranslateResult (last step determines type)
+    // result is TranslateResult (the final step determines the type)
     println(result.translatedText)
 
     // Three-step pipeline
@@ -282,6 +340,8 @@ suspend fun pipelineExample(context: Context) {
 | Rewrite   | `Rewrite(style:)`         | `.rewrite(style:)`         | `RewriteResult`   |
 | Extract   | `Extract(entityTypes:)`   | `.extract(entityTypes:)`   | `ExtractResult`   |
 
+> **Web and wrappers:** The Web SDK, Expo, React Native, and Flutter APIs do not expose the native Pipeline builder. Compose their feature calls explicitly and use streaming methods such as `summarizeStreaming()`, `translateStreaming()`, and `rewriteStreaming()` where supported.
+>
 > **Full tutorial**: [locanara.hyo.dev/docs/tutorials/pipeline](https://locanara.hyo.dev/docs/tutorials/pipeline)
 
 ---

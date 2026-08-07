@@ -115,55 +115,18 @@ if (capability.isSupported) {
       <section>
         <h2 id="framework">Framework</h2>
         <p>
-          Under the hood, Locanara is a composable AI framework inspired by
-          LangChain. The built-in utils above are pre-built{" "}
-          <Link to="/docs/apis/chain">Chains</Link> — but you can compose your
-          own multi-step AI workflows using the native SDK directly.
+          The Expo facade exposes feature functions, not the native Swift or
+          Kotlin <Link to="/docs/apis/pipeline">Pipeline builder</Link>. Compose
+          calls explicitly in TypeScript; use the native SDK directly only when
+          writing native platform code.
         </p>
-        <ul>
-          <li>
-            <Link to="/docs/apis/chain">
-              <code>Chain</code>
-            </Link>{" "}
-            - Composable building block for AI logic
-          </li>
-          <li>
-            <Link to="/docs/apis/pipeline">
-              <code>Pipeline</code>
-            </Link>{" "}
-            - Chain multiple steps with type-safe DSL
-          </li>
-          <li>
-            <Link to="/docs/apis/memory">
-              <code>Memory</code>
-            </Link>{" "}
-            - Conversation context (Buffer / Summary)
-          </li>
-          <li>
-            <Link to="/docs/apis/guardrail">
-              <code>Guardrail</code>
-            </Link>{" "}
-            - Input/output validation and safety
-          </li>
-          <li>
-            <Link to="/docs/apis/session">
-              <code>Session</code>
-            </Link>{" "}
-            - Stateful conversation management
-          </li>
-          <li>
-            <Link to="/docs/apis/agent">
-              <code>Agent</code>
-            </Link>{" "}
-            - Autonomous ReAct-style reasoning with tools
-          </li>
-        </ul>
-        <CodeBlock language="typescript">{`// Example: Pipeline DSL (native SDK)
-// Proofread → Translate in one pipeline
-const result = await model.pipeline()
-  .proofread()
-  .translate({ to: 'ko' })
-  .run('Hello wrold, how are you?');`}</CodeBlock>
+        <CodeBlock language="typescript">{`import { proofread, translate } from 'expo-ondevice-ai';
+
+const corrected = await proofread('Hello wrold, how are you?');
+const translated = await translate(corrected.correctedText, {
+  sourceLanguage: 'en',
+  targetLanguage: 'ko',
+});`}</CodeBlock>
       </section>
 
       <section>

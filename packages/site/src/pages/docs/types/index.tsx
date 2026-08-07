@@ -3,6 +3,7 @@ import APICard from "../../../components/docs/APICard";
 import { SEO } from "../../../components/SEO";
 import TLDRBox from "../../../components/docs/TLDRBox";
 import CodeBlock from "../../../components/docs/CodeBlock";
+import CodeTabs from "../../../components/docs/CodeTabs";
 
 function TypesIndex() {
   return (
@@ -67,14 +68,34 @@ interface ChainOutput {
 
       <section>
         <h2 id="pipeline">Pipeline</h2>
-        <p>Compose multiple chains with compile-time type safety.</p>
-        <CodeBlock
-          language="typescript"
-          code={`// Pipeline composes chains: Chain A → Chain B → Chain C
-interface Pipeline<Input extends ChainInput, Output extends ChainOutput> {
-  steps: Chain[];
-  run(input: Input): Promise<Output>;
-}`}
+        <p>
+          Apple and Android provide native Pipeline types that track the final
+          step&apos;s result type. Web and current wrappers do not expose an
+          equivalent Pipeline type.
+        </p>
+        <CodeTabs
+          tabs={[
+            {
+              label: "Swift",
+              language: "swift",
+              code: `public struct Pipeline<Output: Sendable>: Sendable {
+    public func run(
+        _ text: String,
+        metadata: [String: String] = [:]
+    ) async throws -> Output
+}`,
+            },
+            {
+              label: "Kotlin",
+              language: "kotlin",
+              code: `class Pipeline<Output> {
+    suspend fun run(
+        text: String,
+        metadata: MutableMap<String, String> = mutableMapOf()
+    ): Output
+}`,
+            },
+          ]}
         />
       </section>
 

@@ -23,8 +23,10 @@ import com.locanara.core.LocanaraDefaults
 import com.locanara.core.LocanaraModel
 
 /**
- * A type-safe AI pipeline. The `Output` type is tracked at compile time
- * through each fluent method call — the last step determines the return type.
+ * An AI pipeline whose `Output` type is tracked at compile time through each
+ * fluent method call — the last step determines the return type. Steps exchange
+ * [ChainOutput.text] and metadata at runtime; adjacent step compatibility is not
+ * enforced by the generic type parameter.
  *
  * ```kotlin
  * // Compiler knows this returns TranslateResult
@@ -97,7 +99,7 @@ class Pipeline<Output> internal constructor(
 }
 
 /**
- * Start building a type-safe pipeline.
+ * Start building a pipeline with compile-time final-output type tracking.
  *
  * ```kotlin
  * val result = model.pipeline()

@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -40,21 +39,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.locanara.TranslateResult
-import com.locanara.dsl.proofread
-import com.locanara.dsl.summarize
-import com.locanara.dsl.translate
+import com.locanara.dsl.pipeline
 import com.locanara.platform.PromptApiModel
 import kotlinx.coroutines.launch
 
 /**
- * Demonstrates the Pipeline DSL — composing multiple AI steps with type safety.
+ * Demonstrates the Pipeline DSL and its compile-time final-output type tracking.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PipelineDemo(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("Ths is a tset of on-devce AI. It can proofread and then translte your text in one pipline.") }
     var selectedLanguage by remember { mutableStateOf("ko") }
-    var proofreadResult by remember { mutableStateOf<String?>(null) }
     var translateResult by remember { mutableStateOf<TranslateResult?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -64,15 +60,11 @@ fun PipelineDemo(onNavigateBack: () -> Unit) {
     val languages = listOf("ko" to "Korean", "ja" to "Japanese", "es" to "Spanish", "fr" to "French")
 
     val codePattern = """
-val model = PromptApiModel(context)
-
-// Step 1: Proofread
-val proofread = model.proofread(text)
-
-// Step 2: Translate the corrected text
-val translated = model.translate(
-    proofread.correctedText, to = "$selectedLanguage"
-)
+val result: TranslateResult = PromptApiModel(context)
+    .pipeline()
+    .proofread()
+    .translate(to = "$selectedLanguage")
+    .run(text)
     """.trimIndent()
 
     Scaffold(
@@ -124,22 +116,15 @@ val translated = model.translate(
                 onClick = {
                     isLoading = true
                     errorMessage = null
-                    proofreadResult = null
                     translateResult = null
                     scope.launch {
                         try {
-                            println("[PipelineDemo] input: ${inputText.take(200)}, targetLang: $selectedLanguage")
-                            val model = PromptApiModel(context)
-                            // Step 1: Proofread
-                            val proofread = model.proofread(inputText)
-                            proofreadResult = proofread.correctedText
-                            println("[PipelineDemo] step1 proofread: ${proofread.correctedText.take(200)}")
-                            // Step 2: Translate
-                            val translated = model.translate(proofread.correctedText, to = selectedLanguage)
-                            translateResult = translated
-                            println("[PipelineDemo] step2 translate: ${translated.translatedText.take(200)}")
+                            translateResult = PromptApiModel(context)
+                                .pipeline()
+                                .proofread()
+                                .translate(to = selectedLanguage)
+                                .run(inputText)
                         } catch (e: Exception) {
-                            println("[PipelineDemo] error: ${e.message}")
                             errorMessage = e.message ?: "Unknown error"
                         } finally {
                             isLoading = false
@@ -155,22 +140,6 @@ val translated = model.translate(
 
             errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
 
-            proofreadResult?.let { result ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("  Step 1: Proofread", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(result, style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            }
-
             translateResult?.let { result ->
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -179,7 +148,7 @@ val translated = model.translate(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Translate, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("  Step 2: Translate", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+                            Text("  Pipeline Result: Proofread → Translate", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(result.translatedText, style = MaterialTheme.typography.bodyMedium)

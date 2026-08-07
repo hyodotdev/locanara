@@ -1,11 +1,10 @@
 import SwiftUI
 import Locanara
 
-/// Demonstrates the Pipeline DSL — composing multiple AI steps with compile-time type safety
+/// Demonstrates the Pipeline DSL and its compile-time final-output type tracking.
 struct PipelineDemo: View {
     @EnvironmentObject var appState: AppState
     @State private var inputText = "Ths is a tset of on-devce AI. It can proofread and then translte your text in one pipline."
-    @State private var proofreadResult: String?
     @State private var translateResult: TranslateResult?
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -30,15 +29,10 @@ struct PipelineDemo: View {
                 }
 
                 CodePatternView(code: """
-                let model = FoundationLanguageModel()
-
-                // Step 1: Proofread
-                let proofread = try await model.proofread(text)
-
-                // Step 2: Translate the corrected text
-                let translated = try await model.translate(
-                    proofread.correctedText, to: "\(selectedLanguage)"
-                )
+                let result: TranslateResult = try await model.pipeline {
+                    Proofread()
+                    Translate(to: "\(selectedLanguage)")
+                }.run(text)
                 """)
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -83,22 +77,9 @@ struct PipelineDemo: View {
                         .font(.caption)
                 }
 
-                if let proofreadResult {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("Step 1: Proofread", systemImage: "checkmark.circle")
-                            .font(.headline)
-                            .foregroundStyle(.green)
-                        Text(proofreadResult)
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.green.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                }
-
                 if let translateResult {
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Step 2: Translate", systemImage: "globe")
+                        Label("Pipeline Result: Proofread → Translate", systemImage: "globe")
                             .font(.headline)
                             .foregroundStyle(.blue)
                         Text(translateResult.translatedText)
@@ -133,20 +114,15 @@ struct PipelineDemo: View {
     private func executePipeline() {
         isLoading = true
         errorMessage = nil
-        proofreadResult = nil
         translateResult = nil
 
         Task {
             do {
-                let model = FoundationLanguageModel()
-
-                // Step 1: Proofread
-                let proofread = try await model.proofread(inputText)
-                let corrected = proofread.correctedText
-                await MainActor.run { self.proofreadResult = corrected }
-
-                // Step 2: Translate the corrected text
-                let translated = try await model.translate(corrected, to: selectedLanguage)
+                let model = LocanaraDefaults.model
+                let translated: TranslateResult = try await model.pipeline {
+                    Proofread()
+                    Translate(to: selectedLanguage)
+                }.run(inputText)
                 await MainActor.run { self.translateResult = translated }
             } catch {
                 await MainActor.run { errorMessage = error.localizedDescription }

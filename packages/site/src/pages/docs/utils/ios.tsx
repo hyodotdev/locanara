@@ -199,7 +199,10 @@ for try await chunk in chain.streamRun("Tell me a story") {
 
       <section>
         <h2 id="pipeline-dsl">Pipeline DSL</h2>
-        <p>Compose chains with compile-time type safety.</p>
+        <p>
+          Compose chains while the compiler tracks the final step&apos;s result
+          type. Adjacent steps still exchange text and metadata at runtime.
+        </p>
         <CodeBlock
           language="swift"
           code={`let model = FoundationLanguageModel()

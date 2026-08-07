@@ -167,7 +167,7 @@ export function Home() {
                 icon: Workflow,
                 title: "Pipeline DSL",
                 description:
-                  "Compose chains with compile-time type safety. Chain operations together in a fluent, declarative syntax.",
+                  "Compose native chains while the compiler tracks the final result type. Steps exchange text and metadata at runtime.",
                 href: "/docs/apis/pipeline",
               },
               {
