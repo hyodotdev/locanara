@@ -1,12 +1,23 @@
 import versionsFile from "../../locanara-versions.json?raw";
 
-type VersionKey = "types" | "apple" | "android";
+type VersionKey =
+  | "version"
+  | "types"
+  | "apple"
+  | "android"
+  | "expo"
+  | "react-native"
+  | "flutter";
 type VersionRecord = Record<VersionKey, string>;
 
 const REQUIRED_KEYS: readonly VersionKey[] = [
+  "version",
   "types",
   "apple",
   "android",
+  "expo",
+  "react-native",
+  "flutter",
 ] as const;
 
 function parseVersions(json: string): Record<string, unknown> {

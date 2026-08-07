@@ -81,37 +81,35 @@ android {
 
 dependencies {
     // AndroidX
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.core:core-ktx:1.16.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
 
     // Kotlin Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.10.2")
 
     // JSON
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
 
     // ML Kit GenAI APIs
-    // Note: These are the latest available versions from Google ML Kit.
-    // genai-prompt is in alpha as it's a newer Gemini Nano integration.
-    // API may change in future releases.
+    // GenAI APIs are prerelease and may change in future releases.
     implementation("com.google.mlkit:genai-summarization:1.0.0-beta1")
     implementation("com.google.mlkit:genai-proofreading:1.0.0-beta1")
     implementation("com.google.mlkit:genai-rewriting:1.0.0-beta1")
     implementation("com.google.mlkit:genai-image-description:1.0.0-beta1")
-    implementation("com.google.mlkit:genai-prompt:1.0.0-alpha1")  // Alpha: Gemini Nano Prompt API
+    // beta3+ requires Kotlin 2.3 metadata; beta2 is the latest Kotlin 2.1-compatible release.
+    implementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
 
     // ExecuTorch (PyTorch on-device inference)
-    // v1.1.0: Gemma 3, Qwen3, SmolLM3 support + improved 16KB page size handling
-    implementation("org.pytorch:executorch-android:1.1.0")
+    implementation("org.pytorch:executorch-android:1.3.1")
     implementation("com.facebook.soloader:soloader:0.12.1")
     implementation("com.facebook.fbjni:fbjni:0.7.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 }
 
 // ============================================================================

@@ -28,7 +28,7 @@ import kotlin.coroutines.resumeWithException
  * ExecuTorch inference engine for Android
  *
  * Uses PyTorch ExecuTorch for on-device LLM inference.
- * Supports Android 15+ with 16KB page size alignment.
+ * Supports compatible Android API 31+ devices, including 16KB page-size targets.
  */
 class ExecuTorchEngine private constructor(
     private val context: Context,
@@ -68,15 +68,12 @@ class ExecuTorchEngine private constructor(
                 Log.d(TAG, "Starting generation: maxTokens=${config.maxTokens}")
                 Log.d(TAG, "Prompt length: ${prompt.length}")
 
-                // Reset internal state before new generation to clear KV cache and position counters
-                // This fixes the "Max new tokens 0" error that occurs when reusing a LlmModule
+                // Reset internal state before new generation to clear KV cache and position counters.
                 // Note: If reset fails, generation may produce empty/truncated output
                 try {
-                    llmModule.stop()
+                    llmModule.resetContext()
                     Log.d(TAG, "Reset LlmModule state before generation")
                 } catch (e: Exception) {
-                    // Log error but continue - stop() failure usually means the module is already
-                    // in a clean state, but generation may fail if state is truly corrupted
                     Log.e(
                         TAG,
                         sanitizedFailureReason(
@@ -135,10 +132,10 @@ class ExecuTorchEngine private constructor(
         try {
             Log.d(TAG, "Starting streaming generation")
 
-            // Reset internal state before new generation to clear KV cache and position counters
+            // Reset internal state before new generation to clear KV cache and position counters.
             // Note: If reset fails, streaming may produce empty/truncated output
             try {
-                llmModule.stop()
+                llmModule.resetContext()
                 Log.d(TAG, "Reset LlmModule state before streaming generation")
             } catch (e: Exception) {
                 Log.e(
@@ -160,20 +157,20 @@ class ExecuTorchEngine private constructor(
                 override fun onStats(stats: String) {
                     Log.d(TAG, "Generation statistics received")
                 }
+
+                override fun onError(errorCode: Int, message: String) {
+                    Log.e(TAG, "Native streaming generation failed (status=$errorCode)")
+                    tokenChannel.close(
+                        nativeStatusFailure("ExecuTorch streaming failed", errorCode)
+                    )
+                }
             }
 
             // Start generation in background using engine-scoped coroutine
             val genJob = engineScope.launch {
                 try {
-                    val status = llmModule.generate(prompt, config.maxTokens, callback)
-                    if (status == EXECUTORCH_SUCCESS) {
-                        tokenChannel.close()
-                    } else {
-                        Log.e(TAG, "Native streaming generation failed (status=$status)")
-                        tokenChannel.close(
-                            nativeStatusFailure("ExecuTorch streaming failed", status)
-                        )
-                    }
+                    llmModule.generate(prompt, config.maxTokens, callback)
+                    tokenChannel.close()
                 } catch (e: Exception) {
                     Log.e(TAG, sanitizedFailureReason("Native streaming generation failed", e))
                     tokenChannel.close(e)
@@ -296,14 +293,7 @@ class ExecuTorchEngine private constructor(
                 )
 
                 Log.w(TAG, "Step 2: Loading model...")
-                val loadResult = llmModule.load()
-
-                if (loadResult != 0) {
-                    throw LocanaraException.Custom(
-                        ErrorCode.MODEL_LOAD_FAILED,
-                        "Failed to load model, error code: $loadResult"
-                    )
-                }
+                llmModule.load()
 
                 Log.w(TAG, "Step 3: Model loaded successfully!")
                 ExecuTorchEngine(
@@ -328,20 +318,29 @@ class ExecuTorchEngine private constructor(
 }
 
 private const val MAX_EXCEPTION_TYPE_LENGTH = 64
-private const val EXECUTORCH_SUCCESS = 0
 
 internal suspend fun awaitExecuTorchNativeGeneration(
-    start: (LlmCallback) -> Int,
+    start: (LlmCallback) -> Unit,
     onToken: (String) -> Unit,
     onCancellation: () -> Unit = {}
 ) {
     suspendCancellableCoroutine { continuation ->
         val callback = object : LlmCallback {
             override fun onResult(token: String) {
-                onToken(token)
+                if (continuation.isActive) {
+                    onToken(token)
+                }
             }
 
             override fun onStats(stats: String) = Unit
+
+            override fun onError(errorCode: Int, message: String) {
+                if (continuation.isActive) {
+                    continuation.resumeWithException(
+                        nativeStatusFailure("ExecuTorch generation failed", errorCode)
+                    )
+                }
+            }
         }
 
         if (!continuation.isActive) {
@@ -354,15 +353,9 @@ internal suspend fun awaitExecuTorchNativeGeneration(
         }
 
         try {
-            val status = start(callback)
+            start(callback)
             if (continuation.isActive) {
-                if (status == EXECUTORCH_SUCCESS) {
-                    continuation.resume(Unit)
-                } else {
-                    continuation.resumeWithException(
-                        nativeStatusFailure("ExecuTorch generation failed", status)
-                    )
-                }
+                continuation.resume(Unit)
             }
         } catch (error: CancellationException) {
             if (continuation.isActive) {

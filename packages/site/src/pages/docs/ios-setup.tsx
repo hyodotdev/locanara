@@ -3,6 +3,7 @@ import CodeBlock from "../../components/docs/CodeBlock";
 import AnchorLink from "../../components/docs/AnchorLink";
 import Callout from "../../components/docs/Callout";
 import PageNavigation from "../../components/docs/PageNavigation";
+import { LOCANARA_VERSIONS } from "../../lib/versioning";
 
 function IOSSetup() {
   return (
@@ -76,7 +77,10 @@ function IOSSetup() {
         <p>
           Add to your <code>Podfile</code>:
         </p>
-        <CodeBlock language="ruby" code={`pod 'Locanara', '~> 1.0.0'`} />
+        <CodeBlock
+          language="ruby"
+          code={`pod 'Locanara', '~> ${LOCANARA_VERSIONS.apple}'`}
+        />
         <p>Then run:</p>
         <CodeBlock language="bash" code={`pod install`} />
 

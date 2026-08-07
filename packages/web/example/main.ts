@@ -3,6 +3,7 @@
  * Tab-based navigation matching Mac/iOS structure
  */
 
+import packageMetadata from '../package.json'
 import {
   FeatureAvailability,
   FeatureType,
@@ -404,8 +405,8 @@ function updateDeviceInfo(): void {
   $('device-platform').textContent = navigator.platform
 
   // SDK info
-  $('device-sdk-version').textContent = '1.0.0'
-  $('settings-version').textContent = '1.0.0'
+  $('device-sdk-version').textContent = packageMetadata.version
+  $('settings-version').textContent = packageMetadata.version
 }
 
 declare const LanguageModel: unknown

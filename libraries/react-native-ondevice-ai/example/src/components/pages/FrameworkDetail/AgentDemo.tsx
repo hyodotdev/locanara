@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import {chat, summarize, extract} from 'react-native-ondevice-ai';
+import {chat, summarize} from 'react-native-ondevice-ai';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {CodePatternCard} from './CodePatternCard';
 import {StatBadge} from '../../shared/StatBadge';

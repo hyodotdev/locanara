@@ -27,6 +27,12 @@ describe("SEO", () => {
       );
     });
 
+    it("should contain release notes URL", () => {
+      expect(sitemap).toContain(
+        "<loc>https://locanara.hyo.dev/docs/release-notes</loc>"
+      );
+    });
+
     it("should have valid changefreq values", () => {
       const validFreqs = [
         "always",

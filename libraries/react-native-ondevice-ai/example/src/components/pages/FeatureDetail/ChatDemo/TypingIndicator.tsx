@@ -1,12 +1,15 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useMemo} from 'react';
 import {View, Animated, StyleSheet} from 'react-native';
 
 export function TypingIndicator() {
-  const animations = [
-    useRef(new Animated.Value(0.5)).current,
-    useRef(new Animated.Value(0.5)).current,
-    useRef(new Animated.Value(0.5)).current,
-  ];
+  const animations = useMemo(
+    () => [
+      new Animated.Value(0.5),
+      new Animated.Value(0.5),
+      new Animated.Value(0.5),
+    ],
+    [],
+  );
 
   useEffect(() => {
     const animateDot = (anim: Animated.Value, delay: number) => {
@@ -36,7 +39,7 @@ export function TypingIndicator() {
     animation.start();
 
     return () => animation.stop();
-  }, []);
+  }, [animations]);
 
   return (
     <View style={styles.container}>

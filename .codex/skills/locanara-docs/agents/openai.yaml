@@ -1,0 +1,4 @@
+interface:
+  display_name: "Locanara Docs"
+  short_description: "Create verified Locanara documentation"
+  default_prompt: "Use $locanara-docs to create or update Locanara documentation from the current implementation."

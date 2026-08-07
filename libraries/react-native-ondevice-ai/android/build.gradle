@@ -133,10 +133,10 @@ dependencies {
   }
 
   // Locanara SDK
-  implementation "com.locanara:locanara:1.1.0"
+  implementation "com.locanara:locanara:1.1.2"
 
   // Kotlin coroutines
-  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
 
   // Test dependencies
   testImplementation 'junit:junit:4.13.2'

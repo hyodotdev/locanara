@@ -3,6 +3,7 @@ import CodeBlock from "../../components/docs/CodeBlock";
 import AnchorLink from "../../components/docs/AnchorLink";
 import Callout from "../../components/docs/Callout";
 import PageNavigation from "../../components/docs/PageNavigation";
+import { LOCANARA_VERSIONS } from "../../lib/versioning";
 
 function AndroidSetup() {
   return (
@@ -66,7 +67,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.locanara:locanara:1.0.0")
+    implementation("com.locanara:locanara:${LOCANARA_VERSIONS.android}")
 }`}
         />
 

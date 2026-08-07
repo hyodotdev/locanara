@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import {Platform} from 'react-native';
@@ -150,6 +151,7 @@ const FEATURE_DEFINITIONS: Omit<FeatureInfo, 'isAvailable'>[] = [
 
 export function AppStateProvider({children}: {children: ReactNode}) {
   const [sdkState, setSdkState] = useState<SDKState>('notInitialized');
+  const sdkStateRef = useRef<SDKState>('notInitialized');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfoDisplay | null>(null);
   const [capability, setCapability] = useState<DeviceCapability | null>(null);
@@ -223,11 +225,15 @@ export function AppStateProvider({children}: {children: ReactNode}) {
     [refreshModels],
   );
 
-  const initializeSDK = async () => {
-    if (sdkState === 'initializing' || sdkState === 'initialized') {
+  const initializeSDK = useCallback(async () => {
+    if (
+      sdkStateRef.current === 'initializing' ||
+      sdkStateRef.current === 'initialized'
+    ) {
       return;
     }
 
+    sdkStateRef.current = 'initializing';
     setSdkState('initializing');
     setErrorMessage(null);
 
@@ -267,19 +273,21 @@ export function AppStateProvider({children}: {children: ReactNode}) {
       });
       setAvailableFeatures(features);
 
+      sdkStateRef.current = 'initialized';
       setSdkState('initialized');
 
       // Load model info after initialization
       await refreshModels();
     } catch (error: any) {
+      sdkStateRef.current = 'error';
       setSdkState('error');
       setErrorMessage(error.message || 'Failed to initialize SDK');
     }
-  };
+  }, [refreshModels]);
 
   useEffect(() => {
     initializeSDK();
-  }, []);
+  }, [initializeSDK]);
 
   return (
     <AppStateContext.Provider

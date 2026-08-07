@@ -37,11 +37,11 @@ class FrameworkScreen extends StatelessWidget {
             ),
       itemBuilder: (context, index) {
         if (index == 0) {
-          return Column(
+          return const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AIStatusBanner(),
-              const Padding(
+              AIStatusBanner(),
+              Padding(
                 padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Text(
                   "Explore Locanara's composable framework primitives \u2014 the building blocks for custom AI features.",

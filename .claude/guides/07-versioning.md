@@ -39,6 +39,10 @@ Use `cd scripts/agent && bun run check:versions` for this fail-closed check.
 The normal AI context `bun run check` reports drift but does not mutate or select
 version values, so it is not a substitute for version-work verification.
 
+Run `bun run version:check` from the repository root to validate every package
+manifest and wrapper fallback managed by `scripts/sync-versions.mjs`. The
+root/site-only agent-context check remains useful, but is intentionally narrower.
+
 ## Maintainer Handoff
 
 For requested release preparation, provide the proposed version map, files that

@@ -4,35 +4,45 @@ on:
   push:
     branches: [main]
     paths:
-      - 'packages/gql/**'
-      - '.github/workflows/ci-gql.yml'
+      - "packages/gql/**"
+      - "packages/apple/Sources/Types.swift"
+      - "packages/android/locanara/src/main/kotlin/com/locanara/Types.kt"
+      - "bun.lock"
+      - ".github/workflows/ci-gql.yml"
   pull_request:
     branches: [main]
     paths:
-      - 'packages/gql/**'
-      - '.github/workflows/ci-gql.yml'
+      - "packages/gql/**"
+      - "packages/apple/Sources/Types.swift"
+      - "packages/android/locanara/src/main/kotlin/com/locanara/Types.kt"
+      - "bun.lock"
+      - ".github/workflows/ci-gql.yml"
 
 jobs:
   build:
-    name: Build
+    name: Generate & Verify
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
 
-      - name: Generate Types
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Test generator
         working-directory: packages/gql
-        run: |
-          bun install
-          bun run generate
+        run: bun test
 
-      - name: Verify No Changes
+      - name: Generate types
+        working-directory: packages/gql
+        run: bun run generate
+
+      - name: Verify tracked generated outputs
         run: |
-          if [ -n "$(git status --porcelain packages/gql/src/generated/)" ]; then
-            echo "Generated files are out of sync. Run 'bun run generate' locally."
-            git diff packages/gql/src/generated/
-            exit 1
-          fi
+          git diff --exit-code -- \
+            packages/apple/Sources/Types.swift \
+            packages/android/locanara/src/main/kotlin/com/locanara/Types.kt

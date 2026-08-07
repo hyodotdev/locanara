@@ -105,7 +105,7 @@ https://github.com/hyodotdev/locanara
 **Android (Gradle)**
 
 ```groovy
-implementation("com.locanara:locanara:1.0.0")
+implementation("com.locanara:locanara:1.1.2")
 ```
 
 ---
@@ -115,7 +115,7 @@ implementation("com.locanara:locanara:1.0.0")
 ### Framework Layer
 
 - **Chain** — Composable unit of AI logic with typed input/output
-- **Pipeline DSL** — Compose chains with compile-time type safety
+- **Pipeline DSL** — Compose chains while tracking the last step's result type
 - **Memory** — BufferMemory (last N turns) and SummaryMemory (compressed history)
 - **Guardrail** — Input/output validation and content filtering
 - **Tool** — External capability integration for agents

@@ -33,7 +33,6 @@ export function ModelSelectionSheet({
   onClose,
 }: ModelSelectionSheetProps) {
   const {
-    capability,
     modelState,
     downloadModelById,
     loadModelById,

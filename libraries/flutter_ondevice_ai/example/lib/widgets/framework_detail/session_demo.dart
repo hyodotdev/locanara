@@ -147,10 +147,10 @@ session.memory.entries''',
                 ),
               )),
               if (_loading && _messages.isNotEmpty && _messages.last.content == '...')
-                Row(children: [
-                  const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF007AFF))),
-                  const SizedBox(width: 8),
-                  const Text('Thinking...', style: TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                const Row(children: [
+                  SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF007AFF))),
+                  SizedBox(width: 8),
+                  Text('Thinking...', style: TextStyle(fontSize: 13, color: Color(0xFF999999))),
                 ]),
             ],
           ),
