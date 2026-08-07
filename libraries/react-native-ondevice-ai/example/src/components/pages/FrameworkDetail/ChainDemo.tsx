@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import {summarize, classify, chat} from 'react-native-ondevice-ai';
+import {summarize, classify} from 'react-native-ondevice-ai';
 import {CodePatternCard} from './CodePatternCard';
 import {StatBadge} from '../../shared/StatBadge';
 

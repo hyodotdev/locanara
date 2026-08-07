@@ -4,45 +4,44 @@ on:
   push:
     branches: [main]
     paths:
-      - 'packages/web/**'
-      - '.github/workflows/ci-web.yml'
+      - "packages/web/**"
+      - "bun.lock"
+      - ".github/workflows/ci-web.yml"
   pull_request:
     branches: [main]
     paths:
-      - 'packages/web/**'
-      - '.github/workflows/ci-web.yml'
+      - "packages/web/**"
+      - "bun.lock"
+      - ".github/workflows/ci-web.yml"
 
 jobs:
   lint-and-test:
     name: Lint, Test & Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/web
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
+          bun-version: "1.3.14"
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps --ignore-scripts
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Lint
-        run: npm run lint
+        working-directory: packages/web
+        run: bun run lint
 
       - name: Test
-        run: npm test
+        working-directory: packages/web
+        run: bun run test
 
       - name: Build
-        run: npm run build
+        working-directory: packages/web
+        run: bun run build
 
       - name: Verify build output
         run: |
-          if [ ! -f "dist/index.js" ] || [ ! -f "dist/index.d.ts" ]; then
-            echo "Build output missing!"
-            exit 1
-          fi
+          test -f packages/web/dist/index.js
+          test -f packages/web/dist/index.d.ts

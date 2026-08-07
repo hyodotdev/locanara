@@ -101,6 +101,27 @@ default. The repository-local command catalog is in `.claude/commands/`:
   permit direct pushes to `main`, publishing, deployment, tagging, or release
   actions.
 
+Use `$locanara-workflows` as the source-of-truth router and `$locanara-docs` for
+documentation authoring when those skills are available.
+
+## Act As A Review-PR Fallback
+
+When `review-pr` invokes this skill because an automated reviewer cannot review
+the current PR head:
+
+- Run exactly one complete review round against the supplied base, head SHA,
+  requirements, and acceptance criteria. Preserve the commit, push, and
+  external-write authority supplied by the calling workflow.
+- Do not re-enter `review-pr`, request automated reviewers, handle trigger
+  comments, invoke this fallback again, or schedule the five-minute loop.
+  `review-pr` remains the sole thread-handling and polling owner.
+- Return the reviewed head and working-tree fingerprints, validated findings and
+  fixes, checks run, and a clean or blocked result. Cache a clean result only for
+  that exact head and invalidate it after any head change.
+
+This single-round override prevents nested polling loops while replacing missing
+automated review coverage with the complete self-review procedure.
+
 ## Recheck Every Five Minutes
 
 - Run the first round immediately; never wait before the initial review.

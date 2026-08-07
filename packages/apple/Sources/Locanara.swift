@@ -25,7 +25,7 @@ public enum PackageSource: String, Sendable {
 
 public enum LocanaraSDK {
     /// SDK version (keep in sync with locanara-versions.json)
-    public static let version = "1.0.1"
+    public static let version = "1.1.1"
 
     /// Detect if SDK is from local source or released package
     /// When loaded from xcframework, the bundle will be a framework bundle

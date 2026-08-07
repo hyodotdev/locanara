@@ -147,11 +147,11 @@ enum class ProcessingLocation {
 }
 
 @Serializable
-enum class InferenceEngineType {
-    FOUNDATION_MODELS,  // iOS: Apple Intelligence
-    GEMINI_NANO,        // Android: ML Kit / AICore
-    EXECUTORCH,         // Android: ExecuTorch (PyTorch)
-    NONE                // No engine available
+enum class RAGDocumentStatus {
+    PENDING,
+    INDEXING,
+    INDEXED,
+    ERROR
 }
 
 @Serializable
@@ -162,6 +162,10 @@ enum class ErrorCode {
     FEATURE_NOT_SUPPORTED,
     MODEL_NOT_LOADED,
     MODEL_DOWNLOAD_REQUIRED,
+    MODEL_NOT_FOUND,
+    MODEL_LOAD_FAILED,
+    MODEL_BUSY,
+    BACKGROUND_USE_BLOCKED,
     EXECUTION_FAILED,
     EXECUTION_TIMEOUT,
     EXECUTION_CANCELLED,
@@ -176,10 +180,6 @@ enum class ErrorCode {
     PERMISSION_NOT_GRANTED,
     NETWORK_UNAVAILABLE,
     API_ERROR,
-    MODEL_NOT_FOUND,
-    MODEL_LOAD_FAILED,
-    MODEL_BUSY,
-    BACKGROUND_USE_BLOCKED,
     UNKNOWN_ERROR,
     INTERNAL_ERROR
 }
@@ -187,6 +187,13 @@ enum class ErrorCode {
 // ============================================
 // TYPES
 // ============================================
+
+@Serializable
+data class LocanaraEventPayload(
+    val event: LocanaraEvent,
+    val timestamp: Double,
+    val data: String? = null
+)
 
 @Serializable
 data class CapabilityChangedEvent(
@@ -447,10 +454,83 @@ data class VoidResult(
 )
 
 @Serializable
-data class LocanaraEventPayload(
-    val event: LocanaraEvent,
-    val timestamp: Double,
-    val data: String? = null
+data class RAGCollection(
+    val collectionId: String,
+    val name: String,
+    val description: String? = null,
+    val documentCount: Int,
+    val totalChunks: Int,
+    val createdAt: Double,
+    val updatedAt: Double
+)
+
+@Serializable
+data class RAGDocument(
+    val documentId: String,
+    val collectionId: String,
+    val title: String,
+    val chunkCount: Int,
+    val status: RAGDocumentStatus,
+    val indexedAt: Double? = null,
+    val errorMessage: String? = null
+)
+
+@Serializable
+data class RAGQueryResult(
+    val answer: String,
+    val sources: List<RAGSourceChunk>,
+    val processingTimeMs: Int,
+    val confidence: Double? = null,
+    val retrievedCount: Int
+)
+
+@Serializable
+data class RAGSourceChunk(
+    val documentId: String,
+    val documentTitle: String,
+    val content: String,
+    val relevanceScore: Double,
+    val chunkIndex: Int
+)
+
+@Serializable
+data class PersonalizationProfile(
+    val profileId: String,
+    val name: String,
+    val feedbackCount: Int,
+    val positiveFeedbackCount: Int,
+    val lastUpdated: Double,
+    val isActive: Boolean,
+    val createdAt: Double
+)
+
+@Serializable
+data class FeedbackRecord(
+    val feedbackId: String,
+    val profileId: String,
+    val feature: FeatureType,
+    val input: String,
+    val output: String,
+    val liked: Boolean,
+    val timestamp: Double
+)
+
+@Serializable
+data class PersonalizedExecutionResult(
+    val result: ExecutionResult,
+    val feedbackId: String,
+    val personalizationApplied: Boolean,
+    val personalizationScore: Double? = null
+)
+
+@Serializable
+data class ExternalModel(
+    val id: String,
+    val name: String,
+    val sizeMB: Int,
+    val isMultimodal: Boolean,
+    val minMemoryMB: Int,
+    val contextLength: Int
 )
 
 @Serializable
@@ -607,6 +687,47 @@ data class UpdateContextInput(
 )
 
 @Serializable
+data class CreateRAGCollectionInput(
+    val name: String,
+    val description: String? = null
+)
+
+@Serializable
+data class IndexDocumentInput(
+    val collectionId: String,
+    val title: String,
+    val content: String,
+    val metadata: String? = null
+)
+
+@Serializable
+data class RAGQueryInput(
+    val collectionId: String,
+    val query: String,
+    val topK: Int? = null,
+    val minRelevance: Double? = null,
+    val systemPrompt: String? = null
+)
+
+@Serializable
+data class CreatePersonalizationProfileInput(
+    val name: String
+)
+
+@Serializable
+data class RecordFeedbackInput(
+    val executionId: String,
+    val liked: Boolean,
+    val comment: String? = null
+)
+
+@Serializable
+data class ExecutePersonalizedInput(
+    val featureInput: ExecuteFeatureInput,
+    val profileId: String? = null
+)
+
+@Serializable
 data class ExecuteFeatureOptionsAndroid(
     val useGeminiNano: Boolean? = null,
     val modelVariant: String? = null,
@@ -622,133 +743,6 @@ data class ImageDescriptionParametersAndroid(
 )
 
 // ============================================
-// RAG TYPES
-// ============================================
-
-@Serializable
-enum class RAGDocumentStatus {
-    PENDING,
-    INDEXING,
-    INDEXED,
-    ERROR
-}
-
-@Serializable
-data class RAGCollection(
-    val collectionId: String,
-    val name: String,
-    val description: String? = null,
-    val documentCount: Int,
-    val totalChunks: Int,
-    val createdAt: Double,
-    val updatedAt: Double
-)
-
-@Serializable
-data class RAGDocument(
-    val documentId: String,
-    val collectionId: String,
-    val title: String,
-    val chunkCount: Int,
-    val status: RAGDocumentStatus,
-    val indexedAt: Double? = null,
-    val errorMessage: String? = null
-)
-
-@Serializable
-data class RAGQueryResult(
-    val answer: String,
-    val sources: List<RAGSourceChunk>,
-    val processingTimeMs: Int,
-    val confidence: Double,
-    val retrievedCount: Int
-)
-
-@Serializable
-data class RAGSourceChunk(
-    val documentId: String,
-    val documentTitle: String,
-    val content: String,
-    val relevanceScore: Double,
-    val chunkIndex: Int
-)
-
-// ============================================
-// PERSONALIZATION TYPES
-// ============================================
-
-@Serializable
-data class PersonalizationProfile(
-    val profileId: String,
-    val name: String,
-    val feedbackCount: Int,
-    val positiveFeedbackCount: Int,
-    val lastUpdated: Double,
-    val isActive: Boolean,
-    val createdAt: Double
-)
-
-@Serializable
-data class FeedbackRecord(
-    val feedbackId: String,
-    val profileId: String,
-    val feature: FeatureType,
-    val input: String,
-    val output: String,
-    val liked: Boolean,
-    val timestamp: Double
-)
-
-// ============================================
-// MODEL MANAGEMENT TYPES
-// ============================================
-
-@Serializable
-enum class QuantizationType {
-    INT4,
-    INT8,
-    FLOAT16,
-    FLOAT32
-}
-
-@Serializable
-enum class PromptFormat {
-    LLAMA,
-    GEMMA,
-    CHATML,
-    RAW
-}
-
-@Serializable
-data class DownloadableModelInfo(
-    val modelId: String,
-    val name: String,
-    val version: String,
-    val sizeMB: Int,
-    val quantization: QuantizationType,
-    val contextLength: Int,
-    val downloadURL: String,
-    val checksum: String,
-    val minMemoryMB: Int,
-    val supportedFeatures: List<FeatureType>,
-    val promptFormat: PromptFormat,
-    val tokenizerURL: String? = null
-)
-
-/**
- * Display model for the UI (combines registry info + runtime state)
- */
-data class ModelDisplayInfo(
-    val modelId: String,
-    val name: String,
-    val sizeMB: Int,
-    val isDownloaded: Boolean,
-    val isLoaded: Boolean,
-    val isRecommended: Boolean,
-    val downloadProgress: Float = 0f
-)
-
-// ============================================
 // UNION TYPES (Sealed Interfaces)
 // ============================================
 
@@ -757,14 +751,6 @@ sealed interface EventData
 
 @Serializable
 sealed interface ExecutionResultData
-
-@Serializable
-data class PersonalizedExecutionResult(
-    val result: ExecutionResult,
-    val feedbackId: String,
-    val personalizationApplied: Boolean,
-    val personalizationScore: Double? = null
-) : ExecutionResultData
 
 // ============================================
 // QUERY RESOLVER (Common)
@@ -785,6 +771,7 @@ interface QueryResolver {
 
     /** Get all execution results for a context */
     suspend fun getExecutionHistory(contextId: String, limit: Int?): List<ExecutionResult>
+
 }
 
 // ============================================
@@ -800,6 +787,7 @@ interface QueryResolverAndroid : QueryResolver {
 
     /** Check if device meets minimum requirements */
     suspend fun meetsMinimumRequirements(): Boolean
+
 }
 
 // ============================================
@@ -833,6 +821,7 @@ interface MutationResolver {
 
     /** Unload models to free memory */
     suspend fun unloadModels(features: List<FeatureType>): VoidResult
+
 }
 
 // ============================================
@@ -850,8 +839,9 @@ interface MutationResolverAndroid : MutationResolver {
     suspend fun initializeGeminiNano(): VoidResult
 
     /** Describe image using Android ML Kit GenAI (Gemini Nano)
-    Uses on-device Gemini Nano vision model */
+Uses on-device Gemini Nano vision model */
     suspend fun describeImageAndroid(parameters: ImageDescriptionParametersAndroid): ImageDescriptionResult
+
 }
 
 // ============================================
@@ -864,4 +854,5 @@ interface SubscriptionResolver {
     fun onCapabilityChanged(): Flow<DeviceCapability>
 
     fun onEvent(): Flow<LocanaraEventPayload>
+
 }

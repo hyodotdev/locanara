@@ -220,7 +220,12 @@ class _TypingIndicatorState extends State<_TypingIndicator> with TickerProviderS
   }
 
   @override
-  void dispose() { for (final c in _controllers) c.dispose(); super.dispose(); }
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

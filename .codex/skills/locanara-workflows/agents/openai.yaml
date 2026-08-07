@@ -1,0 +1,4 @@
+interface:
+  display_name: "Locanara Workflows"
+  short_description: "Run guarded Locanara repository workflows"
+  default_prompt: "Use $locanara-workflows to complete this Locanara task with the repository source-of-truth and verification rules."

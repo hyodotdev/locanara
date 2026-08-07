@@ -21,11 +21,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 type StatusFilter =
-  | "all"
-  | "under-review"
-  | "planned"
-  | "in-progress"
-  | "completed";
+  "all" | "under-review" | "planned" | "in-progress" | "completed";
 
 const STATUS_CONFIG = {
   "under-review": {

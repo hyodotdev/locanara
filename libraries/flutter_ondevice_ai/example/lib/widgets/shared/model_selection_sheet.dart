@@ -175,7 +175,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
             child: ListView(
               children: [
                 // Active Engine section
-                _SectionHeader(title: 'Active Engine'),
+                const _SectionHeader(title: 'Active Engine'),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
@@ -235,13 +235,13 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
 
                 // Chrome Setup Guide (web only, when not available)
                 if (kIsWeb && !state.isModelReady) ...[
-                  _SectionHeader(title: 'Setup Guide'),
+                  const _SectionHeader(title: 'Setup Guide'),
                   const _ChromeSetupGuide(),
                 ],
 
                 // Available Models
                 if (ms.availableModels.isNotEmpty) ...[
-                  _SectionHeader(title: 'Available Models'),
+                  const _SectionHeader(title: 'Available Models'),
                   ...ms.availableModels.map((model) {
                     final downloaded = ms.downloadedModelIds.contains(model.modelId);
                     final isActiveModel = ms.loadedModelId == model.modelId && ms.currentEngine == InferenceEngine.llamaCpp;
@@ -264,7 +264,7 @@ class _ModelSelectionSheetState extends State<ModelSelectionSheet> {
                 ],
 
                 // About section
-                _SectionHeader(title: 'About'),
+                const _SectionHeader(title: 'About'),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                   child: Container(

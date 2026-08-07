@@ -1,26 +1,31 @@
 # Locanara Workflow Index
 
-Slash-command workflows are defined in `.claude/commands/`, and Codex skills are
-defined in `.codex/skills/`. `AGENTS.md` is the cross-tool policy source and is
-shared through the `CLAUDE.md` and `GEMINI.md` symlinks.
+Slash-command workflows are defined in `.claude/commands/`. Canonical skills are
+defined in `.codex/skills/`, with Claude Code adapters in `.claude/skills/`.
+`AGENTS.md` is the cross-tool policy source and is shared through the
+`CLAUDE.md` and `GEMINI.md` symlinks.
 
 ## Core Workflows
 
-| Command              | Scope                                             | Required outcome                                                        |
-| -------------------- | ------------------------------------------------- | ----------------------------------------------------------------------- |
-| `/locanara`          | Project-wide routing                              | Select the correct source of truth and package workflow                 |
-| `/gql`               | GraphQL schema and generated types                | Regenerate and verify tracked platform outputs                          |
-| `/apple`             | Swift SDK and Apple example                       | Build/test affected Swift targets and the example app                   |
-| `/android`           | Kotlin SDK and Android example                    | Test/build the SDK and assemble the example app                         |
-| `/test`              | Cross-platform verification                       | Run changed-path checks and report skipped/blocked rows                 |
-| `/docs`              | Site, README, and API docs                        | Validate examples against implementation; never deploy                  |
-| `/audit-code`        | Architecture and quality audit                    | Prioritized, evidence-backed findings                                   |
-| `/verify-all`        | Repository health check                           | Full or changed-path matrix with exact command results                  |
-| `/resolve-issue`     | GitHub issue workflow                             | Verify every criterion before commenting or closing                     |
-| `/review-pr`         | Pull request feedback                             | Inspect by default; fix/reply/resolve only when authorized and verified |
-| `$review-self`       | Current implementation, diff, or PR stabilization | Fix verified gaps and confirm stability in five-minute review rounds    |
-| `/knowledge-compile` | Upstream research                                 | Date-stamped notes with official sources and code impact                |
-| `/commit`            | Commit and PR preparation                         | Intentional scope, verification, no publishing                          |
+| Command               | Scope                                             | Required outcome                                                        |
+| --------------------- | ------------------------------------------------- | ----------------------------------------------------------------------- |
+| `$locanara-workflows` | Natural-language repository routing               | Select and follow the smallest source-of-truth workflow                 |
+| `$locanara-docs`      | Documentation and example authoring               | Derive claims from implementation and verify without deployment         |
+| `$rebase-main`        | Main update and work-branch rebase                | Preserve and restore all local state around a fast-forward and rebase   |
+| `$review-pr`          | Pull request feedback, CI, and review monitoring  | Finish actionable feedback and confirm the exact head every five minutes|
+| `/locanara`           | Project-wide routing                              | Select the correct source of truth and package workflow                 |
+| `/gql`                | GraphQL schema and generated types                | Regenerate and verify tracked platform outputs                          |
+| `/apple`              | Swift SDK and Apple example                       | Build/test affected Swift targets and the example app                   |
+| `/android`            | Kotlin SDK and Android example                    | Test/build the SDK and assemble the example app                         |
+| `/test`               | Cross-platform verification                       | Run changed-path checks and report skipped/blocked rows                 |
+| `/docs`               | Site, README, and API docs                        | Validate examples against implementation; never deploy                  |
+| `/audit-code`         | Architecture and quality audit                    | Prioritized, evidence-backed findings                                   |
+| `/verify-all`         | Repository health check                           | Full or changed-path matrix with exact command results                  |
+| `/resolve-issue`      | GitHub issue workflow                             | Verify every criterion before commenting or closing                     |
+| `/review-pr`          | Detailed pull request feedback command            | Provide repository-specific APIs and classification rules               |
+| `$review-self`        | Current implementation, diff, or PR stabilization | Fix verified gaps and confirm stability in five-minute review rounds    |
+| `/knowledge-compile`  | Upstream research                                 | Date-stamped notes with official sources and code impact                |
+| `/commit`             | Commit and PR preparation                         | Intentional scope, verification, no publishing                          |
 
 ## Source-of-Truth Map
 

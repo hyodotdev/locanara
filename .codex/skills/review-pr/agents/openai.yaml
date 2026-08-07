@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review PR"
+  short_description: "Finish Locanara PR feedback and CI"
+  default_prompt: "Use $review-pr to inspect and finish the current Locanara pull request, then recheck it every five minutes until clean."

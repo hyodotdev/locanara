@@ -130,13 +130,12 @@ class ExecuTorchEnginePrivacyTests {
     }
 
     @Test
-    fun `native nonzero status cannot become a successful generation`() {
+    fun `native error callback cannot become a successful generation`() {
         val error = try {
             runBlocking {
                 awaitExecuTorchNativeGeneration(
                     start = { callback ->
-                        callback.onStats("completed-with-error")
-                        17
+                        callback.onError(17, "private native error")
                     },
                     onToken = { fail("A failed generation must not emit a token") }
                 )
@@ -158,8 +157,8 @@ class ExecuTorchEnginePrivacyTests {
     @Test
     fun `native success returns even when no stats callback arrives`() = runBlocking {
         awaitExecuTorchNativeGeneration(
-            start = { 0 },
-            onToken = { fail("The status-only test must not emit a token") }
+            start = {},
+            onToken = { fail("The completion-only test must not emit a token") }
         )
     }
 
@@ -193,7 +192,6 @@ class ExecuTorchEnginePrivacyTests {
             awaitExecuTorchNativeGeneration(
                 start = {
                     startCalled = true
-                    0
                 },
                 onToken = { fail("A cancelled generation must not emit a token") },
                 onCancellation = { cancellationHookCalled = true }
@@ -216,7 +214,6 @@ class ExecuTorchEnginePrivacyTests {
                 start = {
                     nativeStarted.countDown()
                     check(releaseNative.await(2, TimeUnit.SECONDS))
-                    0
                 },
                 onToken = { fail("A cancelled generation must not emit a token") },
                 onCancellation = {

@@ -36,10 +36,6 @@ const destinations = {
     src: join(generatedDir, 'Types.swift'),
     dest: join(__dirname, '..', '..', 'apple', 'Sources', 'Types.swift'),
   },
-  swiftCommunity: {
-    src: join(generatedDir, 'Types.swift'),
-    dest: join(__dirname, '..', '..', 'apple', 'SourcesCommunity', 'Types.swift'),
-  },
 }
 
 function sync() {

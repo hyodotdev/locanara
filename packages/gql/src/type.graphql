@@ -23,6 +23,10 @@ enum FeatureType {
   REWRITE
   PROOFREAD
 
+  # Cross-platform image features
+  DESCRIBE_IMAGE
+  GENERATE_IMAGE
+
   # Platform-specific image features - NO DOWNLOAD NEEDED
   DESCRIBE_IMAGE_ANDROID # Android: Gemini Nano (OS managed)
   GENERATE_IMAGE_IOS # iOS: Image Playground (OS managed)

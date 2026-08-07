@@ -22,7 +22,7 @@ The live source is `locanara-versions.json`; package versions may differ.
 
 ## Version Mirror Status
 
-Version mirror mismatch detected: `apple` (root: `1.1.1`, site: `1.1.0`). The root map is authoritative; treat the site copy as a synchronization defect.
+The root and site version maps match.
 
 ## Architecture
 

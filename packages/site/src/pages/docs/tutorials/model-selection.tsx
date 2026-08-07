@@ -225,7 +225,7 @@ print(locanara.getCurrentEngine())  // .llamaCpp`,
 val status = locanara.getPromptApiStatus()
 if (status is PromptApiStatus.Downloadable) {
     locanara.downloadPromptApiModel { progress ->
-        println("Downloading: \$progress")
+        println("Downloading: $progress")
     }
 }
 
@@ -287,7 +287,7 @@ try locanara.deleteModel("llama-3.2-1b")`,
 // Android models are managed by the OS (ML Kit / AICore)
 // Recheck Prompt API status after changes
 val status = locanara.recheckPromptApiStatus()
-println("Prompt API: \$status")
+println("Prompt API: $status")
 
 // Unload models to free memory
 locanara.unloadModels(emptyList())`,

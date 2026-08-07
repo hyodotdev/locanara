@@ -40,6 +40,10 @@ gh pr view "$PR_NUMBER" --json number,title,body,state,headRefName,baseRefName
 # Get review comments
 gh pr view "$PR_NUMBER" --json reviews,comments
 
+# Get reviewer requests, latest decisions, and check state for polling
+gh pr view "$PR_NUMBER" \
+  --json headRefOid,reviewDecision,reviewRequests,latestReviews,statusCheckRollup,updatedAt
+
 # Get list of changed files
 gh pr diff "$PR_NUMBER" --name-only
 
@@ -55,6 +59,64 @@ Analyze review comments and classify them as:
 - **Question**: Content that needs an answer
 - **Suggestion**: Optional improvements
 - **Approval**: No changes needed
+
+### Automated Reviewer Fallback
+
+Automated reviewers are useful evidence, not a completion dependency. If a
+configured reviewer cannot review the current head, replace the missing coverage
+with one complete `$review-self` round.
+
+Treat a reviewer as unavailable only when it reports a terminal quota, billing,
+size, authentication, permission, shutdown, or service failure, or when two
+consecutive polling rounds produce neither review output nor an in-progress or
+requested state. Do not classify a queued or running review as unavailable.
+
+When fallback is required:
+
+1. Record the reviewer, terminal reason, base, and current head SHA.
+2. Run the current surface's `review-self` skill for exactly one complete round
+   with the PR requirements and changed-path rules. Codex uses
+   `.codex/skills/review-self/SKILL.md`; Claude Code uses
+   `.claude/skills/review-self/SKILL.md`.
+3. Do not let the fallback re-enter `review-pr`, request reviewers, reply to or
+   resolve threads, or schedule its five-minute loop. This workflow owns those
+   actions.
+4. Fix and verify validated findings only when the user's request authorizes
+   edits. Preserve the existing commit, push, reply, and resolution gates.
+5. Cache clean fallback coverage by reviewer failure set and head SHA. Any head
+   change invalidates the result.
+
+Reviewer unavailability alone is neither a blocker nor a clean result. A PR is
+clean only when required checks succeed, actionable feedback is resolved, and
+unavailable reviewers have clean fallback coverage for the current head.
+
+### Bounded Reviewer Polling
+
+Poll only reviewers or checks that are already requested, configured, or
+running. Requesting a reviewer, posting a trigger comment, or rerunning a check
+is a separate GitHub write and still requires explicit authorization.
+
+When reviewer or check state is pending:
+
+1. Record the current head SHA, reviewer requests, latest reviews, check state,
+   poll count, and fallback coverage.
+2. Use the product's real wake-up mechanism to re-enter `/review-pr $PR_NUMBER`
+   after five minutes. Keep at most one outstanding wake-up for the same PR and
+   head.
+3. On re-entry, fetch `reviewRequests`, `latestReviews`, `reviewDecision`, and
+   `statusCheckRollup` again before deciding whether the state changed.
+4. If a reviewer disappears from requested or running state without producing
+   review output for two consecutive polls, classify it as unavailable and use
+   the fallback above.
+5. If state remains explicitly queued, requested, or running, keep it pending;
+   do not misclassify it as unavailable. Stop after 12 unchanged polls (about
+   one hour) and report the exact pending state instead of claiming success.
+6. Cancel the outstanding wake-up when the PR becomes clean, closes, merges,
+   changes head incompatibly, or reaches a stopping condition.
+
+If no wake-up mechanism is available, perform the current inspection and report
+pending state. Never emulate polling with `sleep`, a shell loop, `nohup`, or an
+abandoned background process.
 
 ### 3. Changed-Path Verification
 

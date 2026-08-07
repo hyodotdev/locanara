@@ -9,6 +9,7 @@ const MAINTAINED_GLOBS = [
   ".claude/commands/*.md",
   ".claude/guides/*.md",
   ".claude/knowledge/*.md",
+  ".claude/skills/**/*.md",
   ".codex/skills/**/*.md",
   "knowledge/README.md",
   "knowledge/internal/*.md",

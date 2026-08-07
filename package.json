@@ -29,7 +29,7 @@
     "clean": "rm -rf packages/*/node_modules node_modules",
     "generate": "cd packages/gql && bun run generate",
     "version:sync": "bun scripts/sync-versions.mjs",
-    "version:bump": "bun scripts/bump-version.mjs",
+    "version:check": "bun scripts/sync-versions.mjs --check",
     "site": "bun run --cwd packages/site",
     "site:install": "cd packages/site && bun install",
     "site:dev": "bun run --cwd packages/site dev",
@@ -44,8 +44,17 @@
   },
   "devDependencies": {
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
-    "typescript": "^5.9.2"
+    "lint-staged": "^16.4.0",
+    "typescript": "^5.9.3"
   },
-  "packageManager": "bun@1.1.0"
+  "overrides": {
+    "@babel/core": "7.29.7",
+    "ajv": "6.15.0",
+    "flatted": "3.4.4",
+    "js-yaml": "4.3.1",
+    "postcss": "8.5.26",
+    "rollup": "4.62.4",
+    "yaml": "2.9.0"
+  },
+  "packageManager": "bun@1.3.14"
 }

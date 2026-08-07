@@ -76,6 +76,11 @@ locanara/
 
 ## Skills and Slash Commands
 
+- `$locanara-workflows` - Natural-language router for repository workflows
+- `$locanara-docs` - Implementation-backed documentation authoring
+- `$rebase-main` - Safe main update and work-branch rebase
+- `$review-pr` - PR feedback, CI, and five-minute monitoring loop
+- `$review-self` - Self-review and five-minute stabilization loop
 - `/locanara` - Project-wide routing and source-of-truth map
 - `/gql` - GraphQL schema and generated-type workflow
 - `/apple` - Apple SDK development
@@ -85,10 +90,28 @@ locanara/
 - `/audit-code` - Code audit against project rules
 - `/verify-all` - Changed-path or full repository verification
 - `/resolve-issue` - Evidence-backed GitHub issue workflow
-- `/review-pr` - Pull request feedback workflow
-- `$review-self` - Self-review and five-minute stabilization loop
+- `/review-pr` - Detailed pull request feedback command
 - `/knowledge-compile` - Upstream technology research and impact notes
 - `/commit` - Local commit and PR workflow
+
+### AI Assistant Compatibility
+
+`AGENTS.md` is the root policy source shared by the `CLAUDE.md` and `GEMINI.md`
+symlinks. Slash-command workflows live in `.claude/commands/`. Canonical
+cross-agent skill procedures live in `.codex/skills/`, while matching
+`.claude/skills/` files are thin Claude Code discovery adapters.
+
+Install only the globally unique Locanara skills into the local Codex home when
+needed:
+
+```bash
+./.codex/scripts/install-skills.sh
+```
+
+Keep `$review-pr`, `$review-self`, and `$rebase-main` repository-local because
+other projects provide project-specific workflows with the same names. When
+changing a canonical skill, update its Claude adapter, `SKILLS_INDEX.md`, tests,
+and generated agent context as applicable.
 
 ## Commit Conventions
 
@@ -311,6 +334,11 @@ bun run check               # Read-only generated-output verification
 bun run check:versions      # Version work only; fails on root/site drift
 ```
 
+For complete package-manifest and wrapper fallback validation, run
+`bun run version:check` from the repository root. Use `bun run version:sync`
+only during explicitly authorized version preparation or to repair an already
+identified synchronization defect.
+
 ## Build Verification (Required After Code Changes)
 
 **CRITICAL**: After modifying SDK or example app code, verify builds before committing.
@@ -348,7 +376,7 @@ cd packages/android
 | `libraries/expo-ondevice-ai/**`                                                  | TypeScript check, tests, build                                            |
 | `libraries/react-native-ondevice-ai/**`                                          | TypeScript check, tests, build; run nitrogen for spec/codegen changes     |
 | `libraries/flutter_ondevice_ai/**`                                               | `flutter analyze`, `flutter test`                                         |
-| `AGENTS.md`, `SKILLS_INDEX.md`, `.claude/**`, `.codex/skills/**`, `knowledge/**` | agent typecheck, tests, Markdown lint, regenerate if needed, then `check` |
+| `AGENTS.md`, `SKILLS_INDEX.md`, `.claude/**`, `.codex/**`, `knowledge/**`        | agent typecheck, tests, Markdown lint, regenerate if needed, then `check` |
 | `scripts/agent/**`, root/site `llms*.txt`, agent CI workflow                     | agent typecheck, tests, Markdown lint, regenerate if needed, then `check` |
 
 ## Agent Working Agreement

@@ -1,6 +1,6 @@
 {
   "name": "locanara",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Locanara SDK for Chrome Built-in AI (Gemini Nano)",
   "main": "./dist/index.js",
@@ -46,11 +46,11 @@
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "esbuild": "^0.24.0",
-    "jsdom": "^25.0.1",
-    "terser": "^5.37.0",
-    "typescript": "^5.9.2",
-    "vite": "^6.0.7",
-    "vitest": "^3.0.0"
+    "esbuild": "^0.28.1",
+    "jsdom": "^30.0.1",
+    "terser": "^5.49.2",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.3",
+    "vitest": "^4.1.10"
   }
 }

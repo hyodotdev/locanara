@@ -60,9 +60,9 @@ class AIStatusBanner extends StatelessWidget {
 
     // Web: Chrome Built-in AI not available
     if (kIsWeb) {
-      return _BannerContainer(
-        color: const Color(0xFFFFEBEE),
-        icon: const Icon(Icons.warning, size: 20, color: Color(0xFFFF3B30)),
+      return const _BannerContainer(
+        color: Color(0xFFFFEBEE),
+        icon: Icon(Icons.warning, size: 20, color: Color(0xFFFF3B30)),
         title: 'Chrome Built-in AI Not Available',
         subtitle: 'Requires Chrome 138+ with Gemini Nano enabled',
       );
@@ -88,9 +88,9 @@ class AIStatusBanner extends StatelessWidget {
 
     // Android/other: AI supported but model not ready
     if (state.capability?.isSupported == true) {
-      return _BannerContainer(
-        color: const Color(0xFFFFF3E0),
-        icon: const Icon(Icons.auto_awesome_outlined, size: 20, color: Color(0xFFFF9500)),
+      return const _BannerContainer(
+        color: Color(0xFFFFF3E0),
+        icon: Icon(Icons.auto_awesome_outlined, size: 20, color: Color(0xFFFF9500)),
         title: 'AI Model Not Ready',
         subtitle: 'Enable on-device AI in system settings',
       );

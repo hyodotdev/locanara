@@ -8,14 +8,14 @@ release, delete/replace a release, or trigger release/deploy automation.
 
 ## Distribution Surfaces
 
-| Surface | Coordinate |
-| --- | --- |
-| Apple | `Locanara` through SPM/CocoaPods |
-| Android | `com.locanara:locanara` through Maven Central |
-| Web | `locanara` through npm |
-| Expo | `expo-ondevice-ai` through npm |
-| React Native | `react-native-ondevice-ai` through npm |
-| Flutter | `flutter_ondevice_ai` through pub.dev |
+| Surface      | Coordinate                                    |
+| ------------ | --------------------------------------------- |
+| Apple        | `Locanara` through SPM/CocoaPods              |
+| Android      | `com.locanara:locanara` through Maven Central |
+| Web          | `locanara` through npm                        |
+| Expo         | `expo-ondevice-ai` through npm                |
+| React Native | `react-native-ondevice-ai` through npm        |
+| Flutter      | `flutter_ondevice_ai` through pub.dev         |
 
 Read current versions from `locanara-versions.json`; do not embed example
 versions in workflow guidance.
@@ -48,3 +48,13 @@ older package targets, while Foundation Models requires the newer OS API.
 Run `/verify-all` for affected surfaces, check version drift, inspect generated
 outputs, and report any real-device-only rows. Stop before the first external
 publication or deployment action.
+
+Release workflows publish only versions that were already prepared, reviewed,
+and committed on `main`. They must not calculate a new version, commit directly
+to `main`, delete an existing tag/release, or replace an existing registry
+artifact. A maintainer confirms the dispatch after the repository-level
+`version:check` and the protected `release` environment gate pass.
+
+Production site deployment is limited to `main`, uses the protected
+`production` environment, and verifies typecheck, lint, formatting, tests, and
+the production build before Firebase deployment.

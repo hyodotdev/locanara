@@ -139,6 +139,10 @@ public enum ErrorCode: String, Codable, CaseIterable, Sendable {
     case featureNotSupported = "FEATURE_NOT_SUPPORTED"
     case modelNotLoaded = "MODEL_NOT_LOADED"
     case modelDownloadRequired = "MODEL_DOWNLOAD_REQUIRED"
+    case modelNotFound = "MODEL_NOT_FOUND"
+    case modelLoadFailed = "MODEL_LOAD_FAILED"
+    case modelBusy = "MODEL_BUSY"
+    case backgroundUseBlocked = "BACKGROUND_USE_BLOCKED"
     case executionFailed = "EXECUTION_FAILED"
     case executionTimeout = "EXECUTION_TIMEOUT"
     case executionCancelled = "EXECUTION_CANCELLED"
@@ -158,6 +162,22 @@ public enum ErrorCode: String, Codable, CaseIterable, Sendable {
 }
 
 // MARK: - Types
+
+public struct LocanaraEventPayload: Codable, Sendable {
+    public var event: LocanaraEvent
+    public var timestamp: Double
+    public var data: String?
+
+    public init(
+        event: LocanaraEvent,
+        timestamp: Double,
+        data: String? = nil
+    ) {
+        self.event = event
+        self.timestamp = timestamp
+        self.data = data
+    }
+}
 
 public struct CapabilityChangedEvent: Codable, Sendable {
     public var previous: DeviceCapability?
@@ -945,19 +965,28 @@ public struct PersonalizedExecutionResult: Codable, Sendable {
     }
 }
 
-public struct LocanaraEventPayload: Codable, Sendable {
-    public var event: LocanaraEvent
-    public var timestamp: Double
-    public var data: String?
+public struct ExternalModel: Codable, Sendable {
+    public var id: String
+    public var name: String
+    public var sizeMB: Int
+    public var isMultimodal: Bool
+    public var minMemoryMB: Int
+    public var contextLength: Int
 
     public init(
-        event: LocanaraEvent,
-        timestamp: Double,
-        data: String? = nil
+        id: String,
+        name: String,
+        sizeMB: Int,
+        isMultimodal: Bool,
+        minMemoryMB: Int,
+        contextLength: Int
     ) {
-        self.event = event
-        self.timestamp = timestamp
-        self.data = data
+        self.id = id
+        self.name = name
+        self.sizeMB = sizeMB
+        self.isMultimodal = isMultimodal
+        self.minMemoryMB = minMemoryMB
+        self.contextLength = contextLength
     }
 }
 

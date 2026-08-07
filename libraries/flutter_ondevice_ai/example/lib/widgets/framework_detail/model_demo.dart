@@ -84,7 +84,7 @@ val response = model.generate(
           children: [
             const Text('Streaming', style: TextStyle(fontSize: 15)),
             const Spacer(),
-            Switch(value: _streaming, onChanged: (v) => setState(() => _streaming = v), activeColor: const Color(0xFF007AFF)),
+            Switch(value: _streaming, onChanged: (v) => setState(() => _streaming = v), activeThumbColor: const Color(0xFF007AFF)),
           ],
         ),
         const SizedBox(height: 8),
