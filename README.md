@@ -87,23 +87,25 @@ import com.locanara.core.ChainOutput
 import com.locanara.core.LocanaraDefaults
 import com.locanara.dsl.summarize
 
-val model = LocanaraDefaults.model
-val article = "On-device AI keeps private data on the device."
+suspend fun threeLevelsExample() {
+    val model = LocanaraDefaults.model
+    val article = "On-device AI keeps private data on the device."
 
-// 1. Simple
-val summary = model.summarize(article, bulletCount = 3)
+    // 1. Simple
+    val summary = model.summarize(article, bulletCount = 3)
 
-// 2. Chain
-val chain = SummarizeChain(model = model, bulletCount = 3)
-val configured = chain.run(article)
+    // 2. Chain
+    val chain = SummarizeChain(model = model, bulletCount = 3)
+    val configured = chain.run(article)
 
-// 3. Custom
-class TrimChain : Chain {
-    override val name = "TrimChain"
+    // 3. Custom
+    class TrimChain : Chain {
+        override val name = "TrimChain"
 
-    override suspend fun invoke(input: ChainInput): ChainOutput {
-        val text = input.text.trim()
-        return ChainOutput(value = text, text = text, metadata = input.metadata)
+        override suspend fun invoke(input: ChainInput): ChainOutput {
+            val text = input.text.trim()
+            return ChainOutput(value = text, text = text, metadata = input.metadata)
+        }
     }
 }
 ```

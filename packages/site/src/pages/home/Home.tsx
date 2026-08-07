@@ -301,8 +301,8 @@ print(result.summary)
 
 // Pipeline: compose chains together
 let pipeline = model.pipeline {
-    ProofreadChain()
-    TranslateChain(to: "ko")
+    Proofread()
+    Translate(to: "ko")
 }
 let output = try await pipeline.run("Text with typos")`}
                 />
