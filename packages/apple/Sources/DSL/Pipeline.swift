@@ -26,10 +26,11 @@ public struct PipelineDefinition<Output: Sendable>: Sendable {
 
 // MARK: - Result Builder
 
-/// Result builder that tracks the output type of the pipeline at compile time.
+/// Result builder that tracks the final step's output type at compile time.
 ///
 /// Each step added updates the `Output` type to match the last step's output.
-/// This ensures the compiler catches type mismatches before runtime.
+/// Steps exchange `ChainOutput.text` and metadata at runtime; the builder does
+/// not constrain the output type of one step against the input type of the next.
 @available(iOS 15.0, macOS 14.0, *)
 @resultBuilder
 public struct PipelineBuilder {
@@ -49,7 +50,7 @@ public struct PipelineBuilder {
 
 // MARK: - Pipeline
 
-/// A type-safe AI pipeline. The `Output` type is determined at compile time by the last step.
+/// An AI pipeline whose `Output` type is determined at compile time by the last step.
 ///
 /// ```swift
 /// // Compiler knows this returns TranslateResult
@@ -105,7 +106,7 @@ public struct Pipeline<Output: Sendable>: Sendable {
 
 @available(iOS 15.0, macOS 14.0, *)
 public extension LocanaraModel {
-    /// Create a type-safe pipeline. The return type is determined by the last step.
+    /// Create a pipeline whose return type is determined by the last step.
     ///
     /// ```swift
     /// let result = try await model.pipeline {

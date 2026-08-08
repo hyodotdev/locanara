@@ -167,7 +167,7 @@ export function Home() {
                 icon: Workflow,
                 title: "Pipeline DSL",
                 description:
-                  "Compose chains with compile-time type safety. Chain operations together in a fluent, declarative syntax.",
+                  "Compose native chains while the compiler tracks the final result type. Steps exchange text and metadata at runtime.",
                 href: "/docs/apis/pipeline",
               },
               {
@@ -301,8 +301,8 @@ print(result.summary)
 
 // Pipeline: compose chains together
 let pipeline = model.pipeline {
-    ProofreadChain()
-    TranslateChain(to: "ko")
+    Proofread()
+    Translate(to: "ko")
 }
 let output = try await pipeline.run("Text with typos")`}
                 />

@@ -99,7 +99,9 @@ function TutorialsIndex() {
           </Link>
           <Link to="/docs/tutorials/pipeline" className="api-card">
             <h3>Pipeline</h3>
-            <p>Multi-step AI composition with compile-time type safety.</p>
+            <p>
+              Native multi-step composition with final-result type tracking.
+            </p>
           </Link>
           <Link to="/docs/tutorials/memory" className="api-card">
             <h3>Memory</h3>
